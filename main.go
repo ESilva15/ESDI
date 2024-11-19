@@ -1,9 +1,12 @@
 package main
 
 import (
-	"esdi/sources/beamng"
+	"bytes"
+	"encoding/binary"
+	"esdi/sources/iracing"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -13,22 +16,46 @@ type GameSource interface {
 	UpdateData() error
 }
 
+type DataPacket struct {
+	Speed int32
+	Gear  int32
+	RPM   int32
+}
+
+func msToKph(v float32) int {
+	return int((3600 * v) / 1000)
+}
+
 func main() {
-	esdi, err := ESDIInit("COM10", 9600)
+	if len(os.Args) == 3 {
+		fmt.Printf("Port: %s\n", os.Args[1])
+		fmt.Printf("File: %s\n", os.Args[2])
+	} else {
+		log.Fatal("Wrong usage.")
+	}
+
+	esdi, err := ESDIInit(os.Args[1], 115200)
 	if err != nil {
 		log.Fatalf("Failed to get Desktop Interface: %v", err)
 	}
 
-	bIF, err := beamng.Init("127.0.0.1", 4444)
+	file, err := os.Open(os.Args[2])
 	if err != nil {
-		log.Fatalf("Failed to create BeamNG interface: %v", err)
+		log.Fatalf("Failed to open IBT file: %v", err)
 	}
 
-	esdi.Source = &bIF
+	irsdk, err := iracing.Init(file)
+	if err != nil {
+		log.Fatalf("Failed to create iRacing interface: %v", err)
+	}
+
+	esdi.Source = &irsdk
 
 	lastTime := time.Now().UnixMilli()
 	lastDataSent := time.Now().UnixMilli()
 	for {
+		time.Sleep(time.Second / 60)
+
 		var err error
 		var buffer strings.Builder
 		buffer.WriteString("\033[?25l\033[2J\033[H")
@@ -49,18 +76,33 @@ func main() {
 			log.Fatalf("could not get field `RPM`: %v", err)
 		}
 
-		gear := int(curGear.(int8))
-		rpm := int(curRPM.(float32))
+		curSpeed, err := esdi.Source.GetData("Speed")
+		if err != nil {
+			log.Fatalf("could not get field `Speed`: %v", err)
+		}
 
-		buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d", gear, rpm))
+		gear := int32(curGear.(int))
+		rpm := int32(curRPM.(float32))
+		speed := int32(msToKph(curSpeed.(float32)))
+
+		buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d", gear, rpm, speed))
 
 		curTime := time.Now().UnixMilli()
 		message := fmt.Sprintf("%d,%d\n", gear-1, rpm)
 		buffer.WriteString("\n" + message)
 
 		messageWasSentMark := "N"
-		if curTime-lastDataSent > 75 {
-			_, err = esdi.SerialConn.Write([]byte(message))
+		if curTime-lastDataSent > 25 {
+			packet := DataPacket{
+				Speed: speed,
+				Gear:  gear,
+				RPM:   rpm,
+			}
+
+			var buf bytes.Buffer
+			err = binary.Write(&buf, binary.LittleEndian, packet)
+
+			_, err = esdi.SerialConn.Write(buf.Bytes())
 			if err != nil {
 				log.Printf("Unable to write data: %v", err)
 				break

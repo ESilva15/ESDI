@@ -1,33 +1,41 @@
 package iracing
 
 import (
-	"esilva.org.localhost/bngsdk"
+	"fmt"
+	"time"
+
+	"github.com/ESilva15/goirsdk"
 )
 
 // This will implement the GameSink interface from the main package
-type BeamNG struct {
-	SDK *bngsdk.BNGSDK
+type IRacing struct {
+	SDK *goirsdk.IBT
 }
 
 const (
 	NAME = "iRacing"
 )
 
-func Init(ip string, port int) (BeamNG, error) {
+func Init(f goirsdk.Reader) (IRacing, error) {
 	var err error
 
-	sdk, err := bngsdk.Init(ip, port)
+	sdk, err := goirsdk.Init(f)
 	if err != nil {
-		return BeamNG{}, err
+		return IRacing{}, err
 	}
 
-	return BeamNG{SDK: &sdk}, nil
+	return IRacing{SDK: sdk}, nil
 }
 
-func (b *BeamNG) GetData(fieldName string, out interface{}) error {
-	return nil
+func (i *IRacing) GetData(fieldName string) (interface{}, error) {
+	if val, ok := i.SDK.Vars.Vars[fieldName]; ok {
+		return val.Value, nil
+	}
+
+	return nil, fmt.Errorf("key `%s` doesn't exist", fieldName)
 }
 
-func (b *BeamNG) UpdateData() error {
-	return b.SDK.ReadData()
+func (i *IRacing) UpdateData() error {
+	_, err := i.SDK.Update(100 * time.Millisecond)
+	return err
 }
