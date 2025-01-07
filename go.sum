@@ -1,7 +1,7 @@
-github.com/ESilva15/gobngsdk v0.0.1 h1:EbzIp3pTycqOXbGEX8omhhyaR+N9vixQ8/xSXCbYplQ=
-github.com/ESilva15/gobngsdk v0.0.1/go.mod h1:3BpgdToILwl+w3IjUJinK9AzYqUefnQBJbfYlR6Ibbk=
-github.com/ESilva15/goirsdk v0.0.0-20241105180527-300c86190b42 h1:66k8QHzJWrC0Ke2OGQvjFkQUusGfASOsLzfOS0uHoII=
-github.com/ESilva15/goirsdk v0.0.0-20241105180527-300c86190b42/go.mod h1:Vtqm7KbFJ4pjDSz2pUI4TaMWtnVQXn5m7Ee3vmo9yNc=
+github.com/ESilva15/gobngsdk v0.0.2 h1:N6stNOE14Wg80BAZMFu/Qd9Qa/J0DmExCfdPoDf7lco=
+github.com/ESilva15/gobngsdk v0.0.2/go.mod h1:cKLaZRgM0tGGXDvosaSjHnxeyC5Y6rg7zCLqEUJnOzw=
+github.com/ESilva15/goirsdk v0.1.0 h1:SN56nBGil2CphhCIueMUhvoU1LAMvH+O66WWDuyTk1Q=
+github.com/ESilva15/goirsdk v0.1.0/go.mod h1:xuCu9qJn9g+K2w0UjPGeVG1mUr0pbME4nSeBkha4P0U=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 h1:UyzmZLoiDWMRywV4DUYb9Fbt8uiOSooupjTq10vpvnU=
