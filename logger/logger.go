@@ -10,7 +10,7 @@ var l *log.Logger
 var once sync.Once
 
 func createLogger() {
-  l = log.New(os.Stdout, "esdi", log.LstdFlags | log.Lshortfile)
+  l = log.New(os.Stdout, "[esdi] ", log.LstdFlags | log.Lshortfile)
 }
 
 func GetInstance() *log.Logger {

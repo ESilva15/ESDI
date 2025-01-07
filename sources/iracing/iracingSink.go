@@ -16,10 +16,10 @@ const (
 	NAME = "iRacing"
 )
 
-func Init(f goirsdk.Reader) (IRacing, error) {
+func Init(f goirsdk.Reader, telemOut string, yamlOut string) (IRacing, error) {
 	var err error
 
-	sdk, err := goirsdk.Init(f)
+	sdk, err := goirsdk.Init(f, telemOut, yamlOut)
 	if err != nil {
 		return IRacing{}, err
 	}

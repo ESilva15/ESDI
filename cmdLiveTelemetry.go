@@ -11,7 +11,8 @@ func liveTelemetryCmdAction(cmd *cobra.Command, args []string) {
 	log := logger.GetInstance()
 
 	ddPort, _ := cmd.Flags().GetString("port")
-	outputFile, _ := cmd.Flags().GetString("outputFile")
+	outputFile, _ := cmd.Flags().GetString("out")
+	sessionFile, _ := cmd.Flags().GetString("session")
 
 	log.Printf("Called `live`:\nPort: '%s'\nOutFile: '%s'\n", ddPort, outputFile)
 
@@ -20,7 +21,7 @@ func liveTelemetryCmdAction(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to get Desktop Interface: %v", err)
 	}
 
-	irsdk, err := iracing.Init(nil)
+	irsdk, err := iracing.Init(nil, outputFile, sessionFile)
 	if err != nil {
 		log.Fatalf("Failed to create iRacing interface: %v", err)
 	}
@@ -43,6 +44,8 @@ func init() {
 
 	// Declare the flags for this command
 	liveTelemetryCmd.Flags().StringP("port", "p", "", "dashDisplay Port")
+	// liveTelemetryCmd.Flags().StringP("out", "o", "", "output to an .ibt file")
+	// liveTelemetryCmd.Flags().StringP("session", "s", "", "output session .yaml to file")
 
 	// Mark the required ones
 	liveTelemetryCmd.MarkFlagRequired("port")

@@ -20,3 +20,8 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+func init() {
+	rootCmd.Flags().StringP("out", "o", "", "output file")
+	rootCmd.Flags().StringP("session", "s", "", "output session info to file")
+}
