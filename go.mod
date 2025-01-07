@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/ESilva15/gobngsdk v0.0.2
 	github.com/ESilva15/goirsdk v0.1.0
+	github.com/spf13/cobra v1.8.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 )
 
