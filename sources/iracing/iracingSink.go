@@ -39,3 +39,7 @@ func (i *IRacing) UpdateData() error {
 	_, err := i.SDK.Update(100 * time.Millisecond)
 	return err
 }
+
+func (i *IRacing) GetSessionInfo() (interface{}, error) {
+  return i.SDK.SessionInfo, nil
+}

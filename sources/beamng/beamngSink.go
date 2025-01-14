@@ -38,3 +38,7 @@ func (b *BeamNG) GetData(fieldName string) (interface{}, error) {
 func (b *BeamNG) UpdateData() error {
 	return b.SDK.ReadData()
 }
+
+func (b *BeamNG) GetSessionInfo() (interface{}, error) {
+  return nil, fmt.Errorf("Not implemented")
+}
