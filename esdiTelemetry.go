@@ -261,19 +261,18 @@ func (e *ESDI) telemetry() {
 			lapDelta := string(lapTimeDeltaRepresentation(lapDeltaToBestLap.(float32)))
 			lastLapTime := string(lapTimeRepresentation(lapLastLapTime.(float32)))
 
-			// Relative data
-			// sessionInfoRaw, _ := e.Source.GetSessionInfo()
-			// sessionInfo := sessionInfoRaw.(goirsdk.SessionInfoYAML)
-			// drivers := sessionInfo.DriverInfo.Drivers
-			//
-			// selfID := sessionInfo.DriverInfo.DriverCarIdx
+      // Standings
+		  standings := createStandingsTable(i, 9, relativeStandings)
+      positions := i.Vars.Vars["CarIdxPosition"].Value.([]int32)
+      p := positions[9]
+      standings = standings[p - 3: p + 2]
 
-			PlayerCarPosition, err := e.Source.GetData("CarIdxPosition")
-			if err != nil {
-				log.Fatalf("could not get field `CarIdxPosition`: %v", err)
-			}
+		  fmt.Printf("\033[?25l\033[2J\033[H")
+		  for p, v := range standings {
+		  	fmt.Printf("[%2d] [%2d]%-30s %3d %10f %s\n",
+		  		p+1, v.CarIdx, v.DriverName, v.Lap, v.LapPct, lapTimeRepresentation(v.TimeBehind))
+		  }
 
-			selfPos := int32(PlayerCarPosition.(int))
 
 			mu.Lock()
 			data = DataPacket{
@@ -289,7 +288,6 @@ func (e *ESDI) telemetry() {
 				FuelLiters:  fuelLiters,
 				FuelPct:     fuelPct,
 				FuelTotal:   totalFuel,
-				Position:    selfPos,
 			}
 			mu.Unlock()
 		}
