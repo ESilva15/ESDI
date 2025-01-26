@@ -2,8 +2,9 @@ package main
 
 import (
 	"esdi/logger"
-	"esdi/sources/iracing"
+	// "esdi/sources/iracing"
 
+	"github.com/ESilva15/goirsdk"
 	"github.com/spf13/cobra"
 )
 
@@ -21,12 +22,17 @@ func liveTelemetryCmdAction(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to get Desktop Interface: %v", err)
 	}
 
-	irsdk, err := iracing.Init(nil, outputFile, sessionFile)
-	if err != nil {
-		log.Fatalf("Failed to create iRacing interface: %v", err)
-	}
+	// irsdk, err := iracing.Init(nil, outputFile, sessionFile)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create iRacing interface: %v", err)
+	// }
 
-	esdi.Source = &irsdk
+  irsdk, err := goirsdk.Init(nil, outputFile, sessionFile)
+  if err != nil {
+    log.Fatalf("Failed to create irsdk instance: %v\n", err)
+  }
+
+	esdi.irsdk = irsdk
 
 	esdi.telemetry()
 }

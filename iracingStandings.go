@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"sort"
-	"testing"
+
+	"github.com/ESilva15/goirsdk"
 )
 
 type StandingsLine struct {
@@ -17,7 +17,18 @@ type StandingsLine struct {
 
 type standingsFilter func([]StandingsLine, []float32, int)
 
-func generalStandings(s []StandingsLine, estTime []float32, id int) {
+func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
+	// We have to sort the racists by their lap count and position on the track
+	// on the current lap
+	sort.Slice(s, func(i int, j int) bool {
+		if s[i].Lap == int32(s[j].Lap) {
+			return s[i].LapPct > s[j].LapPct
+		}
+		return s[i].Lap > s[j].Lap
+	})
+
+  estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
+
 	// This will give the delta to the guy ahead
 	// P1 0:00:000
 	// P2 0:01:000 -> 1s from P1
@@ -33,7 +44,16 @@ func generalStandings(s []StandingsLine, estTime []float32, id int) {
 	}
 }
 
-func relativeStandings(s []StandingsLine, estTime []float32, id int) {
+func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
+	// We sort the racists solely by their position on the track because all
+	// we want to know is where people are in relation to us
+	// But we should add a way to diferentatiate lap counts
+	sort.Slice(s, func(i int, j int) bool {
+		return s[i].LapPct > s[j].LapPct
+	})
+
+  estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
+
 	// Get the delta to a given carId
 	for p := range s {
 		curCarEstimate := estTime[s[p].CarIdx]
@@ -45,8 +65,9 @@ func relativeStandings(s []StandingsLine, estTime []float32, id int) {
 	}
 }
 
-func bestLapTime(i GameSource, id int) float32 {
+func bestLapTime(i *goirsdk.IBT, id int) float32 {
 	best := i.Vars.Vars["LapBestLapTime"].Value.(float32)
+
 	if best > 0 {
 		return best
 	}
@@ -59,7 +80,7 @@ func bestLapTime(i GameSource, id int) float32 {
 // If the filter applied is generalStandings, the carId has to be 0
 // We can do some dynamicProgramming on this thing I guess, I still haven't
 // though about it much yet tbh
-func createStandingsTable(i GameSource, carId int, filter standingsFilter) []StandingsLine {
+func createStandingsTable(i *goirsdk.IBT) []StandingsLine {
 	driversLapDistPct := i.Vars.Vars["CarIdxLapDistPct"].Value.([]float32)
 	driversEstTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 	driversLap := i.Vars.Vars["CarIdxLap"].Value.([]int32)
@@ -86,16 +107,6 @@ func createStandingsTable(i GameSource, carId int, filter standingsFilter) []Sta
 		}
 	}
 
-	// This will sort our standings by lap and LapPct
-	sort.Slice(standings, func(i int, j int) bool {
-		if standings[i].Lap == int32(standings[j].Lap) {
-			return standings[i].LapPct > standings[j].LapPct
-		}
-		return standings[i].Lap > standings[j].Lap
-	})
-
-	filter(standings, driversEstTime, carId)
-
 	return standings
 }
 
@@ -106,7 +117,7 @@ func abs(v float32) float32 {
 	return v
 }
 
-func TestStandingsFunctionality(t *testing.T) {
-	for {
-	}
+
+
+func getPlayerPosition(s []StandingsLine, p int) {
 }

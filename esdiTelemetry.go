@@ -27,18 +27,18 @@ type DataPacket struct {
 	RPM         int32
 	LapCount    int32
 	LapDistPct  float32
-	LapTime     string // Current lap time
-	LapDelta    string // Delta to selected reference lap
-	BestLapTime string // Best lap in session
-	LastLapTime string // Last lap time
+	LapTime     [16]byte // Current lap time
+	LapDelta    [16]byte // Delta to selected reference lap
+	BestLapTime [16]byte // Best lap in session
+	LastLapTime [16]byte // Last lap time
 	FuelPct     float32
 	FuelLiters  float32
 	FuelTotal   float32 // This will be calculated and passed in Liters
 	Position    int32
+	Standings   []StandingsLine
 }
 
 var (
-	data            DataPacket
 	lastMessageTime time.Time
 	mu              sync.Mutex
 )
@@ -102,7 +102,7 @@ func (e *ESDI) setupSignalHandlers() chan struct{} {
 	return done
 }
 
-func sendData(s *serial.Port, done <-chan struct{}) {
+func sendData(e *ESDI, s *serial.Port, done <-chan struct{}) {
 	ticker := time.NewTicker(time.Millisecond * 25)
 	defer ticker.Stop()
 
@@ -114,7 +114,7 @@ func sendData(s *serial.Port, done <-chan struct{}) {
 			mu.Lock()
 
 			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.LittleEndian, data)
+			err := binary.Write(&buf, binary.LittleEndian, e.data)
 
 			_, err = s.Write(buf.Bytes())
 			if err != nil {
@@ -128,7 +128,7 @@ func sendData(s *serial.Port, done <-chan struct{}) {
 	}
 }
 
-func printData(done <-chan struct{}) {
+func printData(e *ESDI, done <-chan struct{}) {
 	ticker := time.NewTicker(time.Millisecond * 100)
 	defer ticker.Stop()
 
@@ -141,18 +141,24 @@ func printData(done <-chan struct{}) {
 			buffer.WriteString("\033[?25l\033[2J\033[H")
 
 			mu.Lock()
-			// message := fmt.Sprintf("%d,%d\n", data.Gear-1, data.RPM)
+			// message := fmt.Sprintf("%d,%d\n", e.data.Gear-1, e.data.RPM)
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n",
-				data.Gear, data.RPM, data.Speed))
-			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL [%.2f%%]\n", data.FuelLiters,
-				data.FuelTotal, data.FuelPct))
-			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", data.LapTime,
-				data.LapDelta))
-			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", data.BestLapTime))
-			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", data.LastLapTime))
-			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n", data.LapCount,
-				data.LapDistPct))
-			buffer.WriteString(fmt.Sprintf("Pos: %d\n", data.Position))
+				e.data.Gear, e.data.RPM, e.data.Speed))
+			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL [%.2f%%]\n", e.data.FuelLiters,
+				e.data.FuelTotal, e.data.FuelPct))
+			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.data.LapTime,
+				e.data.LapDelta))
+			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.data.BestLapTime))
+			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.data.LastLapTime))
+			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n", e.data.LapCount,
+				e.data.LapDistPct))
+			buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.data.Position))
+
+			for p, v := range e.data.Standings {
+				s := fmt.Sprintf("[%2d] [%2d]%-30s %3d %10f %s\n",
+					p+1, v.CarIdx, v.DriverName, v.Lap, v.LapPct, lapTimeRepresentation(v.TimeBehind))
+				buffer.WriteString(s)
+			}
 			mu.Unlock()
 
 			// buffer.WriteString("\n" + message)
@@ -161,12 +167,78 @@ func printData(done <-chan struct{}) {
 	}
 }
 
+func (e *ESDI) getVehicleData() {
+	curGear := e.irsdk.Vars.Vars["Gear"].Value
+	curRPM := e.irsdk.Vars.Vars["RPM"].Value
+	curSpeed := e.irsdk.Vars.Vars["Speed"].Value
+
+	mu.Lock()
+	e.data.Gear = int32(curGear.(int))
+	e.data.RPM = int32(curRPM.(float32))
+	e.data.Speed = int32(msToKph(curSpeed.(float32)))
+	mu.Unlock()
+}
+
+func (e *ESDI) fuelData() {
+	fLiters := e.irsdk.Vars.Vars["FuelLevel"].Value
+	fPct := e.irsdk.Vars.Vars["FuelLevelPct"].Value
+
+	mu.Lock()
+	e.data.FuelPct = float32(fPct.(float32)) * 100
+	e.data.FuelLiters = float32(fLiters.(float32))
+	e.data.FuelTotal = (100 * e.data.FuelLiters) / e.data.FuelPct
+	mu.Unlock()
+}
+
+func (e *ESDI) lapData() {
+	currentLap := e.irsdk.Vars.Vars["Lap"].Value
+	lapDistPct := e.irsdk.Vars.Vars["LapDistPct"].Value
+	currentLapTime := e.irsdk.Vars.Vars["LapCurrentLapTime"].Value
+	lapBestLapTime := e.irsdk.Vars.Vars["LapBestLapTime"].Value
+	lapLastLapTime := e.irsdk.Vars.Vars["LapLastLapTime"].Value
+	lapDeltaToBestLap := e.irsdk.Vars.Vars["LapDeltaToBestLap"].Value
+
+	mu.Lock()
+	e.data.LapCount = int32(currentLap.(int))
+	e.data.LapDistPct = float32(lapDistPct.(float32)) * 100
+	copy(e.data.LapTime[:], string(lapTimeRepresentation(currentLapTime.(float32))))
+	copy(e.data.LastLapTime[:], string(lapTimeRepresentation(lapLastLapTime.(float32))))
+	copy(e.data.BestLapTime[:], string(lapTimeRepresentation(lapBestLapTime.(float32))))
+	copy(e.data.LapDelta[:], string(lapTimeDeltaRepresentation(lapDeltaToBestLap.(float32))))
+	mu.Unlock()
+}
+
+func (e *ESDI) positionData() {
+	standings := createStandingsTable(e.irsdk)
+	relativeStandings(e.irsdk, standings, e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
+	p := findEntry(standings, func(l StandingsLine) bool {
+		return l.CarIdx == e.irsdk.SessionInfo.DriverInfo.DriverCarIdx
+	})
+
+	lowerLim := p - 2
+	upperLim := p + 3
+
+	if lowerLim < 0 {
+		lowerLim = 0
+	}
+	if upperLim >= len(standings) {
+		upperLim = len(standings)
+	}
+
+	standings = standings[lowerLim:upperLim]
+
+	mu.Lock()
+	e.data.Standings = standings
+	e.data.Position = int32(p)
+	mu.Unlock()
+}
+
 func (e *ESDI) telemetry() {
 	// Set the handlers
 	done := e.setupSignalHandlers()
 
 	// go sendData(e.SerialConn, done)
-	go printData(done)
+	go printData(e, done)
 
 	mainLoopTicker := time.NewTicker(time.Second / 60)
 	defer mainLoopTicker.Stop()
@@ -182,114 +254,16 @@ func (e *ESDI) telemetry() {
 
 			var err error
 
-			err = e.Source.UpdateData()
+			_, err = e.irsdk.Update(time.Millisecond * 100)
 			if err != nil {
 				fmt.Printf("could not update data: %v", err)
 				continue
 			}
 
-			// Vehicle Movement data
-			curGear, err := e.Source.GetData("Gear")
-			if err != nil {
-				log.Fatalf("could not get field `Gear`: %v", err)
-			}
-
-			curRPM, err := e.Source.GetData("RPM")
-			if err != nil {
-				log.Fatalf("could not get field `RPM`: %v", err)
-			}
-
-			curSpeed, err := e.Source.GetData("Speed")
-			if err != nil {
-				log.Fatalf("could not get field `Speed`: %v", err)
-			}
-
-			gear := int32(curGear.(int))
-			rpm := int32(curRPM.(float32))
-			speed := int32(msToKph(curSpeed.(float32)))
-
-			// Fuel data
-			fLiters, err := e.Source.GetData("FuelLevel")
-			if err != nil {
-				log.Fatalf("could not get field `FuelLevel`: %v", err)
-			}
-
-			fPct, err := e.Source.GetData("FuelLevelPct")
-			if err != nil {
-				log.Fatalf("could not get field `FuelLevelPct`: %v", err)
-			}
-
-			fuelPct := float32(fPct.(float32)) * 100
-			fuelLiters := float32(fLiters.(float32))
-			totalFuel := (100 * fuelLiters) / fuelPct
-
-			// Lap data
-			currentLap, err := e.Source.GetData("Lap")
-			if err != nil {
-				log.Fatalf("could not get field `Lap`: %v", err)
-			}
-
-			lapDistPct, err := e.Source.GetData("LapDistPct")
-			if err != nil {
-				log.Fatalf("could not get field `Lap`: %v", err)
-			}
-
-			currentLapTime, err := e.Source.GetData("LapCurrentLapTime")
-			if err != nil {
-				log.Fatalf("could not get field `LapCurrentLapTime`: %v", err)
-			}
-
-			lapBestLapTime, err := e.Source.GetData("LapBestLapTime")
-			if err != nil {
-				log.Fatalf("could not get field `LapBestLapTime`: %v", err)
-			}
-
-			lapLastLapTime, err := e.Source.GetData("LapLastLapTime")
-			if err != nil {
-				log.Fatalf("could not get field `LapBestLapTime`: %v", err)
-			}
-
-			lapDeltaToBestLap, err := e.Source.GetData("LapDeltaToBestLap")
-			if err != nil {
-				log.Fatalf("could not get field `LapDeltaToBestLap`: %v", err)
-			}
-
-			lap := int32(currentLap.(int))
-			lapPct := float32(lapDistPct.(float32)) * 100
-			lapTime := string(lapTimeRepresentation(currentLapTime.(float32)))
-			bestLapTime := string(lapTimeRepresentation(lapBestLapTime.(float32)))
-			lapDelta := string(lapTimeDeltaRepresentation(lapDeltaToBestLap.(float32)))
-			lastLapTime := string(lapTimeRepresentation(lapLastLapTime.(float32)))
-
-      // Standings
-		  standings := createStandingsTable(i, 9, relativeStandings)
-      positions := i.Vars.Vars["CarIdxPosition"].Value.([]int32)
-      p := positions[9]
-      standings = standings[p - 3: p + 2]
-
-		  fmt.Printf("\033[?25l\033[2J\033[H")
-		  for p, v := range standings {
-		  	fmt.Printf("[%2d] [%2d]%-30s %3d %10f %s\n",
-		  		p+1, v.CarIdx, v.DriverName, v.Lap, v.LapPct, lapTimeRepresentation(v.TimeBehind))
-		  }
-
-
-			mu.Lock()
-			data = DataPacket{
-				Speed:       speed,
-				Gear:        gear,
-				RPM:         rpm,
-				LapCount:    lap,
-				LapDistPct:  lapPct,
-				LapTime:     lapTime,
-				LastLapTime: lastLapTime,
-				BestLapTime: bestLapTime,
-				LapDelta:    lapDelta,
-				FuelLiters:  fuelLiters,
-				FuelPct:     fuelPct,
-				FuelTotal:   totalFuel,
-			}
-			mu.Unlock()
+			e.getVehicleData()
+			e.lapData()
+			e.fuelData()
+			e.positionData()
 		}
 	}
 }
