@@ -22,23 +22,27 @@ type GameSource interface {
 }
 
 type DataPacket struct {
-	Speed       int32
-	Gear        int32
-	RPM         int32
-	LapCount    int32
-	LapDistPct  float32
-	LapTime     [16]byte // Current lap time
-	LapDelta    [16]byte // Delta to selected reference lap
-	BestLapTime [16]byte // Best lap in session
-	LastLapTime [16]byte // Last lap time
-	FuelPct     float32
-	FuelLiters  float32
-	FuelTotal   float32 // This will be calculated and passed in Liters
-	Position    int32
-	Standings   []StandingsLine
+	Speed           int32
+	Gear            int32
+	RPM             int32
+	LapCount        int32
+	LapDistPct      float32
+	LapTime         [16]byte // Current lap time
+	LapDelta        [16]byte // Delta to selected reference lap
+	BestLapTime     [16]byte // Best lap in session
+	LastLapTime     [16]byte // Last lap time
+	FuelUsageCurLap float32
+	FuelPerLap      float32
+	FuelPct         float32
+	FuelLiters      float32
+	FuelTotal       float32 // This will be calculated and passed in Liters
+	Position        int32
+	Standings       []StandingsLine
 }
 
 var (
+	iniFuelLvl      float32
+	fuelLevels      map[int]float32
 	lastMessageTime time.Time
 	mu              sync.Mutex
 )
@@ -129,7 +133,7 @@ func sendData(e *ESDI, s *serial.Port, done <-chan struct{}) {
 }
 
 func printData(e *ESDI, done <-chan struct{}) {
-	ticker := time.NewTicker(time.Millisecond * 100)
+	ticker := time.NewTicker(time.Millisecond * 25)
 	defer ticker.Stop()
 
 	for {
@@ -144,8 +148,8 @@ func printData(e *ESDI, done <-chan struct{}) {
 			// message := fmt.Sprintf("%d,%d\n", e.data.Gear-1, e.data.RPM)
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n",
 				e.data.Gear, e.data.RPM, e.data.Speed))
-			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL [%.2f%%]\n", e.data.FuelLiters,
-				e.data.FuelTotal, e.data.FuelPct))
+			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL %.2f/lap [%.2f%%]\n", e.data.FuelLiters,
+				e.data.FuelTotal, e.data.FuelPerLap, e.data.FuelPct))
 			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.data.LapTime,
 				e.data.LapDelta))
 			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.data.BestLapTime))
@@ -182,6 +186,15 @@ func (e *ESDI) getVehicleData() {
 func (e *ESDI) fuelData() {
 	fLiters := e.irsdk.Vars.Vars["FuelLevel"].Value
 	fPct := e.irsdk.Vars.Vars["FuelLevelPct"].Value
+
+	curLap := e.irsdk.Vars.Vars["Lap"].Value.(int)
+	fuelLevels[curLap] = fLiters.(float32)
+
+	if curLap - 2 < 0 {
+		e.data.FuelPerLap = 0.0
+	} else {
+		e.data.FuelPerLap = fuelLevels[curLap-2] - fuelLevels[curLap - 1]
+	}
 
 	mu.Lock()
 	e.data.FuelPct = float32(fPct.(float32)) * 100
@@ -243,6 +256,8 @@ func (e *ESDI) telemetry() {
 	mainLoopTicker := time.NewTicker(time.Second / 60)
 	defer mainLoopTicker.Stop()
 
+	fuelLevels = make(map[int]float32, 256)
+
 	for {
 		select {
 		case <-done:
@@ -261,8 +276,8 @@ func (e *ESDI) telemetry() {
 			}
 
 			e.getVehicleData()
-			e.lapData()
 			e.fuelData()
+			e.lapData()
 			e.positionData()
 		}
 	}
