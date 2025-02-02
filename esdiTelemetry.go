@@ -41,6 +41,14 @@ type DataPacket struct {
 }
 
 var (
+	paddingStandingsLine = StandingsLine{
+		DriverName: "---",
+		Lap:        0,
+		CarIdx:     0,
+		LapPct:     0,
+		EstTime:    0,
+		TimeBehind: 0,
+	}
 	iniFuelLvl      float32
 	fuelLevels      map[int]float32
 	lastMessageTime time.Time
@@ -145,7 +153,6 @@ func printData(e *ESDI, done <-chan struct{}) {
 			buffer.WriteString("\033[?25l\033[2J\033[H")
 
 			mu.Lock()
-			// message := fmt.Sprintf("%d,%d\n", e.data.Gear-1, e.data.RPM)
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n",
 				e.data.Gear, e.data.RPM, e.data.Speed))
 			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL %.2f/lap [%.2f%%]\n", e.data.FuelLiters,
@@ -190,10 +197,10 @@ func (e *ESDI) fuelData() {
 	curLap := e.irsdk.Vars.Vars["Lap"].Value.(int)
 	fuelLevels[curLap] = fLiters.(float32)
 
-	if curLap - 2 < 0 {
+	if curLap-2 < 0 {
 		e.data.FuelPerLap = 0.0
 	} else {
-		e.data.FuelPerLap = fuelLevels[curLap-2] - fuelLevels[curLap - 1]
+		e.data.FuelPerLap = fuelLevels[curLap-2] - fuelLevels[curLap-1]
 	}
 
 	mu.Lock()
@@ -231,14 +238,26 @@ func (e *ESDI) positionData() {
 	lowerLim := p - 2
 	upperLim := p + 3
 
+	var lowerPadding []StandingsLine
+	var upperPadding []StandingsLine
+
 	if lowerLim < 0 {
+		lowerPadding = make([]StandingsLine, lowerLim)
+		for k := range lowerLim {
+			lowerPadding[k] = paddingStandingsLine
+		}
 		lowerLim = 0
 	}
 	if upperLim >= len(standings) {
+		upperPadding = make([]StandingsLine, upperLim)
+    for k := range upperLim {
+      upperPadding[k] = paddingStandingsLine
+    }
 		upperLim = len(standings)
 	}
 
-	standings = standings[lowerLim:upperLim]
+	standings = append(lowerPadding, standings[lowerLim:upperLim]...)
+	standings = append(standings, upperPadding...)
 
 	mu.Lock()
 	e.data.Standings = standings
