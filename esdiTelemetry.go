@@ -242,17 +242,17 @@ func (e *ESDI) positionData() {
 	var upperPadding []StandingsLine
 
 	if lowerLim < 0 {
-		lowerPadding = make([]StandingsLine, lowerLim)
-		for k := range lowerLim {
+		lowerPadding = make([]StandingsLine, abs(lowerLim))
+		for k := 0; k < abs(lowerLim); k++ {
 			lowerPadding[k] = paddingStandingsLine
 		}
 		lowerLim = 0
 	}
 	if upperLim >= len(standings) {
-		upperPadding = make([]StandingsLine, upperLim)
-    for k := range upperLim {
-      upperPadding[k] = paddingStandingsLine
-    }
+		upperPadding = make([]StandingsLine, upperLim-len(standings))
+		for k := 0; k < upperLim-len(standings); k++ {
+			upperPadding[k] = paddingStandingsLine
+		}
 		upperLim = len(standings)
 	}
 

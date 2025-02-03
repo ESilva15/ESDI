@@ -110,11 +110,12 @@ func createStandingsTable(i *goirsdk.IBT) []StandingsLine {
 	return standings
 }
 
-func abs(v float32) float32 {
-	if v < 0 {
-		v = v * -1
+func abs[V int32 | float32 | int](value V) V {
+	if value < 0 {
+		value = value * -1
 	}
-	return v
+
+	return value
 }
 
 
