@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tarm/serial"
+	// "github.com/tarm/serial"
 )
 
 type GameSource interface {
@@ -37,12 +37,12 @@ type DataPacket struct {
 	FuelLiters      float32
 	FuelTotal       float32 // This will be calculated and passed in Liters
 	Position        int32
-	Standings       []StandingsLine
+	Standings       [5]StandingsLine
 }
 
 var (
 	paddingStandingsLine = StandingsLine{
-		DriverName: "---",
+		DriverName: createDriverName("---"),
 		Lap:        0,
 		CarIdx:     0,
 		LapPct:     0,
@@ -91,7 +91,7 @@ func resetTerminal() {
 	fmt.Print("\033[?25h\033[2J\033[H")
 }
 
-func (e *ESDI) setupSignalHandlers() chan struct{} {
+func (e *ESDI) setupSignalHandlers() chan string {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
@@ -99,7 +99,7 @@ func (e *ESDI) setupSignalHandlers() chan struct{} {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 	)
-	done := make(chan struct{})
+	done := make(chan string)
 
 	go func() {
 		s := <-sigc
@@ -114,33 +114,48 @@ func (e *ESDI) setupSignalHandlers() chan struct{} {
 	return done
 }
 
-func sendData(e *ESDI, s *serial.Port, done <-chan struct{}) {
-	ticker := time.NewTicker(time.Millisecond * 25)
-	defer ticker.Stop()
+// func sendData(e *ESDI, s *serial.Port, done <-chan string, errC chan string) {
+// 	ticker := time.NewTicker(time.Millisecond * 25)
+// 	defer ticker.Stop()
+//
+// 	for {
+// 		select {
+// 		case <-done:
+// 			return
+// 		case <-ticker.C:
+// 			mu.Lock()
+//
+// 			data := DataToSend{
+// 				Speed:           e.data.Speed,
+// 				Gear:            e.data.Gear,
+// 				RPM:             e.data.RPM,
+// 				LapCount:        e.data.LapCount,
+// 				LapDistPct:      e.data.LapDistPct,
+// 				// FuelPerLap:      e.data.FuelPerLap,
+// 				// FuelUsageCurLap: e.data.FuelUsageCurLap,
+// 			}
+//
+// 			copy(data.LapTime[:], e.data.LapTime[:])
+// 			copy(data.LapDelta[:], e.data.LapDelta[:])
+// 			copy(data.BestLapTime[:], e.data.BestLapTime[:])
+// 			copy(data.LastLapTime[:], e.data.LastLapTime[:])
+//
+// 			var buf bytes.Buffer
+// 			err := binary.Write(&buf, binary.LittleEndian, data)
+//
+// 			_, err = s.Write(buf.Bytes())
+// 			if err != nil {
+// 				log.Printf("Unable to write data: %v", err)
+// 				break
+// 			}
+//
+// 			lastMessageTime = time.Now()
+// 			mu.Unlock()
+// 		}
+// 	}
+// }
 
-	for {
-		select {
-		case <-done:
-			return
-		case <-ticker.C:
-			mu.Lock()
-
-			var buf bytes.Buffer
-			err := binary.Write(&buf, binary.LittleEndian, e.data)
-
-			_, err = s.Write(buf.Bytes())
-			if err != nil {
-				log.Printf("Unable to write data: %v", err)
-				break
-			}
-
-			lastMessageTime = time.Now()
-			mu.Unlock()
-		}
-	}
-}
-
-func printData(e *ESDI, done <-chan struct{}) {
+func printData(e *ESDI, done <-chan string) {
 	ticker := time.NewTicker(time.Millisecond * 25)
 	defer ticker.Stop()
 
@@ -153,21 +168,28 @@ func printData(e *ESDI, done <-chan struct{}) {
 			buffer.WriteString("\033[?25l\033[2J\033[H")
 
 			mu.Lock()
-			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n",
+			buffer.WriteString("Car data:\n")
+			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
 				e.data.Gear, e.data.RPM, e.data.Speed))
-			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL %.2f/lap [%.2f%%]\n", e.data.FuelLiters,
+
+			buffer.WriteString("Fuel data:\n")
+			buffer.WriteString(fmt.Sprintf("Fuel: %.2fL/%.2fL %.2f/lap [%.2f%%]\n\n", e.data.FuelLiters,
 				e.data.FuelTotal, e.data.FuelPerLap, e.data.FuelPct))
+
+			buffer.WriteString("Lap data:\n")
 			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.data.LapTime,
 				e.data.LapDelta))
 			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.data.BestLapTime))
 			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.data.LastLapTime))
-			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n", e.data.LapCount,
+			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.data.LapCount,
 				e.data.LapDistPct))
+
+			buffer.WriteString("Position data:\n")
 			buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.data.Position))
 
 			for p, v := range e.data.Standings {
-				s := fmt.Sprintf("[%2d] [%2d]%-30s %3d %10f %s\n",
-					p+1, v.CarIdx, v.DriverName, v.Lap, v.LapPct, lapTimeRepresentation(v.TimeBehind))
+				s := fmt.Sprintf("[%2d] [%2d] %-16s %3d %10f %s\n",
+					p+1, v.CarIdx, string(bytes.Trim(v.DriverName[:], "\x00")), v.Lap, v.LapPct, v.TimeBehindString)
 				buffer.WriteString(s)
 			}
 			mu.Unlock()
@@ -232,7 +254,7 @@ func (e *ESDI) positionData() {
 	standings := createStandingsTable(e.irsdk)
 	relativeStandings(e.irsdk, standings, e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
 	p := findEntry(standings, func(l StandingsLine) bool {
-		return l.CarIdx == e.irsdk.SessionInfo.DriverInfo.DriverCarIdx
+		return l.CarIdx == int32(e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
 	})
 
 	lowerLim := p - 2
@@ -260,16 +282,37 @@ func (e *ESDI) positionData() {
 	standings = append(standings, upperPadding...)
 
 	mu.Lock()
-	e.data.Standings = standings
+	copy(e.data.Standings[:], standings[0:5])
 	e.data.Position = int32(p)
 	mu.Unlock()
+}
+
+type DataToSend struct {
+	Speed           int32
+	Gear            int32
+	RPM             int32
+	LapCount        int32
+	LapDistPct      float32
+	LapTime         [16]byte // Current lap time
+	LapDelta        [16]byte // Delta to selected reference lap
+	BestLapTime     [16]byte // Best lap in session
+	LastLapTime     [16]byte // Last lap time
+	FuelUsageCurLap float32
+	FuelPerLap      float32
+	// FuelPct         float32
+	// FuelLiters      float32
+	// FuelTotal       float32 // This will be calculated and passed in Liters
+	// Position        int32
+	// Standings       [5]StandingsLine
 }
 
 func (e *ESDI) telemetry() {
 	// Set the handlers
 	done := e.setupSignalHandlers()
 
-	// go sendData(e.SerialConn, done)
+	dataError := make(chan string)
+
+	// go sendData(e, e.SerialConn, done, dataError)
 	go printData(e, done)
 
 	mainLoopTicker := time.NewTicker(time.Second / 60)
@@ -279,10 +322,12 @@ func (e *ESDI) telemetry() {
 
 	for {
 		select {
-		case <-done:
+		case s := <-done:
 			resetTerminal()
-			fmt.Println("Quitting ESDI...")
+			fmt.Println(s)
 			return
+		case s := <-dataError:
+			done <- s
 		case <-mainLoopTicker.C:
 			time.Sleep(time.Second / 60)
 
@@ -298,6 +343,39 @@ func (e *ESDI) telemetry() {
 			e.fuelData()
 			e.lapData()
 			e.positionData()
+
+			mu.Lock()
+
+			data := DataToSend{
+				Speed:           e.data.Speed,
+				Gear:            e.data.Gear,
+				RPM:             e.data.RPM,
+				LapCount:        e.data.LapCount,
+				LapDistPct:      e.data.LapDistPct,
+				// FuelPerLap:      e.data.FuelPerLap,
+				// FuelUsageCurLap: e.data.FuelUsageCurLap,
+			}
+
+			copy(data.LapTime[:], e.data.LapTime[:])
+			copy(data.LapDelta[:], e.data.LapDelta[:])
+			copy(data.BestLapTime[:], e.data.BestLapTime[:])
+			copy(data.LastLapTime[:], e.data.LastLapTime[:])
+
+			var buf bytes.Buffer
+			err = binary.Write(&buf, binary.LittleEndian, data)
+
+      if len(buf.Bytes()) != 92 {
+        panic(fmt.Sprintf("Size is: %d, instead of 92", len(buf.Bytes())))
+      }
+
+			_, err = e.SerialConn.Write(buf.Bytes())
+			if err != nil {
+				log.Printf("Unable to write data: %v", err)
+				break
+			}
+
+			lastMessageTime = time.Now()
+			mu.Unlock()
 		}
 	}
 }

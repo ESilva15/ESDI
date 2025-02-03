@@ -23,17 +23,17 @@ func (e *ESDI) Close() {
 }
 
 func ESDIInit(port string, baud int) (ESDI, error) {
-	// sConfig := &serial.Config{
-	// 	Name: port,
-	// 	Baud: baud,
-	// }
+	sConfig := &serial.Config{
+		Name: port,
+		Baud: baud,
+	}
 
 	// Open the serial port
-	// sPort, err := serial.OpenPort(sConfig)
-	// if err != nil {
-	// 	return ESDI{}, err
-	// }
+	sPort, err := serial.OpenPort(sConfig)
+	if err != nil {
+		return ESDI{}, err
+	}
 
 	// return ESDI{sConfig, sPort, nil}, nil
-	return ESDI{nil, nil, nil, DataPacket{}}, nil
+	return ESDI{sConfig, sPort, nil, DataPacket{}}, nil
 }

@@ -7,15 +7,27 @@ import (
 )
 
 type StandingsLine struct {
-	CarIdx     int
-	LapPct     float32
-	Lap        int32
-	DriverName string
-	EstTime    float32
-	TimeBehind float32
+	CarIdx           int32
+	LapPct           float32
+	Lap              int32
+	DriverName       [16]byte
+	EstTime          float32
+	TimeBehind       float32
+	TimeBehindString [16]byte
 }
 
-type standingsFilter func([]StandingsLine, []float32, int)
+func createDriverName(s string) [16]byte {
+	var arr [16]byte
+
+	if len(s) > 32 {
+		s = s[:32]
+	}
+
+	copy(arr[:], s)
+	return arr
+}
+
+// type standingsFilter func([]StandingsLine, []float32, int)
 
 func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 	// We have to sort the racists by their lap count and position on the track
@@ -27,7 +39,7 @@ func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		return s[i].Lap > s[j].Lap
 	})
 
-  estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
+	estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 
 	// This will give the delta to the guy ahead
 	// P1 0:00:000
@@ -41,6 +53,7 @@ func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		}
 
 		s[p].TimeBehind = theThing
+    copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(theThing)))
 	}
 }
 
@@ -52,7 +65,7 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		return s[i].LapPct > s[j].LapPct
 	})
 
-  estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
+	estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 
 	// Get the delta to a given carId
 	for p := range s {
@@ -62,6 +75,7 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		delta = abs(estTime[id] - curCarEstimate)
 
 		s[p].TimeBehind = delta
+    copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(delta)))
 	}
 }
 
@@ -98,9 +112,9 @@ func createStandingsTable(i *goirsdk.IBT) []StandingsLine {
 		}
 
 		standings[k] = StandingsLine{
-			CarIdx:     k,
+			CarIdx:     int32(k),
 			LapPct:     driversLapDistPct[k],
-			DriverName: drivers[k].UserName,
+			DriverName: createDriverName(drivers[k].UserName),
 			EstTime:    driversEstTime[k],
 			Lap:        driversLap[k],
 			TimeBehind: 0,
@@ -117,8 +131,6 @@ func abs[V int32 | float32 | int](value V) V {
 
 	return value
 }
-
-
 
 func getPlayerPosition(s []StandingsLine, p int) {
 }
