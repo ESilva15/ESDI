@@ -11,7 +11,8 @@ type ESDI struct {
 	SerialConfig *serial.Config
 	SerialConn   *serial.Port
 	irsdk        *goirsdk.IBT
-	data         DataPacket
+	data         SimulationData
+	dataPacket   DataPacket
 	// Source       GameSource
 }
 
@@ -35,5 +36,6 @@ func ESDIInit(port string, baud int) (ESDI, error) {
 	}
 
 	// return ESDI{sConfig, sPort, nil}, nil
-	return ESDI{sConfig, sPort, nil, DataPacket{}}, nil
+	return ESDI{sConfig, sPort, nil, SimulationData{}, DataPacket{}}, nil
+	// return ESDI{nil, nil, nil, SimulationData{}, DataPacket{}}, nil
 }

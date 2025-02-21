@@ -58,16 +58,17 @@ func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 }
 
 func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
-	// We sort the racists solely by their position on the track because all
-	// we want to know is where people are in relation to us
-	// But we should add a way to diferentatiate lap counts
 	sort.Slice(s, func(i int, j int) bool {
-		return s[i].LapPct > s[j].LapPct
+		if s[i].Lap == int32(s[j].Lap) {
+			return s[i].LapPct > s[j].LapPct
+		}
+		return s[i].Lap > s[j].Lap
 	})
 
 	estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 
 	// Get the delta to a given carId
+  // TODO: fix the delta when the car behind is still in the previous lap.
 	for p := range s {
 		curCarEstimate := estTime[s[p].CarIdx]
 

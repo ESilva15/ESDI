@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"esdi/logger"
-	// "esdi/sources/iracing"
-	"github.com/ESilva15/goirsdk"
+	"esdi/sources/iracing"
+	// "github.com/ESilva15/goirsdk"
 
 	"github.com/spf13/cobra"
 )
@@ -30,16 +30,16 @@ func offlineTelemetryCmdAction(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to open IBT file: %v", err)
 	}
 
-	// irsdk, err := iracing.Init(file, outFile, sessionFile)
-	// if err != nil {
-	// 	log.Fatalf("Failed to create iRacing interface: %v", err)
-	// }
-	irsdk, err := goirsdk.Init(file, outFile, sessionFile)
+	irsdk, err := iracing.Init(file, outFile, sessionFile)
 	if err != nil {
-		log.Fatalf("Failed to create irsdk instance: %v\n", err)
+		log.Fatalf("Failed to create iRacing interface: %v", err)
 	}
+	// irsdk, err := goirsdk.Init(file, outFile, sessionFile)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create irsdk instance: %v\n", err)
+	// }
 
-	esdi.irsdk = irsdk
+	esdi.irsdk = irsdk.SDK
 
 	esdi.telemetry()
 }
