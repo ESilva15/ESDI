@@ -6,18 +6,8 @@ import (
 	"github.com/ESilva15/goirsdk"
 )
 
-type StandingsLine struct {
-	CarIdx           int32
-	LapPct           float32
-	Lap              int32
-	DriverName       [16]byte
-	EstTime          float32
-	TimeBehind       float32
-	TimeBehindString [16]byte
-}
-
-func createDriverName(s string) [16]byte {
-	var arr [16]byte
+func createDriverName(s string) [DriverNameLen]byte {
+	var arr [DriverNameLen]byte
 
 	if len(s) > 32 {
 		s = s[:32]
@@ -53,7 +43,7 @@ func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		}
 
 		s[p].TimeBehind = theThing
-    copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(theThing)))
+		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(theThing)))
 	}
 }
 
@@ -68,7 +58,7 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 	estTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 
 	// Get the delta to a given carId
-  // TODO: fix the delta when the car behind is still in the previous lap.
+	// TODO: fix the delta when the car behind is still in the previous lap.
 	for p := range s {
 		curCarEstimate := estTime[s[p].CarIdx]
 
@@ -76,7 +66,7 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		delta = abs(estTime[id] - curCarEstimate)
 
 		s[p].TimeBehind = delta
-    copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(delta)))
+		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(delta)))
 	}
 }
 

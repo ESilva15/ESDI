@@ -14,31 +14,6 @@ import (
 	// "github.com/tarm/serial"
 )
 
-type GameSource interface {
-	GetData(string) (interface{}, error)
-	UpdateData() error
-	GetSessionInfo() (interface{}, error)
-}
-
-type SimulationData struct {
-	Speed           int32
-	Gear            int32
-	RPM             int32
-	LapCount        int32
-	LapDistPct      float32
-	LapTime         [16]byte // Current lap time
-	LapDelta        [16]byte // Delta to selected reference lap
-	BestLapTime     [16]byte // Best lap in session
-	LastLapTime     [16]byte // Last lap time
-	FuelUsageCurLap float32
-	FuelPerLap      float32
-	FuelPct         float32
-	FuelLiters      float32
-	FuelTotal       float32 // This will be calculated and passed in Liters
-	Position        int32
-	Standings       [5]StandingsLine
-}
-
 var (
 	paddingStandingsLine = StandingsLine{
 		DriverName: createDriverName("---"),
@@ -170,21 +145,21 @@ func printData(e *ESDI, done <-chan string) {
 			// buffer.WriteString("Car data:\n")
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
 				e.dataPacket.Gear, e.dataPacket.RPM, e.dataPacket.Speed))
-			//
-			// buffer.WriteString("Fuel data:\n")
-			// buffer.WriteString(fmt.Sprintf("Fuel: %sL/%sL %s/lap [%s%%]\n\n", e.dataPacket.FuelLiters,
-			// 	e.dataPacket.FuelTotal, e.dataPacket.FuelPerLap, e.dataPacket.FuelPct))
-			//
-			// buffer.WriteString("Lap data:\n")
-			// buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.dataPacket.LapTime,
-			// 	e.dataPacket.LapDelta))
-			// buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
-			// buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
-			// buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.dataPacket.LapCount,
-			// 	e.data.LapDistPct))
-			//
-			// buffer.WriteString("Position data:\n")
-			// buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))
+
+			buffer.WriteString("Fuel data:\n")
+			buffer.WriteString(fmt.Sprintf("Fuel: %sL/%sL %s/lap [%s%%]\n\n", e.dataPacket.FuelLiters,
+				e.dataPacket.FuelTotal, e.dataPacket.FuelPerLap, e.dataPacket.FuelPct))
+
+			buffer.WriteString("Lap data:\n")
+			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.dataPacket.LapTime,
+				e.dataPacket.LapDelta))
+			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
+			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
+			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.dataPacket.LapCount,
+				e.data.LapDistPct))
+
+			buffer.WriteString("Position data:\n")
+			buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))
 
 			for p, v := range e.dataPacket.Standings {
 				s := fmt.Sprintf("[%2d] %s %-16s %-16s\n",
@@ -286,36 +261,13 @@ func (e *ESDI) positionData() {
 	mu.Unlock()
 }
 
-type StandingsLineDataPacket struct {
-	Lap              [4]byte
-	DriverName       [16]byte
-	TimeBehindString [16]byte
-}
-
-type DataPacket struct {
-	Speed       int32
-	Gear        int32
-	RPM int32
-	// LapCount    int32
-	// LapTime     [10]byte // Current lap time
-	// LapDelta    [10]byte // Delta to selected reference lap
-	// BestLapTime [10]byte // Best lap in session
-	// LastLapTime [10]byte // Last lap time
-	// FuelPerLap  [8]byte
-	// FuelPct     [8]byte
-	// FuelLiters  [8]byte
-	// FuelTotal   [8]byte // This will be calculated and passed in Liters
-	// Position    int32
-	Standings [5]StandingsLineDataPacket
-}
-
 func packageStandingsLineDataPacket(data [5]StandingsLine) [5]StandingsLineDataPacket {
 	var sl [5]StandingsLineDataPacket
 
 	for k := range data {
 		copy(sl[k].Lap[:], []byte(fmt.Sprintf("%-3d", data[k].Lap)))
-		copy(sl[k].DriverName[:], []byte(fmt.Sprintf("%-16s", data[k].DriverName[0:16])))
-		copy(sl[k].TimeBehindString[:], []byte(fmt.Sprintf("%-16s", data[k].TimeBehindString[0:7])))
+		copy(sl[k].DriverName[:], []byte(fmt.Sprintf("%-16s", data[k].DriverName[0:DriverNameLen])))
+		copy(sl[k].TimeBehindString[:], []byte(fmt.Sprintf("%-16s", data[k].TimeBehindString[0:TimeBehindStringLen])))
 		sl[k].TimeBehindString[7] = '\x00'
 		sl[k].DriverName[15] = '\x00'
 	}
@@ -373,6 +325,9 @@ func (e *ESDI) telemetry() {
 			// copy(e.dataPacket.FuelPct[:], []byte(fmt.Sprintf("%.2f", e.data.FuelPct)))
 			// copy(e.dataPacket.FuelTotal[:], []byte(fmt.Sprintf("%.2f", e.data.FuelTotal)))
 			// copy(e.dataPacket.FuelLiters[:], []byte(fmt.Sprintf("%.2f", e.data.FuelLiters)))
+			// e.dataPacket.FuelLiters[4] = '\x00';
+			copy(e.dataPacket.FuelTank[:], []byte(fmt.Sprintf("%.1f / %.1fL", e.data.FuelLiters, e.data.FuelTotal)))
+      e.dataPacket.FuelTank[FuelTankLen - 1] = '\x00';
 			//
 			// copy(e.dataPacket.LapTime[:], e.data.LapTime[:])
 			// copy(e.dataPacket.LapDelta[:], e.data.LapDelta[:])
