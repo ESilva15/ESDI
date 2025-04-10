@@ -1,15 +1,28 @@
 package main
 
+// DataPacket Lens
 const (
+	SpeedLen       = 5
+	GearLen        = 3
+	RpmLen         = 6
+	LapNumberLen   = 5
+	CurrLapTimeLen = 10
+	LastLapTimeLen = 10
+	FuelTankLen    = 15 // 101.6 / 123.4L
+	FuelEstLen     = 15
+)
+
+// StandingsLineDataPacket Lens
+const (
+	LapStringLen        = 4
 	DriverNameLen       = 24
 	TimeBehindStringLen = 16
-	FuelTankLen         = 15 // 101.6 / 123.4L
 )
 
 type GameSource interface {
-	GetData(string) (interface{}, error)
+	GetData(string) (any, error)
 	UpdateData() error
-	GetSessionInfo() (interface{}, error)
+	GetSessionInfo() (any, error)
 }
 
 type StandingsLine struct {
@@ -23,12 +36,14 @@ type StandingsLine struct {
 }
 
 type SimulationData struct {
+	ReadError       error
+	Recv            int8
 	Speed           int32
 	Gear            int32
 	RPM             int32
 	LapCount        int32
 	LapDistPct      float32
-	LapTime         [16]byte // Current lap time
+	CurrLapTime     [16]byte // Current lap time
 	LapDelta        [16]byte // Delta to selected reference lap
 	BestLapTime     [16]byte // Best lap in session
 	LastLapTime     [16]byte // Last lap time
@@ -42,25 +57,20 @@ type SimulationData struct {
 }
 
 type StandingsLineDataPacket struct {
-	Lap              [4]byte
-	DriverName       [DriverNameLen]byte
-	TimeBehindString [TimeBehindStringLen]byte
+	Lap              [LapStringLen]byte        `binary:"little"`
+	DriverName       [DriverNameLen]byte       `binary:"little"`
+	TimeBehindString [TimeBehindStringLen]byte `binary:"little"`
 }
 
 type DataPacket struct {
-	Speed       int32
-	Gear        int32
-	RPM         int32
-	LapCount    int32
-	LapTime     [10]byte // Current lap time
-	LapDelta    [10]byte // Delta to selected reference lap
-	BestLapTime [10]byte // Best lap in session
-	LastLapTime [10]byte // Last lap time
-	FuelTank    [FuelTankLen]byte
-	FuelPerLap  [8]byte
-	FuelPct     [8]byte
-	FuelLiters  [8]byte
-	FuelTotal   [8]byte // This will be calculated and passed in Liters
-	Position    int32
-	Standings   [5]StandingsLineDataPacket
+	StartMarker          uint8                      `binary:"little"`
+	Speed                [SpeedLen]byte             `binary:"little"`
+	Gear                 [GearLen]byte              `binary:"little"`
+	RPM                  [RpmLen]byte               `binary:"little"`
+	LapNumber            [LapNumberLen]byte         `binary:"little"`
+	CurrLapTime          [CurrLapTimeLen]byte       `binary:"little"` // Current lap time
+	LastLapTime          [LastLapTimeLen]byte       `binary:"little"` // Last lap time
+	FuelEst              [FuelEstLen]byte           `binary:"little"`
+	Standings            [5]StandingsLineDataPacket `binary:"little"`
+	EndMarker            uint8                      `binary:"little"`
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/ESilva15/goirsdk"
 	"github.com/tarm/serial"
@@ -25,8 +26,9 @@ func (e *ESDI) Close() {
 
 func ESDIInit(port string, baud int) (ESDI, error) {
 	sConfig := &serial.Config{
-		Name: port,
-		Baud: baud,
+		Name:        port,
+		Baud:        baud,
+		ReadTimeout: time.Millisecond * 1000,
 	}
 
 	// Open the serial port

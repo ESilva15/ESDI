@@ -9,3 +9,8 @@ func findEntry[T any](s []T, predicate func(T) bool) int {
 
 	return -1
 }
+
+func copyBytes(dest []byte, destSize int, src string) {
+	copy(dest[:], []byte(src))
+	dest[min(destSize-1, len(src))] = '\x00'
+}

@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"io"
 	"log"
+
+	// "encoding/binary"
+	"fmt"
+	// "log"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,6 +19,8 @@ import (
 )
 
 var (
+	initialTime          = time.Now()
+	lastTime             = time.Now()
 	paddingStandingsLine = StandingsLine{
 		DriverName: createDriverName("---"),
 		Lap:        0,
@@ -80,6 +86,7 @@ func (e *ESDI) setupSignalHandlers() chan string {
 		switch s {
 		case syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGHUP:
 			resetTerminal()
+			fmt.Print("Closing ESDI")
 		}
 		close(done)
 		e.Close()
@@ -87,47 +94,6 @@ func (e *ESDI) setupSignalHandlers() chan string {
 
 	return done
 }
-
-// func sendData(e *ESDI, s *serial.Port, done <-chan string, errC chan string) {
-// 	ticker := time.NewTicker(time.Millisecond * 25)
-// 	defer ticker.Stop()
-//
-// 	for {
-// 		select {
-// 		case <-done:
-// 			return
-// 		case <-ticker.C:
-// 			mu.Lock()
-//
-// 			data := DataToSend{
-// 				Speed:           e.data.Speed,
-// 				Gear:            e.data.Gear,
-// 				RPM:             e.data.RPM,
-// 				LapCount:        e.data.LapCount,
-// 				LapDistPct:      e.data.LapDistPct,
-// 				// FuelPerLap:      e.data.FuelPerLap,
-// 				// FuelUsageCurLap: e.data.FuelUsageCurLap,
-// 			}
-//
-// 			copy(data.LapTime[:], e.data.LapTime[:])
-// 			copy(data.LapDelta[:], e.data.LapDelta[:])
-// 			copy(data.BestLapTime[:], e.data.BestLapTime[:])
-// 			copy(data.LastLapTime[:], e.data.LastLapTime[:])
-//
-// 			var buf bytes.Buffer
-// 			err := binary.Write(&buf, binary.LittleEndian, data)
-//
-// 			_, err = s.Write(buf.Bytes())
-// 			if err != nil {
-// 				log.Printf("Unable to write data: %v", err)
-// 				break
-// 			}
-//
-// 			lastMessageTime = time.Now()
-// 			mu.Unlock()
-// 		}
-// 	}
-// }
 
 func printData(e *ESDI, done <-chan string) {
 	ticker := time.NewTicker(time.Millisecond * 25)
@@ -142,30 +108,55 @@ func printData(e *ESDI, done <-chan string) {
 			buffer.WriteString("\033[?25l\033[2J\033[H")
 
 			mu.Lock()
+			sessionTimeR := e.irsdk.Vars.Vars["SessionTime"].Value
+			sessionTime := float64(sessionTimeR.(float64))
+
+			currTime := time.Now()
+			delta := currTime.Sub(lastTime)
+			buffer.WriteString(fmt.Sprintf("[%s]\n", currTime.Format("2006/01/02 15:04:05.000")))
+			buffer.WriteString(fmt.Sprintf("Delta: %d [%f]\n\n", delta.Milliseconds(), 1000.0/60.0))
+			lastTime = currTime
+
+			elapsed := currTime.Sub(initialTime)
+			softwareElapsed := time.Unix(0, 0).Add(elapsed).Format("04:05.000")
+			sessionElapsed := time.Unix(0, 0).
+				Add(time.Duration(sessionTime * float64(time.Second))).
+				Format("04:05.000")
+
+			buffer.WriteString(fmt.Sprintf("Elapsed (software): %s\n",
+				softwareElapsed))
+			buffer.WriteString(fmt.Sprintf("Elapsed (session):  %s\n\n",
+				sessionElapsed))
+
 			// buffer.WriteString("Car data:\n")
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
 				e.dataPacket.Gear, e.dataPacket.RPM, e.dataPacket.Speed))
 
 			buffer.WriteString("Fuel data:\n")
-			buffer.WriteString(fmt.Sprintf("Fuel: %sL/%sL %s/lap [%s%%]\n\n", e.dataPacket.FuelLiters,
-				e.dataPacket.FuelTotal, e.dataPacket.FuelPerLap, e.dataPacket.FuelPct))
+			// buffer.WriteString(fmt.Sprintf("Fuel Tank: %s\n", e.dataPacket.FuelTank))
+			// buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n", e.dataPacket.FuelEst))
 
 			buffer.WriteString("Lap data:\n")
-			buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.dataPacket.LapTime,
-				e.dataPacket.LapDelta))
-			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
-			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
-			buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.dataPacket.LapCount,
-				e.data.LapDistPct))
+			// buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.dataPacket.CurrLapTime,
+			// 	e.dataPacket.LapDelta))
+			// buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
+			// buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
+			// buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.dataPacket.LapCount,
+			// e.data.LapDistPct))
 
-			buffer.WriteString("Position data:\n")
-			buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))
+			// buffer.WriteString("Position data:\n")
+			// buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))
 
 			for p, v := range e.dataPacket.Standings {
 				s := fmt.Sprintf("[%2d] %s %-16s %-16s\n",
 					p+1, v.Lap, string(bytes.Trim(v.DriverName[:], "\x00")), v.TimeBehindString)
 				buffer.WriteString(s)
 			}
+
+      buffer.WriteString(fmt.Sprintf("Size:     %v\n", binary.Size(DataPacket{})))
+			buffer.WriteString(fmt.Sprintf("Recv:     %d\n", e.data.Recv))
+			buffer.WriteString(fmt.Sprintf("Recv Err: %v\n", e.data.ReadError))
+
 			mu.Unlock()
 
 			// buffer.WriteString("\n" + message)
@@ -174,177 +165,84 @@ func printData(e *ESDI, done <-chan string) {
 	}
 }
 
-func (e *ESDI) getVehicleData() {
-	curGear := e.irsdk.Vars.Vars["Gear"].Value
-	curRPM := e.irsdk.Vars.Vars["RPM"].Value
-	curSpeed := e.irsdk.Vars.Vars["Speed"].Value
-
-	mu.Lock()
-	e.data.Gear = int32(curGear.(int))
-	e.data.RPM = int32(curRPM.(float32))
-	e.data.Speed = int32(msToKph(curSpeed.(float32)))
-	mu.Unlock()
-}
-
-func (e *ESDI) fuelData() {
-	fLiters := e.irsdk.Vars.Vars["FuelLevel"].Value
-	fPct := e.irsdk.Vars.Vars["FuelLevelPct"].Value
-
-	curLap := e.irsdk.Vars.Vars["Lap"].Value.(int)
-	fuelLevels[curLap] = fLiters.(float32)
-
-	if curLap-2 < 0 {
-		e.data.FuelPerLap = 0.0
-	} else {
-		e.data.FuelPerLap = fuelLevels[curLap-2] - fuelLevels[curLap-1]
-	}
-
-	mu.Lock()
-	e.data.FuelPct = float32(fPct.(float32)) * 100
-	e.data.FuelLiters = float32(fLiters.(float32))
-	e.data.FuelTotal = (100 * e.data.FuelLiters) / e.data.FuelPct
-	mu.Unlock()
-}
-
-func (e *ESDI) lapData() {
-	currentLap := e.irsdk.Vars.Vars["Lap"].Value
-	lapDistPct := e.irsdk.Vars.Vars["LapDistPct"].Value
-	currentLapTime := e.irsdk.Vars.Vars["LapCurrentLapTime"].Value
-	lapBestLapTime := e.irsdk.Vars.Vars["LapBestLapTime"].Value
-	lapLastLapTime := e.irsdk.Vars.Vars["LapLastLapTime"].Value
-	lapDeltaToBestLap := e.irsdk.Vars.Vars["LapDeltaToBestLap"].Value
-
-	mu.Lock()
-	e.data.LapCount = int32(currentLap.(int))
-	e.data.LapDistPct = float32(lapDistPct.(float32)) * 100
-	copy(e.data.LapTime[:], string(lapTimeRepresentation(currentLapTime.(float32))))
-	copy(e.data.LastLapTime[:], string(lapTimeRepresentation(lapLastLapTime.(float32))))
-	copy(e.data.BestLapTime[:], string(lapTimeRepresentation(lapBestLapTime.(float32))))
-	copy(e.data.LapDelta[:], string(lapTimeDeltaRepresentation(lapDeltaToBestLap.(float32))))
-	mu.Unlock()
-}
-
-func (e *ESDI) positionData() {
-	standings := createStandingsTable(e.irsdk)
-	relativeStandings(e.irsdk, standings, e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
-	p := findEntry(standings, func(l StandingsLine) bool {
-		return l.CarIdx == int32(e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
-	})
-
-	lowerLim := p - 2
-	upperLim := p + 3
-
-	var lowerPadding []StandingsLine
-	var upperPadding []StandingsLine
-
-	if lowerLim < 0 {
-		lowerPadding = make([]StandingsLine, abs(lowerLim))
-		for k := 0; k < abs(lowerLim); k++ {
-			lowerPadding[k] = paddingStandingsLine
-		}
-		lowerLim = 0
-	}
-	if upperLim >= len(standings) {
-		upperPadding = make([]StandingsLine, upperLim-len(standings))
-		for k := 0; k < upperLim-len(standings); k++ {
-			upperPadding[k] = paddingStandingsLine
-		}
-		upperLim = len(standings)
-	}
-
-	standings = append(lowerPadding, standings[lowerLim:upperLim]...)
-	standings = append(standings, upperPadding...)
-
-	mu.Lock()
-	copy(e.data.Standings[:], standings[0:5])
-	e.data.Position = int32(p)
-	mu.Unlock()
-}
-
-func packageStandingsLineDataPacket(data [5]StandingsLine) [5]StandingsLineDataPacket {
-	var sl [5]StandingsLineDataPacket
-
-	for k := range data {
-		copy(sl[k].Lap[:], []byte(fmt.Sprintf("%-3d", data[k].Lap)))
-		copy(sl[k].DriverName[:], []byte(fmt.Sprintf("%-16s", data[k].DriverName[0:DriverNameLen])))
-		copy(sl[k].TimeBehindString[:], []byte(fmt.Sprintf("%-16s", data[k].TimeBehindString[0:TimeBehindStringLen])))
-		sl[k].TimeBehindString[7] = '\x00'
-		sl[k].DriverName[15] = '\x00'
-	}
-
-	return sl
+type DataReq struct {
+	Req int8
 }
 
 func (e *ESDI) telemetry() {
 	// Set the handlers
 	done := e.setupSignalHandlers()
-
 	dataError := make(chan string)
 
 	// go sendData(e, e.SerialConn, done, dataError)
 	go printData(e, done)
 
-	mainLoopTicker := time.NewTicker(time.Second / 240)
-	defer mainLoopTicker.Stop()
-
 	fuelLevels = make(map[int]float32, 256)
 
+	// We need to add another goroutine here that continuously updates
+	// the data
+	go readData(e, done)
+
+	// Add another goroutine that is actually waiting for data requests
+	// And gives the signal or sends the data
+	// go waitForReq(e, done)
+
+	// TODO:
+	// Add start and end markers to the data frames
+
+	// This loop will wait for the display to request the data
+	total := time.Microsecond * 0
+	previousRequest := time.Now()
+	nRequests := 0
 	for {
+		isRunning := true
 		select {
 		case s := <-done:
 			resetTerminal()
 			fmt.Println(s)
-			return
+			isRunning = false
+			break
 		case s := <-dataError:
 			done <- s
-		case <-mainLoopTicker.C:
-			var err error
-
-			_, err = e.irsdk.Update(time.Millisecond * 100)
-			if err != nil {
-				fmt.Printf("could not update data: %v", err)
-				continue
+		default:
+			// Wait for the display to request some data
+			var r DataReq
+			err := binary.Read(e.SerialConn, binary.LittleEndian, &r)
+      e.data.ReadError = err
+			if err != nil && err != io.EOF {
+				log.Println(err)
+			  fmt.Println("->", r)
 			}
+			e.data.Recv = r.Req
 
-			e.getVehicleData()
-			e.fuelData()
-			e.lapData()
-			e.positionData()
+			if r.Req == 5 {
+        e.SerialConn.Flush()
+				currTime := time.Now()
+				if nRequests != 0 {
+					total += currTime.Sub(previousRequest)
+				}
+				previousRequest = currTime
+				nRequests += 1
 
-			mu.Lock()
+				var buf bytes.Buffer
+				err = binary.Write(&buf, binary.LittleEndian, e.dataPacket)
 
-			// Test the actual dataPacket we are sending over the wire
-			e.dataPacket.Speed = e.data.Speed
-			e.dataPacket.Gear = e.data.Gear
-			e.dataPacket.RPM = e.data.RPM
-			// e.dataPacket.LapCount = e.data.LapCount
-			// e.dataPacket.Position = e.data.Position
-			e.dataPacket.Standings = packageStandingsLineDataPacket(e.data.Standings)
-
-			// copy(e.dataPacket.FuelPerLap[:], []byte(fmt.Sprintf("%.2f", e.data.FuelPerLap)))
-			// copy(e.dataPacket.FuelPct[:], []byte(fmt.Sprintf("%.2f", e.data.FuelPct)))
-			// copy(e.dataPacket.FuelTotal[:], []byte(fmt.Sprintf("%.2f", e.data.FuelTotal)))
-			// copy(e.dataPacket.FuelLiters[:], []byte(fmt.Sprintf("%.2f", e.data.FuelLiters)))
-			// e.dataPacket.FuelLiters[4] = '\x00';
-			copy(e.dataPacket.FuelTank[:], []byte(fmt.Sprintf("%.1f / %.1fL", e.data.FuelLiters, e.data.FuelTotal)))
-      e.dataPacket.FuelTank[FuelTankLen - 1] = '\x00';
-			//
-			// copy(e.dataPacket.LapTime[:], e.data.LapTime[:])
-			// copy(e.dataPacket.LapDelta[:], e.data.LapDelta[:])
-			// copy(e.dataPacket.BestLapTime[:], e.data.BestLapTime[:])
-			// copy(e.dataPacket.LastLapTime[:], e.data.LastLapTime[:])
-
-			var buf bytes.Buffer
-			err = binary.Write(&buf, binary.LittleEndian, e.dataPacket)
-
-			_, err = e.SerialConn.Write(buf.Bytes())
-			if err != nil {
-				log.Printf("Unable to write data: %v", err)
-				break
+				_, err = e.SerialConn.Write(buf.Bytes())
+				if err != nil {
+					log.Printf("Unable to write data: %v", err)
+					break
+				}
+        e.SerialConn.Flush()
 			}
+		}
 
-			lastMessageTime = time.Now()
-			mu.Unlock()
+		if !isRunning {
+			break
 		}
 	}
+
+	log.Println("Statistics:")
+	log.Printf("  Reqs:             %d\n", nRequests)
+	log.Printf("  Total time:       %d (ms)\n", total.Milliseconds())
+	log.Printf("  Average req time: %d (ms / request)\n", total.Milliseconds()/int64(nRequests))
 }
