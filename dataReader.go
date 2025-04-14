@@ -50,6 +50,7 @@ func (e *ESDI) lapData() {
 	e.data.LapCount = int32(currentLap.(int))
 	e.data.LapDistPct = float32(lapDistPct.(float32)) * 100
 
+	// TODO
 	// Don't create the strings here, should be creating them later one only
 	copy(e.data.CurrLapTime[:], string(lapTimeRepresentation(currentLapTime.(float32),
 		LapTimeFormatStr)))

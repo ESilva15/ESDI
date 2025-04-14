@@ -149,7 +149,7 @@ func printData(e *ESDI, done <-chan string) {
 				e.dataPacket.Gear, e.dataPacket.RPM, e.dataPacket.Speed))
 
 			buffer.WriteString("Fuel data:\n")
-			buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n", e.dataPacket.FuelEst))
+			buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n\n", e.dataPacket.FuelEst))
 
 			buffer.WriteString("Lap data:\n")
 			buffer.WriteString(fmt.Sprintf("Delta:         [%s] [%f] [%s]\n", e.dataPacket.DeltaToBestLap,
@@ -157,6 +157,7 @@ func printData(e *ESDI, done <-chan string) {
 			buffer.WriteString(fmt.Sprintf("LapTime:       %s\n", e.dataPacket.CurrLapTime))
 			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
 			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
+			// buffer.WriteString(fmt.Sprintf("LapBestNLapTi: %f\n\n", e.data.LapBestNLapTime))
 
 			// buffer.WriteString("Position data:\n")
 			// buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))

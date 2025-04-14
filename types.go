@@ -55,6 +55,7 @@ type SimulationData struct {
 	FuelLiters      float32
 	FuelTotal       float32 // This will be calculated and passed in Liters
 	Position        int32
+	LapBestNLapTime float32
 	Standings       [5]StandingsLine
 }
 
