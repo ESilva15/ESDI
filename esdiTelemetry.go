@@ -35,11 +35,16 @@ var (
 	mu              sync.Mutex
 )
 
+const (
+	LapTimeFormatStr       = "04:05.000"
+	RelativeDeltaFormatStr = "04:05.0"
+)
+
 func msToKph(v float32) int {
 	return int((3600 * v) / 1000)
 }
 
-func lapTimeRepresentation(t float32) string {
+func lapTimeRepresentation(t float32, f string) string {
 	if t < 0 {
 		t = 0
 	}
@@ -47,23 +52,34 @@ func lapTimeRepresentation(t float32) string {
 	wholeSeconds := int64(t)
 	lapTime := time.Unix(wholeSeconds, int64((t-float32(wholeSeconds))*1e9))
 
-	return lapTime.Format("04:05.000")
+	return lapTime.Format(f)
 }
 
 func lapTimeDeltaRepresentation(t float32) string {
 	sign := '-'
 	if t < 0 {
 		sign = '+'
-		t = -1 * t
+		t = -t
+	}
+
+	// Cap to 99.9 max
+	if t > 99.9 {
+		t = 99.9
 	}
 
 	if t >= 1 {
-		wholeSeconds := int64(t)
-		lapTime := time.Unix(wholeSeconds, int64((t-float32(wholeSeconds))*1e9))
-		return fmt.Sprintf("%c%s", sign, lapTime.Format("5.00"))
+		// Round to nearest tenth
+		rounded := float32(int(t*10+0.5)) / 10
+		return fmt.Sprintf("%c%.1f", sign, rounded)
 	}
 
-	return fmt.Sprintf("%c.%02d", sign, int64(t*100))
+	// t < 1: round to nearest tenth and remove leading zero (e.g., "0.1" → ".1")
+	rounded := float32(int(t*10+0.5)) / 10
+	s := fmt.Sprintf("%.1f", rounded)
+	if strings.HasPrefix(s, "0") {
+		s = s[1:]
+	}
+	return fmt.Sprintf("%c%s", sign, s)
 }
 
 func resetTerminal() {
@@ -133,16 +149,14 @@ func printData(e *ESDI, done <-chan string) {
 				e.dataPacket.Gear, e.dataPacket.RPM, e.dataPacket.Speed))
 
 			buffer.WriteString("Fuel data:\n")
-			// buffer.WriteString(fmt.Sprintf("Fuel Tank: %s\n", e.dataPacket.FuelTank))
-			// buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n", e.dataPacket.FuelEst))
+			buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n", e.dataPacket.FuelEst))
 
 			buffer.WriteString("Lap data:\n")
-			// buffer.WriteString(fmt.Sprintf("LapTime: %s [%s]\n", e.dataPacket.CurrLapTime,
-			// 	e.dataPacket.LapDelta))
-			// buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
-			// buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
-			// buffer.WriteString(fmt.Sprintf("Lap: %d [%.2f%%]\n\n", e.dataPacket.LapCount,
-			// e.data.LapDistPct))
+			buffer.WriteString(fmt.Sprintf("Delta:         [%s] [%f] [%s]\n", e.dataPacket.DeltaToBestLap,
+				e.data.LapDeltaFloat, lapTimeDeltaRepresentation(e.data.LapDeltaFloat)))
+			buffer.WriteString(fmt.Sprintf("LapTime:       %s\n", e.dataPacket.CurrLapTime))
+			buffer.WriteString(fmt.Sprintf("Best Lap Time: %s\n", e.dataPacket.BestLapTime))
+			buffer.WriteString(fmt.Sprintf("Last Lap Time: %s\n", e.dataPacket.LastLapTime))
 
 			// buffer.WriteString("Position data:\n")
 			// buffer.WriteString(fmt.Sprintf("Pos: %d\n", e.dataPacket.Position))
@@ -153,7 +167,7 @@ func printData(e *ESDI, done <-chan string) {
 				buffer.WriteString(s)
 			}
 
-      buffer.WriteString(fmt.Sprintf("Size:     %v\n", binary.Size(DataPacket{})))
+			buffer.WriteString(fmt.Sprintf("Size:     %v\n", binary.Size(DataPacket{})))
 			buffer.WriteString(fmt.Sprintf("Recv:     %d\n", e.data.Recv))
 			buffer.WriteString(fmt.Sprintf("Recv Err: %v\n", e.data.ReadError))
 
@@ -174,9 +188,11 @@ func (e *ESDI) telemetry() {
 	done := e.setupSignalHandlers()
 	dataError := make(chan string)
 
-	// go sendData(e, e.SerialConn, done, dataError)
+	// Display the data on the terminal periodically
 	go printData(e, done)
 
+	// Maybe create a struct made to calculate the fuel levels
+	// -> struct FuelLvlCalculator
 	fuelLevels = make(map[int]float32, 256)
 
 	// We need to add another goroutine here that continuously updates
@@ -208,15 +224,15 @@ func (e *ESDI) telemetry() {
 			// Wait for the display to request some data
 			var r DataReq
 			err := binary.Read(e.SerialConn, binary.LittleEndian, &r)
-      e.data.ReadError = err
+			e.data.ReadError = err
 			if err != nil && err != io.EOF {
 				log.Println(err)
-			  fmt.Println("->", r)
+				fmt.Println("->", r)
 			}
 			e.data.Recv = r.Req
 
 			if r.Req == 5 {
-        e.SerialConn.Flush()
+				e.SerialConn.Flush()
 				currTime := time.Now()
 				if nRequests != 0 {
 					total += currTime.Sub(previousRequest)
@@ -232,7 +248,7 @@ func (e *ESDI) telemetry() {
 					log.Printf("Unable to write data: %v", err)
 					break
 				}
-        e.SerialConn.Flush()
+				e.SerialConn.Flush()
 			}
 		}
 

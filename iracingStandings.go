@@ -43,7 +43,8 @@ func generalStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		}
 
 		s[p].TimeBehind = theThing
-		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(theThing)))
+		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(theThing,
+			RelativeDeltaFormatStr)))
 	}
 }
 
@@ -66,18 +67,9 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 		delta = abs(estTime[id] - curCarEstimate)
 
 		s[p].TimeBehind = delta
-		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(delta)))
+		copy(s[p].TimeBehindString[:], string(lapTimeRepresentation(delta,
+			RelativeDeltaFormatStr)))
 	}
-}
-
-func bestLapTime(i *goirsdk.IBT, id int) float32 {
-	best := i.Vars.Vars["LapBestLapTime"].Value.(float32)
-
-	if best > 0 {
-		return best
-	}
-
-	return float32(i.SessionInfo.DriverInfo.Drivers[id].CarClassEstLapTime)
 }
 
 // createStandingsTable will create a table with the standings data
@@ -86,7 +78,12 @@ func bestLapTime(i *goirsdk.IBT, id int) float32 {
 // We can do some dynamicProgramming on this thing I guess, I still haven't
 // though about it much yet tbh
 func createStandingsTable(i *goirsdk.IBT) []StandingsLine {
-	driversLapDistPct := i.Vars.Vars["CarIdxLapDistPct"].Value.([]float32)
+	driversLapDistPctRaw := i.Vars.Vars["CarIdxLapDistPct"].Value
+  if driversLapDistPctRaw == nil {
+    return []StandingsLine{}
+  }
+
+	driversLapDistPct := driversLapDistPctRaw.([]float32)
 	driversEstTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)
 	driversLap := i.Vars.Vars["CarIdxLap"].Value.([]int32)
 	drivers := i.SessionInfo.DriverInfo.Drivers
@@ -121,7 +118,4 @@ func abs[V int32 | float32 | int](value V) V {
 	}
 
 	return value
-}
-
-func getPlayerPosition(s []StandingsLine, p int) {
 }

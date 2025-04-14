@@ -46,49 +46,63 @@ func (e *ESDI) lapData() {
 	lapLastLapTime := e.irsdk.Vars.Vars["LapLastLapTime"].Value
 	lapDeltaToBestLap := e.irsdk.Vars.Vars["LapDeltaToBestLap"].Value
 
+	e.data.LapDeltaFloat = lapDeltaToBestLap.(float32)
 	e.data.LapCount = int32(currentLap.(int))
 	e.data.LapDistPct = float32(lapDistPct.(float32)) * 100
-	copy(e.data.CurrLapTime[:], string(lapTimeRepresentation(currentLapTime.(float32))))
-	copy(e.data.LastLapTime[:], string(lapTimeRepresentation(lapLastLapTime.(float32))))
-	copy(e.data.BestLapTime[:], string(lapTimeRepresentation(lapBestLapTime.(float32))))
-	copy(e.data.LapDelta[:], string(lapTimeDeltaRepresentation(lapDeltaToBestLap.(float32))))
+
+	// Don't create the strings here, should be creating them later one only
+	copy(e.data.CurrLapTime[:], string(lapTimeRepresentation(currentLapTime.(float32),
+		LapTimeFormatStr)))
+	copy(e.data.LastLapTime[:], string(lapTimeRepresentation(lapLastLapTime.(float32),
+		LapTimeFormatStr)))
+	copy(e.data.BestLapTime[:], string(lapTimeRepresentation(lapBestLapTime.(float32),
+		LapTimeFormatStr)))
 	mu.Unlock()
 }
 
+// This function doesnt feel very pretty - NEED TO REFACTOR IT
 func (e *ESDI) positionData() {
+	// Only create a table with more people if we have more players
 	mu.Lock()
 	standings := createStandingsTable(e.irsdk)
-	relativeStandings(e.irsdk, standings, e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
-	p := findEntry(standings, func(l StandingsLine) bool {
-		return l.CarIdx == int32(e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
-	})
-
-	lowerLim := p - 2
-	upperLim := p + 3
-
-	var lowerPadding []StandingsLine
-	var upperPadding []StandingsLine
-
-	if lowerLim < 0 {
-		lowerPadding = make([]StandingsLine, abs(lowerLim))
-		for k := 0; k < abs(lowerLim); k++ {
-			lowerPadding[k] = paddingStandingsLine
+	if len(standings) <= 0 {
+		for range 5 {
+			standings = append(standings, paddingStandingsLine)
 		}
-		lowerLim = 0
-	}
-	if upperLim >= len(standings) {
-		upperPadding = make([]StandingsLine, upperLim-len(standings))
-		for k := 0; k < upperLim-len(standings); k++ {
-			upperPadding[k] = paddingStandingsLine
-		}
-		upperLim = len(standings)
-	}
+	} else {
+		relativeStandings(e.irsdk, standings, e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
+		p := findEntry(standings, func(l StandingsLine) bool {
+			return l.CarIdx == int32(e.irsdk.SessionInfo.DriverInfo.DriverCarIdx)
+		})
 
-	standings = append(lowerPadding, standings[lowerLim:upperLim]...)
-	standings = append(standings, upperPadding...)
+		lowerLim := p - 2
+		upperLim := p + 3
+
+		var lowerPadding []StandingsLine
+		var upperPadding []StandingsLine
+
+		if lowerLim < 0 {
+			lowerPadding = make([]StandingsLine, abs(lowerLim))
+			for k := range abs(lowerLim) {
+				lowerPadding[k] = paddingStandingsLine
+			}
+			lowerLim = 0
+		}
+		if upperLim >= len(standings) {
+			upperPadding = make([]StandingsLine, upperLim-len(standings))
+			for k := range upperLim - len(standings) {
+				upperPadding[k] = paddingStandingsLine
+			}
+			upperLim = len(standings)
+		}
+
+		standings = append(lowerPadding, standings[lowerLim:upperLim]...)
+		standings = append(standings, upperPadding...)
+
+		e.data.Position = int32(p)
+	}
 
 	copy(e.data.Standings[:], standings[0:5])
-	e.data.Position = int32(p)
 	mu.Unlock()
 }
 
@@ -140,6 +154,10 @@ func readData(e *ESDI, done <-chan string) {
 			e.dataPacket.Standings = packageStandingsLineDataPacket(e.data.Standings)
 
 			copyBytes(e.dataPacket.LapNumber[:], LapNumberLen, fmt.Sprintf("%-3d", e.data.LapCount))
+			copyBytes(e.dataPacket.DeltaToBestLap[:], DeltaToBestLapLen,
+				fmt.Sprintf("%s", lapTimeDeltaRepresentation(e.data.LapDeltaFloat)))
+			copyBytes(e.dataPacket.BestLapTime[:], BestLapTimeLen,
+				fmt.Sprintf("%s", e.data.BestLapTime[:8]))
 			copyBytes(e.dataPacket.CurrLapTime[:], CurrLapTimeLen,
 				fmt.Sprintf("%s", e.data.CurrLapTime[:8]))
 			copyBytes(e.dataPacket.LastLapTime[:], LastLapTimeLen,
