@@ -10,6 +10,11 @@ func (e *ESDI) getVehicleData() {
 	curGear := e.irsdk.Vars.Vars["Gear"].Value
 	curRPM := e.irsdk.Vars.Vars["RPM"].Value
 	curSpeed := e.irsdk.Vars.Vars["Speed"].Value
+	curBrakeBias, ok := e.irsdk.Vars.Vars["dcBrakeBias"]
+	if ok {
+		copyBytes(e.dataPacket.BrakeBias[:], BrakeBiasLen,
+			fmt.Sprintf("%.1f", curBrakeBias.Value.(float32)))
+	}
 
 	e.data.Gear = int32(curGear.(int))
 	e.data.RPM = int32(curRPM.(float32))
@@ -52,6 +57,7 @@ func (e *ESDI) lapData() {
 
 	// TODO
 	// Don't create the strings here, should be creating them later one only
+	// Get the best lap data from the session info - I guess
 	copy(e.data.CurrLapTime[:], string(lapTimeRepresentation(currentLapTime.(float32),
 		LapTimeFormatStr)))
 	copy(e.data.LastLapTime[:], string(lapTimeRepresentation(lapLastLapTime.(float32),

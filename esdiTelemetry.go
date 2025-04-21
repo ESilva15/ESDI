@@ -147,6 +147,7 @@ func printData(e *ESDI, done <-chan string) {
 			// buffer.WriteString("Car data:\n")
 			buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
 				e.dataPacket.Gear, e.dataPacket.RPM, e.dataPacket.Speed))
+			buffer.WriteString(fmt.Sprintf("BB: %s\n\n", e.dataPacket.BrakeBias))
 
 			buffer.WriteString("Fuel data:\n")
 			buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n\n", e.dataPacket.FuelEst))

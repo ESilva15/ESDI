@@ -1,10 +1,15 @@
 package main
 
+// Car data lengths
+const (
+	SpeedLen     = 5
+	GearLen      = 3
+	RpmLen       = 6
+	BrakeBiasLen = 6
+)
+
 // DataPacket Lens
 const (
-	SpeedLen          = 5
-	GearLen           = 3
-	RpmLen            = 6
 	LapNumberLen      = 5
 	DeltaToBestLapLen = 6
 	BestLapTimeLen    = 10
@@ -70,6 +75,7 @@ type DataPacket struct {
 	Speed          [SpeedLen]byte             `binary:"little"`
 	Gear           [GearLen]byte              `binary:"little"`
 	RPM            [RpmLen]byte               `binary:"little"`
+	BrakeBias      [BrakeBiasLen]byte         `binary:"little"`
 	LapNumber      [LapNumberLen]byte         `binary:"little"`
 	DeltaToBestLap [DeltaToBestLapLen]byte    `binary:"little"`
 	BestLapTime    [BestLapTimeLen]byte       `binary:"little"`
