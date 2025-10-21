@@ -29,7 +29,7 @@ var (
 		Name:  ".exit",
 		Usage: " type `.exit` to exit this REPL",
 		Action: func(r *REPL, args []string) error {
-			os.Exit(0)
+			r.Stop = true
 			return nil
 		},
 	}

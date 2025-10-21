@@ -4,7 +4,9 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 )
 
 var DefaultCfg = REPLCfg{
@@ -16,6 +18,7 @@ type REPLCfg struct {
 }
 
 type REPL struct {
+	Stop     bool
 	Cfg      REPLCfg
 	Commands map[string]Command
 }
@@ -31,17 +34,32 @@ func NewREPL(cfg REPLCfg) *REPL {
 	}
 }
 
+func (r *REPL) CloseREPL() {
+	// Do whatever cleanup we have to do
+}
+
+func (r *REPL) RegisterCMD() {
+	// Code to register a new command
+}
+
 func (r *REPL) printPrompt() {
 	_, _ = os.Stdout.Write([]byte(r.Cfg.PS1))
 }
 
-func (r *REPL) Start() {
-	reader := bufio.NewScanner(os.Stdin)
-	r.printPrompt()
-	for reader.Scan() {
-		input := reader.Text()
-		args := parseInput(input)
+func (r *REPL) mainLoop() {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		r.printPrompt()
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Println("error: ", err)
+			continue
+		}
 
+		args := parseInput(strings.TrimSpace(line))
 		command, exists := r.Commands[args[0]]
 		if exists {
 			_ = command.Action(r, args[1:])
@@ -49,6 +67,13 @@ func (r *REPL) Start() {
 			fmt.Printf("No such command `%s`\n", args[0])
 		}
 
-		r.printPrompt()
+		if r.Stop {
+			break
+		}
 	}
+}
+
+func (r *REPL) Start() {
+	// Setup handlers and whatnot
+	r.mainLoop()
 }
