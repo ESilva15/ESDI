@@ -34,7 +34,7 @@ func NewREPL(cfg REPLCfg) *REPL {
 	}
 }
 
-func (r *REPL) CloseREPL() {
+func (r *REPL) Close() {
 	// Do whatever cleanup we have to do
 }
 
@@ -60,6 +60,10 @@ func (r *REPL) mainLoop() {
 		}
 
 		args := parseInput(strings.TrimSpace(line))
+		if args[0] == "" {
+			continue
+		}
+
 		command, exists := r.Commands[args[0]]
 		if exists {
 			_ = command.Action(r, args[1:])

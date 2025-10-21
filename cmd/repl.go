@@ -11,6 +11,7 @@ func replCmdAction(cmd *cobra.Command, args []string) {
 		PS1: "\rESDI > ",
 	})
 	repl.Start()
+	repl.Close()
 }
 
 // removeLabelCmd represents the removeLabel command
