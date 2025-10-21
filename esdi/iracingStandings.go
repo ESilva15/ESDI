@@ -1,4 +1,4 @@
-package main
+package esdi
 
 import (
 	"sort"
@@ -79,9 +79,9 @@ func relativeStandings(i *goirsdk.IBT, s []StandingsLine, id int) {
 // though about it much yet tbh
 func createStandingsTable(i *goirsdk.IBT) []StandingsLine {
 	driversLapDistPctRaw := i.Vars.Vars["CarIdxLapDistPct"].Value
-  if driversLapDistPctRaw == nil {
-    return []StandingsLine{}
-  }
+	if driversLapDistPctRaw == nil {
+		return []StandingsLine{}
+	}
 
 	driversLapDistPct := driversLapDistPctRaw.([]float32)
 	driversEstTime := i.Vars.Vars["CarIdxEstTime"].Value.([]float32)

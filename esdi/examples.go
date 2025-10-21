@@ -1,12 +1,10 @@
-package main
+package esdi
 
-import (
-	// "esdi/sources/beamng"
-	// "fmt"
-	// "log"
-	// "strings"
-	// "time"
-)
+// "esdi/sources/beamng"
+// "fmt"
+// "log"
+// "strings"
+// "time"
 
 func beamngExample(esdi ESDI) {
 	// bIF, err := beamng.Init("127.0.0.1", 4444)

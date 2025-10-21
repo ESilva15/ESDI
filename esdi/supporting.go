@@ -1,4 +1,4 @@
-package main
+package esdi
 
 func findEntry[T any](s []T, predicate func(T) bool) int {
 	for i, elem := range s {

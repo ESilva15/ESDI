@@ -1,4 +1,4 @@
-package main
+package esdi
 
 // Car data lengths
 const (
