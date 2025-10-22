@@ -38,8 +38,9 @@ func (r *REPL) Close() {
 	// Do whatever cleanup we have to do
 }
 
-func (r *REPL) RegisterCMD() {
-	// Code to register a new command
+func (r *REPL) RegisterCMD(newCMD Command) {
+	// Add a verification to check that the command doesn't exist. Fatal if it does
+	r.Commands[newCMD.Name] = newCMD
 }
 
 func (r *REPL) printPrompt() {

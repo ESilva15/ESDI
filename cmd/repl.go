@@ -1,17 +1,35 @@
 package cmd
 
 import (
+	"esdi/peripheral"
 	"esdi/repl"
 
 	"github.com/spf13/cobra"
 )
 
 func replCmdAction(cmd *cobra.Command, args []string) {
-	repl := repl.NewREPL(repl.REPLCfg{
+	r := repl.NewREPL(repl.REPLCfg{
 		PS1: "\rESDI > ",
 	})
-	repl.Start()
-	repl.Close()
+
+	listDevicesREPLCmd := repl.Command{
+		Name:  "ls",
+		Usage: "lists the currently available devices",
+		Action: func(r *repl.REPL, args []string) error {
+			perClerk := peripheral.NewPeripheralDeviceClerk()
+			err := perClerk.FindDevices()
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	r.RegisterCMD(listDevicesREPLCmd)
+
+	r.Start()
+	r.Close()
 }
 
 // removeLabelCmd represents the removeLabel command
