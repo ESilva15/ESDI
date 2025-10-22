@@ -12,11 +12,6 @@ const (
 	DisplayPeripheral PeripheralType = "display"
 )
 
-type PeripheralDevice struct {
-	Port string
-	Name [32]byte
-}
-
 type PeripheralDeviceClerk struct {
 	Devices map[string]PeripheralDevice
 }
@@ -41,11 +36,13 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 	}
 
 	for _, p := range ports {
-		fmt.Println(p)
+		newDevice := PeripheralDevice{
+			Port: p,
+		}
+		err := newDevice.Connect()
+
+		fmt.Println(p, err)
 	}
 
 	return nil
 }
-
-// Add a peripheral device manager
-// Something that auto discovers available devices
