@@ -13,7 +13,7 @@ const (
 )
 
 type PeripheralDeviceClerk struct {
-	Devices map[string]PeripheralDevice
+	// Devices map[string]PeripheralDevice
 }
 
 func NewPeripheralDeviceClerk() *PeripheralDeviceClerk {
@@ -36,12 +36,17 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 	}
 
 	for _, p := range ports {
-		newDevice := PeripheralDevice{
-			Port: p,
-		}
-		err := newDevice.Connect()
+		newDevice := NewPeripheralDevice(p)
+		err := newDevice.Probe()
 
-		fmt.Println(p, err)
+		var msg string
+		if err == nil {
+			msg = string(newDevice.Name[:])
+		} else {
+			msg = err.Error()
+		}
+
+		fmt.Println(p, msg)
 	}
 
 	return nil

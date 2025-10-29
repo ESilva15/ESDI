@@ -1,87 +1,101 @@
 package peripheral
 
 import (
-	"encoding/binary"
-	"fmt"
 	"time"
 
 	"github.com/tarm/serial"
 )
 
-type PeripheralDevice struct {
-	Port string
-	Name [32]byte
-}
+type PeripheralDeviceState int
 
 const (
-	PACKET_MAGIC = 0xDEADBEEF
-	CMD_HELLO    = 1
-	CMD_IDENTIFY = 2
-	CMD_ACK      = 3
+	StateDiscoveredStr = "discovered"
+	StateConnectedStr  = "connected"
+	StateUnknownStr    = "unknown"
 )
 
-type FlarePacket struct {
-	Name [16]byte
+const (
+	StateUnknown PeripheralDeviceState = iota
+	StateDiscovered
+	StateConnected
+)
+
+func (s PeripheralDeviceState) String() string {
+	switch s {
+	case StateDiscovered:
+		return StateDiscoveredStr
+	case StateConnected:
+		return StateConnectedStr
+	case StateUnknown:
+		fallthrough
+	default:
+		return StateUnknownStr
+	}
 }
 
-func parseFlare(buf []byte) *FlarePacket {
-	pkt := &FlarePacket{}
-	err := binary.Read(sliceReader(buf), binary.LittleEndian, pkt)
+type PeripheralDevice struct {
+	State     PeripheralDeviceState
+	CommState CommState
+	Name      [32]byte
+	WT        *WalkieTalkie
+}
+
+func NewPeripheralDevice(port string) *PeripheralDevice {
+	return &PeripheralDevice{
+		State:     StateUnknown,
+		CommState: CommOff,
+		WT: &WalkieTalkie{
+			Cfg: &serial.Config{
+				Name:        port,
+				Baud:        115200,
+				ReadTimeout: 500 * time.Millisecond,
+			},
+		},
+	}
+}
+
+func (p *PeripheralDevice) Probe() error {
+	err := p.WT.TurnOn()
 	if err != nil {
 		return nil
 	}
-	// if pkt.Magic != PACKET_MAGIC || pkt.Cmd != CMD_HELLO {
-	// 	return nil
-	// }
-	return pkt
-}
 
-func sliceReader(b []byte) *byteReader { return &byteReader{b: b} }
-
-type byteReader struct{ b []byte }
-
-func (r *byteReader) Read(p []byte) (int, error) {
-	n := copy(p, r.b)
-	r.b = r.b[n:]
-	if n == 0 {
-		time.Sleep(10 * time.Millisecond)
-	}
-	return n, nil
-}
-
-func (p *PeripheralDevice) Connect() error {
-	cfg := &serial.Config{
-		Name:        p.Port,
-		Baud:        115200,
-		ReadTimeout: 500 * time.Millisecond,
-	}
-
-	s, err := serial.OpenPort(cfg)
+	// Papers, please!
+	_, err = p.WT.RequestIdentification()
 	if err != nil {
 		return err
 	}
 
-	buf := make([]byte, binary.Size(FlarePacket{}))
-	n, _ := s.Read(buf)
-	if n == len(buf) {
-		flare := parseFlare(buf)
-		if flare != nil {
-			s.Write([]byte{CMD_ACK})
-			return nil
-		}
+	// Verify the papers
+	var pkt IdentificationPacket
+	err = pkt.Read(p.WT)
+	if err != nil {
+		// Throw the man in the gulag!
+		return err
 	}
 
-	// if we received nothing
-	s.Write([]byte{CMD_IDENTIFY})
-
-	n, _ = s.Read(buf)
-	if n == len(buf) {
-		pkt := parseFlare(buf)
-		if pkt != nil {
-			s.Write([]byte{CMD_ACK})
-			return nil
-		}
+	// Acknowledge successful identification
+	_, err = p.WT.AknowledgeIdentification()
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("no valid device response")
+	// copy the data
+	p.Merge(&pkt)
+	p.ToConnectedIdling()
+
+	return nil
+}
+
+func (p *PeripheralDevice) ToConnectedIdling() {
+	p.State = StateConnected
+	p.CommState = CommIdle
+}
+
+func (p *PeripheralDevice) Merge(packet *IdentificationPacket) {
+	p.Name = packet.Name
+}
+
+func (p *PeripheralDevice) Disconnect() error {
+	return p.WT.TurnOff()
 }
