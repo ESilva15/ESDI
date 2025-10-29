@@ -57,7 +57,7 @@ func NewPeripheralDevice(port string) *PeripheralDevice {
 func (p *PeripheralDevice) Probe() error {
 	err := p.WT.TurnOn()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Papers, please!

@@ -13,11 +13,13 @@ const (
 )
 
 type PeripheralDeviceClerk struct {
-	// Devices map[string]PeripheralDevice
+	Devices map[string]*PeripheralDevice
 }
 
 func NewPeripheralDeviceClerk() *PeripheralDeviceClerk {
-	return &PeripheralDeviceClerk{}
+	return &PeripheralDeviceClerk{
+		Devices: make(map[string]*PeripheralDevice),
+	}
 }
 
 func (clerk *PeripheralDeviceClerk) listPorts() ([]string, error) {
@@ -29,6 +31,10 @@ func (clerk *PeripheralDeviceClerk) listPorts() ([]string, error) {
 	return ttyUSBs, nil
 }
 
+func (clerk *PeripheralDeviceClerk) addDevice(dev *PeripheralDevice) {
+	clerk.Devices[string(dev.Name[:])] = dev
+}
+
 func (clerk *PeripheralDeviceClerk) FindDevices() error {
 	ports, err := clerk.listPorts()
 	if err != nil {
@@ -37,17 +43,22 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 
 	for _, p := range ports {
 		newDevice := NewPeripheralDevice(p)
-		err := newDevice.Probe()
 
-		var msg string
-		if err == nil {
-			msg = string(newDevice.Name[:])
-		} else {
-			msg = err.Error()
+		err := newDevice.Probe()
+		if err != nil {
+			fmt.Println(p, err.Error())
+			continue
 		}
 
-		fmt.Println(p, msg)
+		clerk.addDevice(newDevice)
+		fmt.Println(p, string(newDevice.Name[:]))
 	}
 
 	return nil
 }
+
+// func (c *PeripheralDeviceClerk) clerkBackgroundJob() {
+// 	for {
+//
+// 	}
+// }

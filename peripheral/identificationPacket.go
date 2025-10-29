@@ -13,15 +13,13 @@ type IdentificationPacket struct {
 }
 
 func (pkt *IdentificationPacket) Read(wt *WalkieTalkie) error {
-	fmt.Println("Reading framed data")
-
 	err := wt.ReadFramedData(binary.Size(IdentificationPacket{}), pkt)
 	if err != nil {
 		return err
 	}
 
 	if !pkt.Validate() {
-		return fmt.Errorf("invalid packet")
+		return fmt.Errorf("invalid data")
 	}
 
 	return nil
