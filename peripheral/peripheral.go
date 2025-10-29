@@ -13,6 +13,7 @@ const (
 )
 
 type PeripheralDeviceClerk struct {
+	// mu      sync.RWMutex
 	Devices map[string]*PeripheralDevice
 }
 
@@ -54,11 +55,27 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 		fmt.Println(p, string(newDevice.Name[:]))
 	}
 
+	// go clerk.clerkBackgroundJob()
+
+	return nil
+}
+
+func (clerk *PeripheralDeviceClerk) ListDevices() error {
+	for _, d := range clerk.Devices {
+		fmt.Printf("[%d] %s\n", d.ID, d.Name)
+	}
+
 	return nil
 }
 
 // func (c *PeripheralDeviceClerk) clerkBackgroundJob() {
 // 	for {
-//
+// 		c.mu.RLock()
+// 		for _, d := range c.Devices {
+// 			// Check the state of the device
+// 			if d.CommState == CommIdle {
+// 			}
+// 		}
+// 		c.mu.Unlock()
 // 	}
 // }

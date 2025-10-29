@@ -12,11 +12,12 @@ func replCmdAction(cmd *cobra.Command, args []string) {
 		PS1: "\rESDI > ",
 	})
 
-	listDevicesREPLCmd := repl.Command{
-		Name:  "ls",
-		Usage: "lists the currently available devices",
+	perClerk := peripheral.NewPeripheralDeviceClerk()
+
+	discoverDevicesREPLCmd := repl.Command{
+		Name:  "discover",
+		Usage: "discovers connected devices",
 		Action: func(r *repl.REPL, args []string) error {
-			perClerk := peripheral.NewPeripheralDeviceClerk()
 			err := perClerk.FindDevices()
 			if err != nil {
 				return err
@@ -26,6 +27,17 @@ func replCmdAction(cmd *cobra.Command, args []string) {
 		},
 	}
 
+	listDevicesREPLCmd := repl.Command{
+		Name:  "list",
+		Usage: "lists connected devices",
+		Action: func(r *repl.REPL, args []string) error {
+			_ = perClerk.ListDevices()
+
+			return nil
+		},
+	}
+
+	r.RegisterCMD(discoverDevicesREPLCmd)
 	r.RegisterCMD(listDevicesREPLCmd)
 
 	r.Start()

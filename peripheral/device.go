@@ -36,7 +36,8 @@ func (s PeripheralDeviceState) String() string {
 type PeripheralDevice struct {
 	State     PeripheralDeviceState
 	CommState CommState
-	Name      [32]byte
+	ID        uint8
+	Name      string
 	WT        *WalkieTalkie
 }
 
@@ -93,7 +94,8 @@ func (p *PeripheralDevice) ToConnectedIdling() {
 }
 
 func (p *PeripheralDevice) Merge(packet *IdentificationPacket) {
-	p.Name = packet.Name
+	p.Name = string(packet.Name[:])
+	p.ID = packet.DeviceID
 }
 
 func (p *PeripheralDevice) Disconnect() error {
