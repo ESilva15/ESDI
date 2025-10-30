@@ -26,11 +26,18 @@ type Command uint8
 const (
 	CmdRequestID Command = iota
 	CmdAckID
+	CmdCreateScreen
+	CmdCreateWindow
 )
 
 type DataReceiver interface {
 	Read(dev *serial.Port) error
 	Validate(data []byte) bool
+}
+
+type WalkieTalkie struct {
+	Serial *serial.Port
+	Cfg    *serial.Config
 }
 
 func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
@@ -65,11 +72,6 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 	return nil
 }
 
-type WalkieTalkie struct {
-	Serial *serial.Port
-	Cfg    *serial.Config
-}
-
 func (wt *WalkieTalkie) TurnOn() error {
 	var err error
 
@@ -98,4 +100,8 @@ func (wt *WalkieTalkie) RequestIdentification() (int, error) {
 
 func (wt *WalkieTalkie) AknowledgeIdentification() (int, error) {
 	return wt.Serial.Write([]byte{uint8(CmdAckID)})
+}
+
+func (wt *WalkieTalkie) SendCommand(payload []byte) (int, error) {
+	return wt.Serial.Write(payload)
 }
