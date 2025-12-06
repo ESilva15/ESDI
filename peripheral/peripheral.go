@@ -2,6 +2,7 @@
 package peripheral
 
 import (
+	"esdi/peripheral/devices"
 	"fmt"
 	"path/filepath"
 )
@@ -14,12 +15,12 @@ const (
 
 type PeripheralDeviceClerk struct {
 	// mu      sync.RWMutex
-	Devices map[string]*PeripheralDevice
+	Devices map[uint8]*PeripheralDevice
 }
 
 func NewPeripheralDeviceClerk() *PeripheralDeviceClerk {
 	return &PeripheralDeviceClerk{
-		Devices: make(map[string]*PeripheralDevice),
+		Devices: make(map[uint8]*PeripheralDevice),
 	}
 }
 
@@ -33,7 +34,17 @@ func (clerk *PeripheralDeviceClerk) listPorts() ([]string, error) {
 }
 
 func (clerk *PeripheralDeviceClerk) addDevice(dev *PeripheralDevice) {
-	clerk.Devices[string(dev.Name[:])] = dev
+	clerk.Devices[dev.ID] = dev
+}
+
+func (clerk *PeripheralDeviceClerk) FindDeviceAPI(ID uint8) *devices.Device {
+	for _, d := range devices.DeviceMap {
+		if d.ID == ID {
+			return &d
+		}
+	}
+
+	return nil
 }
 
 func (clerk *PeripheralDeviceClerk) FindDevices() error {
@@ -51,6 +62,13 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 			continue
 		}
 
+		// Look for the device on our device list - we need its API
+		newDevice.DeviceAPI = clerk.FindDeviceAPI(newDevice.ID)
+		if newDevice.DeviceAPI == nil {
+			fmt.Printf("Failed to acquire API for device: [%2d] %s\n",
+				newDevice.ID, newDevice.Name)
+		}
+
 		clerk.addDevice(newDevice)
 		fmt.Println(p, string(newDevice.Name[:]))
 	}
@@ -62,7 +80,19 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 
 func (clerk *PeripheralDeviceClerk) ListDevices() error {
 	for _, d := range clerk.Devices {
-		fmt.Printf("[%d] %s\n", d.ID, d.Name)
+		fmt.Printf("[%2d] %s\n", d.ID, d.Name)
+	}
+
+	return nil
+}
+
+func (clerk *PeripheralDeviceClerk) ListDeviceAPI(ID uint8) error {
+	if _, ok := clerk.Devices[ID]; !ok {
+		return fmt.Errorf("device with ID %d not found", ID)
+	}
+
+	for _, f := range clerk.Devices[ID].DeviceAPI.API {
+		fmt.Printf("%s\t%s\n", f.Name, f.Desc)
 	}
 
 	return nil

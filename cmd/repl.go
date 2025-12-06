@@ -3,6 +3,8 @@ package cmd
 import (
 	"esdi/peripheral"
 	"esdi/repl"
+	"fmt"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -37,8 +39,52 @@ func replCmdAction(cmd *cobra.Command, args []string) {
 		},
 	}
 
+	listDeviceAPIREPLCmd := repl.Command{
+		Name:  "v-api",
+		Usage: "shows API of a device - pass its ID",
+		Action: func(r *repl.REPL, args []string) error {
+			// We should add this to the REPL instead
+			if len(args) < 1 {
+				return fmt.Errorf("requires at least on argument")
+			}
+
+			// First and only argument should be the ID of the device we want to use
+			targetID, err := strconv.ParseInt(args[0], 10, 0)
+			if err != nil {
+				return err
+			}
+
+			err = perClerk.ListDeviceAPI(uint8(targetID))
+			if err != nil {
+				fmt.Println("failed to view device API: ", err.Error())
+			}
+
+			return nil
+		},
+	}
+	// selectDeviceREPLCmd := repl.Command{
+	// 	Name:  "select",
+	// 	Usage: "Selects a given device - pass its ID",
+	// 	Action: func(r *repl.REPL, args []string) error {
+	// 		// We should add this to the REPL instead
+	// 		if len(args) < 1 {
+	// 			return fmt.Errorf("requires at least on argument")
+	// 		}
+	//
+	// 		// First and only argument should be the ID of the device we want to use
+	// 		targetID, err := strconv.ParseInt(args[0], 10, 0)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	//
+	// 		return nil
+	// 	},
+	// }
+
 	r.RegisterCMD(discoverDevicesREPLCmd)
 	r.RegisterCMD(listDevicesREPLCmd)
+	// r.RegisterCMD(selectDeviceREPLCmd)
+	r.RegisterCMD(listDeviceAPIREPLCmd)
 
 	r.Start()
 	r.Close()

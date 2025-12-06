@@ -1,6 +1,7 @@
 package peripheral
 
 import (
+	"esdi/peripheral/devices"
 	"time"
 
 	"github.com/tarm/serial"
@@ -39,6 +40,7 @@ type PeripheralDevice struct {
 	ID        uint8
 	Name      string
 	WT        *WalkieTalkie
+	DeviceAPI *devices.Device
 }
 
 func NewPeripheralDevice(port string) *PeripheralDevice {

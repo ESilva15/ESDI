@@ -47,6 +47,10 @@ func (r *REPL) printPrompt() {
 	_, _ = os.Stdout.Write([]byte(r.Cfg.PS1))
 }
 
+func (r *REPL) SetPS1(s string) {
+	r.Cfg.PS1 = s
+}
+
 func (r *REPL) mainLoop() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
