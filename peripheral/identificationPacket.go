@@ -2,6 +2,7 @@ package peripheral
 
 import (
 	"encoding/binary"
+	comm "esdi/peripheral/communication"
 	"fmt"
 )
 
@@ -13,7 +14,7 @@ type IdentificationPacket struct {
 	EndMarker   byte
 }
 
-func (pkt *IdentificationPacket) Read(wt *WalkieTalkie) error {
+func (pkt *IdentificationPacket) Read(wt *comm.WalkieTalkie) error {
 	err := wt.ReadFramedData(binary.Size(IdentificationPacket{}), pkt)
 	if err != nil {
 		return err
@@ -37,8 +38,8 @@ func (pkt *IdentificationPacket) Validate() bool {
 	// Change this to return an error and add a validation against available
 	// device ids
 
-	if pkt.StartMarker != startOfText ||
-		pkt.EndMarker != endOfText {
+	if pkt.StartMarker != comm.StartOfText ||
+		pkt.EndMarker != comm.EndOfText {
 		return false
 	}
 

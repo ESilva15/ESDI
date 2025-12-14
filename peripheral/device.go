@@ -1,6 +1,7 @@
 package peripheral
 
 import (
+	comm "esdi/peripheral/communication"
 	"esdi/peripheral/devices"
 	"time"
 
@@ -36,18 +37,18 @@ func (s PeripheralDeviceState) String() string {
 
 type PeripheralDevice struct {
 	State     PeripheralDeviceState
-	CommState CommState
+	CommState comm.CommState
 	ID        uint8
 	Name      string
-	WT        *WalkieTalkie
+	WT        *comm.WalkieTalkie
 	DeviceAPI *devices.Device
 }
 
 func NewPeripheralDevice(port string) *PeripheralDevice {
 	return &PeripheralDevice{
 		State:     StateUnknown,
-		CommState: CommOff,
-		WT: &WalkieTalkie{
+		CommState: comm.CommOff,
+		WT: &comm.WalkieTalkie{
 			Cfg: &serial.Config{
 				Name:        port,
 				Baud:        115200,
@@ -92,7 +93,7 @@ func (p *PeripheralDevice) Probe() error {
 
 func (p *PeripheralDevice) ToConnectedIdling() {
 	p.State = StateConnected
-	p.CommState = CommIdle
+	p.CommState = comm.CommIdle
 }
 
 func (p *PeripheralDevice) Merge(packet *IdentificationPacket) {

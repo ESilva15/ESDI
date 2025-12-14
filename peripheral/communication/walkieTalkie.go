@@ -1,4 +1,4 @@
-package peripheral
+package communication
 
 import (
 	"bytes"
@@ -8,32 +8,6 @@ import (
 
 	"github.com/tarm/serial"
 )
-
-const (
-	startOfText = 0x02
-	endOfText   = 0x03
-)
-
-type CommState uint8
-
-const (
-	CommIdle CommState = iota
-	CommOff
-)
-
-type Command uint8
-
-const (
-	CmdRequestID Command = iota
-	CmdAckID
-	CmdCreateScreen
-	CmdCreateWindow
-)
-
-type DataReceiver interface {
-	Read(dev *serial.Port) error
-	Validate(data []byte) bool
-}
 
 type WalkieTalkie struct {
 	Serial *serial.Port
@@ -52,7 +26,7 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 			return err
 		}
 
-		if b[0] == startOfText {
+		if b[0] == StartOfText {
 			buf[0] = b[0]
 			break
 		}
