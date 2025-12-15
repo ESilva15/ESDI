@@ -1,4 +1,9 @@
-package peripheral
+// Package packets will define the available packets we have
+package packets
+
+type Packet interface {
+	Validate() bool
+}
 
 type PacketType uint8
 

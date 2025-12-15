@@ -2,6 +2,7 @@ package peripheral
 
 import (
 	comm "esdi/peripheral/communication"
+	pack "esdi/peripheral/communication/packets"
 	"esdi/peripheral/devices"
 	"time"
 
@@ -71,7 +72,7 @@ func (p *PeripheralDevice) Probe() error {
 	}
 
 	// Verify the papers
-	var pkt IdentificationPacket
+	var pkt pack.IdentificationPacket
 	err = pkt.Read(p.WT)
 	if err != nil {
 		// Throw the man in the gulag!
@@ -96,7 +97,7 @@ func (p *PeripheralDevice) ToConnectedIdling() {
 	p.CommState = comm.CommIdle
 }
 
-func (p *PeripheralDevice) Merge(packet *IdentificationPacket) {
+func (p *PeripheralDevice) Merge(packet *pack.IdentificationPacket) {
 	p.Name = string(packet.Name[:])
 	p.ID = packet.DeviceID
 }
