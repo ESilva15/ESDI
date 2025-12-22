@@ -51,6 +51,62 @@ func (r *REPL) SetPS1(s string) {
 	r.Cfg.PS1 = s
 }
 
+func parseArgs(l string) ([]string, error) {
+	args := []string{}
+	input := strings.TrimSpace(l)
+
+	type ArgParserState uint8
+	const (
+		readingQuotedStr ArgParserState = iota
+		readingNormalStr
+		storeArg
+	)
+
+	curState := readingNormalStr
+
+	curStr := []byte{}
+	for k := 0; k < len(input); {
+		switch curState {
+		case readingNormalStr:
+			switch input[k] {
+			case '"':
+				curState = readingQuotedStr
+			case ' ':
+				curState = storeArg
+			default:
+				curStr = append(curStr, input[k])
+			}
+			k++
+		case readingQuotedStr:
+			switch input[k] {
+			case '"':
+				if k+1 < len(input) {
+					k++
+				}
+				curState = storeArg
+			default:
+				curStr = append(curStr, input[k])
+			}
+			k++
+		case storeArg:
+			args = append(args, string(curStr))
+			curStr = nil
+			curState = readingNormalStr
+		}
+
+		if k == len(input) {
+			args = append(args, string(curStr))
+			curStr = nil
+		}
+	}
+
+	if curState == readingQuotedStr {
+		return []string{}, fmt.Errorf("quoted string was not closed: %s", curStr)
+	}
+
+	return args, nil
+}
+
 func (r *REPL) mainLoop() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -64,14 +120,17 @@ func (r *REPL) mainLoop() {
 			continue
 		}
 
-		args := parseInput(strings.TrimSpace(line))
-		if args[0] == "" {
-			continue
+		args, err := parseArgs(line)
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
 		}
 
 		command, exists := r.Commands[args[0]]
 		if exists {
-			_ = command.Action(r, args[1:])
+			err = command.Action(r, args[1:])
+			if err != nil {
+				fmt.Printf("error: %s\n", err.Error())
+			}
 		} else {
 			fmt.Printf("No such command `%s`\n", args[0])
 		}
