@@ -65,28 +65,16 @@ func (p *PeripheralDevice) Probe() error {
 		return err
 	}
 
-	// Papers, please!
-	_, err = p.WT.RequestIdentification()
-	if err != nil {
-		return err
-	}
-
-	// Verify the papers
-	var pkt pack.IdentificationPacket
-	err = pkt.Read(p.WT)
-	if err != nil {
-		// Throw the man in the gulag!
-		return err
-	}
-
-	// Acknowledge successful identification
-	_, err = p.WT.AknowledgeIdentification()
+	// Send the identification command
+	cmd := comm.CmdRequestID
+	var response pack.IdentificationPacket
+	err = p.WT.SendCommand(cmd, []byte{}, &response)
 	if err != nil {
 		return err
 	}
 
 	// copy the data
-	p.Merge(&pkt)
+	p.Merge(&response)
 	p.ToConnectedIdling()
 
 	return nil

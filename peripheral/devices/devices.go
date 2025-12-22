@@ -23,6 +23,14 @@ type Device struct {
 	API  map[string]DeviceCMD
 }
 
+func (dev *Device) HasFunction(f string) *DeviceCMD {
+	if cmd, ok := dev.API[f]; ok {
+		return &cmd
+	}
+
+	return nil
+}
+
 type DeviceCMDHeader struct {
 	Payload [64]byte
 }
@@ -34,7 +42,7 @@ type DeviceCMDPayload struct {
 // DeviceCMDFn defines the basic type for the functions the devices can have
 // The function will receive a []byte that should be the arguments the user
 // types in the REPL - or however this will be used
-type DeviceCMDFn func(data []byte)
+type DeviceCMDFn func(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, error)
 
 type DeviceCMD struct {
 	Identifier types.CommandID
@@ -43,4 +51,16 @@ type DeviceCMD struct {
 	Header     DeviceCMDHeader
 	Data       DeviceCMDPayload
 	Fn         DeviceCMDFn
+}
+
+func (dCMD *DeviceCMD) GetIdentifier() types.CommandID {
+	return dCMD.Identifier
+}
+
+func (dCMD *DeviceCMD) GetName() string {
+	return dCMD.Name
+}
+
+func (dCMD *DeviceCMD) GetDesc() string {
+	return dCMD.Desc
 }

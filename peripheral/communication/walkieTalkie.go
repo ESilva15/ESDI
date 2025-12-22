@@ -65,13 +65,6 @@ func (wt *WalkieTalkie) TurnOff() error {
 	return wt.Serial.Close()
 }
 
-// func (wt *WalkieTalkie) SendCommand(cmd Command, payload []byte) (int, error) {
-// 	switch cmd {
-// 	case CmdRequestID:
-// 		return wt.RequestIdentification(d * serial.Port)
-// 	}
-// }
-
 func (wt *WalkieTalkie) RequestIdentification() (int, error) {
 	return wt.Serial.Write([]byte{uint8(CmdRequestID)})
 }
@@ -87,6 +80,7 @@ type header struct {
 }
 
 func (wt *WalkieTalkie) sendPacket(data any) error {
+	fmt.Println("Sending a packet...")
 	// Prepare the payload
 	var buf bytes.Buffer
 	err := binary.Write(&buf, binary.LittleEndian, data)
