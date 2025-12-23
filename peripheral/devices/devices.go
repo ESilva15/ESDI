@@ -42,10 +42,10 @@ type DeviceCMDPayload struct {
 // DeviceCMDFn defines the basic type for the functions the devices can have
 // The function will receive a []byte that should be the arguments the user
 // types in the REPL - or however this will be used
-type DeviceCMDFn func(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, error)
+type DeviceCMDFn func(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 
 type DeviceCMD struct {
-	Identifier types.CommandID
+	Identifier types.Command
 	Name       string
 	Desc       string
 	Header     DeviceCMDHeader
@@ -53,7 +53,7 @@ type DeviceCMD struct {
 	Fn         DeviceCMDFn
 }
 
-func (dCMD *DeviceCMD) GetIdentifier() types.CommandID {
+func (dCMD *DeviceCMD) GetIdentifier() types.Command {
 	return dCMD.Identifier
 }
 

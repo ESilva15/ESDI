@@ -4,6 +4,8 @@ import (
 	comm "esdi/peripheral/communication"
 	pack "esdi/peripheral/communication/packets"
 	"esdi/peripheral/devices"
+	"esdi/peripheral/types"
+	"fmt"
 	"time"
 
 	"github.com/tarm/serial"
@@ -68,7 +70,7 @@ func (p *PeripheralDevice) Probe() error {
 	// Send the identification command
 	cmd := comm.CmdRequestID
 	var response pack.IdentificationPacket
-	err = p.WT.SendCommand(cmd, []byte{}, &response)
+	err = p.WT.SendCommand(cmd, []byte{0x06, 0x07, 0x08, 0x09}, &response)
 	if err != nil {
 		return err
 	}
@@ -76,6 +78,23 @@ func (p *PeripheralDevice) Probe() error {
 	// copy the data
 	p.Merge(&response)
 	p.ToConnectedIdling()
+
+	return nil
+}
+
+func (p *PeripheralDevice) SendCommand(cmd types.Command, payload []byte) error {
+	fmt.Println("Send command:", cmd)
+	fmt.Println("With payload:", payload)
+
+	var ack pack.AckPacket
+	err := p.WT.SendCommand(cmd, payload, &ack)
+	if err != nil {
+		return err
+	}
+
+	if ack.AckByte == 0x06 {
+		fmt.Println("Succesfully received ack")
+	}
 
 	return nil
 }

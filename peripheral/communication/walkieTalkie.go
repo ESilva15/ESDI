@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	helper "esdi/helpers"
 	"esdi/peripheral/communication/constvar"
 	"esdi/peripheral/communication/packets"
 	"esdi/peripheral/types"
@@ -24,7 +25,6 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 	for {
 		b := make([]byte, 1)
 		_, err := wt.Serial.Read(b)
-
 		if err != nil {
 			fmt.Println("dev read:", err.Error())
 			return err
@@ -79,17 +79,49 @@ type header struct {
 	EndByte   uint8
 }
 
-func (wt *WalkieTalkie) sendPacket(data any) error {
-	fmt.Println("Sending a packet...")
+type CMDDataPacket struct {
+	StartMarker uint8
+	CMD         types.Command
+	Len         uint16
+	Payload     []byte
+	CRC         uint8
+	EndMarker   uint8
+}
+
+func (cmdp *CMDDataPacket) Serialize() []byte {
+	buf := make([]byte, 0, 1+1+2+len(cmdp.Payload)+1+1)
+
+	buf = append(buf, cmdp.StartMarker)
+	buf = append(buf, byte(cmdp.CMD))
+	buf = append(buf, byte(cmdp.Len), byte(cmdp.Len>>8))
+	buf = append(buf, cmdp.Payload...)
+	buf = append(buf, cmdp.CRC)
+	buf = append(buf, cmdp.EndMarker)
+
+	return buf
+}
+
+func (wt *WalkieTalkie) sendPacket(cmd types.Command, data any) error {
 	// Prepare the payload
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, data)
+	payload, err := helper.StructToBytes(data)
 	if err != nil {
 		return err
 	}
 
+	packet := CMDDataPacket{
+		StartMarker: constvar.StartOfText,
+		CMD:         cmd,
+		Len:         uint16(len(payload)),
+		Payload:     payload,
+		CRC:         CRC8(payload),
+		EndMarker:   constvar.EndOfText,
+	}
+
 	// Send the payload
-	_, err = wt.Serial.Write(buf.Bytes())
+	serializedPacket := packet.Serialize()
+	fmt.Println(serializedPacket)
+
+	_, err = wt.Serial.Write(serializedPacket)
 	if err != nil {
 		return err
 	}
@@ -115,54 +147,63 @@ func (wt *WalkieTalkie) readPacket(resp packets.Packet) error {
 	return nil
 }
 
-func (wt *WalkieTalkie) sendHeader(h *header) error {
-	err := wt.sendPacket(h)
-	if err != nil {
-		return err
-	}
+// func (wt *WalkieTalkie) sendHeader(h *header) error {
+// 	err := wt.sendPacket(h)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	// var ack packets.AckPacket
+// 	// err = wt.readPacket(&ack)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+//
+// 	return nil
+// }
 
-	var ack packets.AckPacket
-	err = wt.readPacket(&ack)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (wt *WalkieTalkie) sendBody(payload any, resp packets.Packet) error {
-	err := wt.sendPacket(payload)
-	if err != nil {
-		return err
-	}
-
-	err = wt.readPacket(resp)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+// func (wt *WalkieTalkie) sendBody(payload any, resp packets.Packet) error {
+// 	err := wt.sendPacket(payload)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	// err = wt.readPacket(resp)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+//
+// 	return nil
+// }
 
 func (wt *WalkieTalkie) SendCommand(cmd types.Command, payload any,
-	responseBody packets.Packet) error {
+	responseBody packets.Packet,
+) error {
 	// Prepare the header
-	header := header{
-		StartByte: constvar.StartOfText,
-		CMD:       cmd,
-		EndByte:   constvar.EndOfText,
-	}
+	// header := header{
+	// 	StartByte: constvar.StartOfText,
+	// 	CMD:       cmd,
+	// 	EndByte:   constvar.EndOfText,
+	// }
 
 	// Send the header
-	err := wt.sendHeader(&header)
+	// err := wt.sendHeader(&header)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// Send the body
+	err := wt.sendPacket(cmd, payload)
 	if err != nil {
 		return err
 	}
 
-	// Send the body
-	err = wt.sendBody(payload, responseBody)
-	if err != nil {
-		return err
+	// if the responseBody != nil, then we also read and populate it???
+	if responseBody != nil {
+		err = wt.readPacket(responseBody)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	newWindowCMDID types.CommandID = iota
-	destroyWindowCMDID
+	newWindowCMDID     types.Command = 3
+	destroyWindowCMDID types.Command = 4
 )
 
 var CDashDisplay = Device{
@@ -32,17 +32,18 @@ var CDashDisplay = Device{
 	},
 }
 
-func createWindow(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, error) {
+func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
 	// Parse the command
 	// x0, y0, width, height, title # add other decorations later on
 	// fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
 
 	type UIWindow struct {
-		X0     uint16
-		Y0     uint16
-		Width  uint16
-		Height uint16
-		Title  [32]byte
+		StartMarker uint8
+		X0          uint16
+		Y0          uint16
+		Width       uint16
+		Height      uint16
+		EndMarker   uint8
 	}
 
 	if len(args) != 5 {
@@ -68,11 +69,13 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, erro
 	}
 
 	data := UIWindow{
-		X0:     uint16(x0),
-		Y0:     uint16(y0),
-		Width:  uint16(width),
-		Height: uint16(height),
-		Title:  helper.B32(args[4]),
+		StartMarker: 0x02,
+		X0:          uint16(x0),
+		Y0:          uint16(y0),
+		Width:       uint16(width),
+		Height:      uint16(height),
+		// Title:       helper.B32(args[4]),
+		EndMarker: 0x03,
 	}
 
 	// fmt.Printf("Data: %+v\n", data)
@@ -85,7 +88,7 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, erro
 	return dCMD.GetIdentifier(), bytes, nil
 }
 
-func destroyWindow(dCMD *DeviceCMD, args []string) (types.CommandID, []byte, error) {
+func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
 	// Parse the command
 	fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
 

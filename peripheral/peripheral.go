@@ -3,7 +3,6 @@ package peripheral
 
 import (
 	"esdi/peripheral/devices"
-	"esdi/peripheral/types"
 	"fmt"
 	"path/filepath"
 )
@@ -87,12 +86,12 @@ func (clerk *PeripheralDeviceClerk) ListDevices() error {
 	return nil
 }
 
-func (clerk *PeripheralDeviceClerk) getDevice(ID uint8) *devices.Device {
+func (clerk *PeripheralDeviceClerk) getDevice(ID uint8) *PeripheralDevice {
 	if _, ok := clerk.Devices[ID]; !ok {
 		return nil
 	}
 
-	return clerk.Devices[ID].DeviceAPI
+	return clerk.Devices[ID]
 }
 
 func (clerk *PeripheralDeviceClerk) ListDeviceAPI(ID uint8) error {
@@ -101,16 +100,9 @@ func (clerk *PeripheralDeviceClerk) ListDeviceAPI(ID uint8) error {
 		return fmt.Errorf("device with ID %d not found", ID)
 	}
 
-	for _, f := range dev.API {
+	for _, f := range dev.DeviceAPI.API {
 		fmt.Printf("%s\t%s\n", f.Name, f.Desc)
 	}
-
-	return nil
-}
-
-func (clerk *PeripheralDeviceClerk) sendDeviceFn(c types.CommandID, payload []byte) error {
-	fmt.Println("Send command:", c)
-	fmt.Println("With payload:", payload)
 
 	return nil
 }
@@ -120,8 +112,9 @@ func (clerk *PeripheralDeviceClerk) RunDeviceFunction(ID uint8, f string, args [
 	if dev == nil {
 		return fmt.Errorf("device with ID %d not found", ID)
 	}
+	devAPI := dev.DeviceAPI
 
-	cmd := dev.HasFunction(f)
+	cmd := devAPI.HasFunction(f)
 	if cmd == nil {
 		return fmt.Errorf("requested function %s doesnt exist", f)
 	}
@@ -132,7 +125,7 @@ func (clerk *PeripheralDeviceClerk) RunDeviceFunction(ID uint8, f string, args [
 		return err
 	}
 
-	err = clerk.sendDeviceFn(command, payload)
+	err = dev.SendCommand(command, payload)
 	if err != nil {
 		return err
 	}
