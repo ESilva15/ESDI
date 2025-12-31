@@ -38,12 +38,11 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 	// fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
 
 	type UIWindow struct {
-		StartMarker uint8
-		X0          uint16
-		Y0          uint16
-		Width       uint16
-		Height      uint16
-		EndMarker   uint8
+		X0     uint16
+		Y0     uint16
+		Width  uint16
+		Height uint16
+		Title  [32]byte
 	}
 
 	if len(args) != 5 {
@@ -69,16 +68,12 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 	}
 
 	data := UIWindow{
-		StartMarker: 0x02,
-		X0:          uint16(x0),
-		Y0:          uint16(y0),
-		Width:       uint16(width),
-		Height:      uint16(height),
-		// Title:       helper.B32(args[4]),
-		EndMarker: 0x03,
+		X0:     uint16(x0),
+		Y0:     uint16(y0),
+		Width:  uint16(width),
+		Height: uint16(height),
+		Title:  helper.B32(args[4]),
 	}
-
-	// fmt.Printf("Data: %+v\n", data)
 
 	bytes, err := helper.StructToBytes(data)
 	if err != nil {
