@@ -107,5 +107,28 @@ func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error
 	// Parse the command
 	fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
 
-	return dCMD.GetIdentifier(), []byte{}, nil
+	type UIWindowDestructPacket struct {
+		WinID int16
+	}
+
+	err := dCMD.ArgCheck(args)
+	if err != nil {
+		return 0, []byte{}, err
+	}
+
+	id, err := strconv.ParseInt(args[0], 10, 0)
+	if err != nil {
+		return 0, []byte{}, err
+	}
+
+	packet := UIWindowDestructPacket{
+		WinID: int16(id),
+	}
+
+	bytes, err := helper.StructToBytes(packet)
+	if err != nil {
+		return 0, []byte{}, err
+	}
+
+	return dCMD.GetIdentifier(), bytes, nil
 }
