@@ -21,15 +21,26 @@ var CDashDisplay = Device{
 			Identifier: newWindowCMDID,
 			Name:       "new-window",
 			Desc:       "Creates a new window - pass the window name and dimensions",
+			ArgCheck:   createWindowArgCheck,
 			Fn:         createWindow,
 		},
 		"destroy-window": {
 			Identifier: destroyWindowCMDID,
 			Name:       "destroy-window",
 			Desc:       "Destroys a window by its ID",
+			ArgCheck:   destroyWindowArgCheck,
 			Fn:         destroyWindow,
 		},
 	},
+}
+
+func createWindowArgCheck(args []string) error {
+	if len(args) != 5 {
+		return fmt.Errorf("wrong parameters, got %d, want %d. "+
+			"Command asks for: x0 y0 width height title", len(args), 5)
+	}
+
+	return nil
 }
 
 func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
@@ -45,9 +56,9 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 		Title  [32]byte
 	}
 
-	if len(args) != 5 {
-		return 0, []byte{}, fmt.Errorf("wrong parameters, got %d, want %d. "+
-			"Command asks for: x0 y0 width height title", len(args), 5)
+	err := dCMD.ArgCheck(args)
+	if err != nil {
+		return 0, []byte{}, err
 	}
 
 	x0, err := strconv.ParseInt(args[0], 10, 0)
@@ -81,6 +92,15 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 	}
 
 	return dCMD.GetIdentifier(), bytes, nil
+}
+
+func destroyWindowArgCheck(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("wrong parameters, got %d, want %d. "+
+			"Command asks for: winID", len(args), 1)
+	}
+
+	return nil
 }
 
 func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {

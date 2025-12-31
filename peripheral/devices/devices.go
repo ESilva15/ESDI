@@ -44,12 +44,17 @@ type DeviceCMDPayload struct {
 // types in the REPL - or however this will be used
 type DeviceCMDFn func(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 
+// ArgCheckFn is a function to check the arguments passed. Returns nil or the error
+// in the passed arguments
+type ArgCheckFn func(args []string) error
+
 type DeviceCMD struct {
 	Identifier types.Command
 	Name       string
 	Desc       string
 	Header     DeviceCMDHeader
 	Data       DeviceCMDPayload
+	ArgCheck   ArgCheckFn
 	Fn         DeviceCMDFn
 }
 
