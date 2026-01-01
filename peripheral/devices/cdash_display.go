@@ -56,11 +56,6 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 		Title  [32]byte
 	}
 
-	err := dCMD.ArgCheck(args)
-	if err != nil {
-		return 0, []byte{}, err
-	}
-
 	x0, err := strconv.ParseInt(args[0], 10, 0)
 	if err != nil {
 		return 0, []byte{}, err
@@ -109,11 +104,6 @@ func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error
 
 	type UIWindowDestructPacket struct {
 		WinID int16
-	}
-
-	err := dCMD.ArgCheck(args)
-	if err != nil {
-		return 0, []byte{}, err
 	}
 
 	id, err := strconv.ParseInt(args[0], 10, 0)

@@ -58,6 +58,17 @@ type DeviceCMD struct {
 	Fn         DeviceCMDFn
 }
 
+func (dCMD *DeviceCMD) Run(args []string) (types.Command, []byte, error) {
+	// Validate the arguments in the device function
+	err := dCMD.ArgCheck(args)
+	if err != nil {
+		return 0, []byte{}, err
+	}
+
+	// Run the function
+	return dCMD.Fn(dCMD, args)
+}
+
 func (dCMD *DeviceCMD) GetIdentifier() types.Command {
 	return dCMD.Identifier
 }

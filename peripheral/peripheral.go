@@ -120,7 +120,7 @@ func (clerk *PeripheralDeviceClerk) RunDeviceFunction(ID uint8, f string, args [
 	}
 
 	// Execute the function
-	command, payload, err := cmd.Fn(cmd, args)
+	command, payload, err := cmd.Run(args)
 	if err != nil {
 		return err
 	}
