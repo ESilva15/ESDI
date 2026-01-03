@@ -1,8 +1,9 @@
 module esdi
 
-go 1.23.2
+go 1.25.5
 
 require (
+	github.com/ESilva15/ESgoRepl v0.1.0
 	github.com/ESilva15/gobngsdk v0.0.2
 	github.com/ESilva15/goirsdk v0.2.0
 	github.com/spf13/cobra v1.8.1

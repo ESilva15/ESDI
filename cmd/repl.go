@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"esdi/peripheral"
-	"esdi/repl"
 	"fmt"
 	"strconv"
+
+	repl "github.com/ESilva15/ESgoRepl"
 
 	"github.com/spf13/cobra"
 )
