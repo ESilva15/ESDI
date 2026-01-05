@@ -11,6 +11,7 @@ import (
 const (
 	newWindowCMDID     types.Command = 3
 	destroyWindowCMDID types.Command = 4
+	moveWindowCMDID    types.Command = 5
 )
 
 var (
@@ -68,6 +69,13 @@ var CDashDisplay = Device{
 			ArgCheck:   destroyWindowArgCheck,
 			Fn:         destroyWindow,
 		},
+		"move-window": {
+			Identifier: moveWindowCMDID,
+			Name:       "move-window",
+			Desc:       "Moves a selected window - pass the window ID",
+			ArgCheck:   moveWindowArgCheck,
+			Fn:         moveWindow,
+		},
 	},
 }
 
@@ -83,8 +91,6 @@ func createWindowArgCheck(args []string) error {
 func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
 	// Parse the command
 	// x0, y0, width, height, title # add other decorations later on
-	// fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
-
 	x0, err := strconv.ParseInt(args[0], 10, 0)
 	if err != nil {
 		return 0, []byte{}, err
@@ -132,8 +138,6 @@ func destroyWindowArgCheck(args []string) error {
 
 func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
 	// Parse the command
-	fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
-
 	type UIWindowDestructPacket struct {
 		WinID int16
 	}
@@ -153,4 +157,25 @@ func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error
 	}
 
 	return dCMD.GetIdentifier(), bytes, nil
+}
+
+func moveWindowArgCheck(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("wrong parameters, got %d, want %d. "+
+			"Command asks for: winID", len(args), 1)
+	}
+
+	return nil
+}
+
+func moveWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
+	// We can edit this struct to be a generic 'window edit' struct. Either
+	// that or implement a way of passing arbitrary fields to update
+	type UIWindowMovePacket struct {
+		WinID     int16
+		Direction uint8
+		Quantity  uint8
+	}
+
+	return dCMD.GetIdentifier(), []byte{}, nil
 }
