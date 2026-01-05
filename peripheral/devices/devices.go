@@ -1,10 +1,7 @@
 // Package devices will define the available devices we can communicate with
 package devices
 
-import (
-	"esdi/peripheral/types"
-	"fmt"
-)
+import "esdi/peripheral/types"
 
 // IDs for our devices. They need to be correctly mapped on the devices
 // themselves so we can discover them
@@ -69,7 +66,6 @@ func (dCMD *DeviceCMD) Run(args []string) (types.Command, []byte, error) {
 	}
 
 	// Run the function
-	fmt.Printf("%s command called: %+v\n", dCMD.GetName(), args)
 	return dCMD.Fn(dCMD, args)
 }
 
