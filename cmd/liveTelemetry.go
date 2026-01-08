@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"esdi/esdi"
 	"esdi/logger"
+	esdi "esdi/oldEsdi"
 
 	"github.com/spf13/cobra"
 )

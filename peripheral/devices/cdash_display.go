@@ -2,15 +2,20 @@ package devices
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"unicode/utf8"
 
 	helper "esdi/helpers"
 	"esdi/peripheral/types"
+
+	"golang.org/x/term"
 )
 
 const (
 	newWindowCMDID     types.Command = 3
 	destroyWindowCMDID types.Command = 4
+	moveWindowCMDID    types.Command = 5
 )
 
 var (
@@ -67,6 +72,13 @@ var CDashDisplay = Device{
 			Desc:       "Destroys a window by its ID",
 			ArgCheck:   destroyWindowArgCheck,
 			Fn:         destroyWindow,
+		},
+		"move-window": {
+			Identifier: moveWindowCMDID,
+			Name:       "move-window",
+			Desc:       "moves a window by its ID",
+			ArgCheck:   moveWindowArgCheck,
+			Fn:         moveWindow,
 		},
 	},
 }
@@ -153,4 +165,70 @@ func destroyWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error
 	}
 
 	return dCMD.GetIdentifier(), bytes, nil
+}
+
+func moveWindowArgCheck(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("wrong parameters, got %d, want %d. "+
+			"Command asks for: winID", len(args), 1)
+	}
+
+	return nil
+}
+
+func moveWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error) {
+	// Create an interactive mode to move the window or whatever
+	fd := int(os.Stdin.Fd())
+
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return dCMD.GetIdentifier(), []byte{}, err
+	}
+	defer term.Restore(fd, oldState)
+
+	buf := make([]byte, 8)
+	// var buffer []byte
+
+	for {
+		var stop = false
+		// We read the input on stdin and capture all types of inputs!
+		n, err := os.Stdin.Read(buf)
+		if err != nil {
+			return dCMD.GetIdentifier(), []byte{}, err
+		}
+
+		data := buf[:n]
+
+		if len(data) <= 0 {
+			continue
+		}
+
+		if data[0] == 0x1b {
+			continue
+		}
+
+		r, _ := utf8.DecodeRune(data)
+		if r == utf8.RuneError {
+			return dCMD.GetIdentifier(), []byte{}, err
+		}
+
+		switch r {
+		case 'q':
+			stop = true
+		case 'h':
+			fmt.Printf("←")
+		case 'l':
+			fmt.Printf("→")
+		case 'k':
+			fmt.Printf("↑")
+		case 'j':
+			fmt.Printf("↓")
+		}
+
+		if stop {
+			break
+		}
+	}
+
+	return dCMD.GetIdentifier(), []byte{}, fmt.Errorf("do nothing")
 }
