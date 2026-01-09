@@ -1,7 +1,12 @@
 // Package dom will be used to handle the multiple elements of an UI
 package dom
 
-import "github.com/rivo/tview"
+import (
+	"fmt"
+	"io"
+
+	"github.com/rivo/tview"
+)
 
 // ErrElementAlreadyRegistered defines the error scenario of the user trying
 // to register an element to the DOM with an already registered ID
@@ -24,8 +29,16 @@ func NewDOM() *DOM {
 	}
 }
 
+// Debugging
+func (d *DOM) ListRegisteredUINodes(io io.Writer) {
+	fmt.Printf("Registered Nodes:\n")
+	for key := range d.elements {
+		fmt.Fprintf(io, "  %s\n", key)
+	}
+}
+
 // Private
-func (d *DOM) idIsRegisterd(ID string) bool {
+func (d *DOM) idIsRegistered(ID string) bool {
 	_, ok := d.elements[ID]
 	return ok
 }
@@ -33,7 +46,7 @@ func (d *DOM) idIsRegisterd(ID string) bool {
 // registerElem register a new element to the DOM
 // should verify that the ID doesn't yet exist and thats it so far
 func (d *DOM) registerElem(elem *UINode) error {
-	if d.idIsRegisterd(elem.ID) {
+	if d.idIsRegistered(elem.ID) {
 		return &ErrElementAlreadyRegistered{}
 	}
 
@@ -78,17 +91,17 @@ func (d *DOM) GetRootElem() tview.Primitive {
 // GetElemByID returns the primitive of a UINode given its ID
 // returns nil if the Node isn't registered
 func (d *DOM) GetElemByID(ID string) tview.Primitive {
-	if !d.idIsRegisterd(ID) {
-		return nil
+	if d.idIsRegistered(ID) {
+		return d.elements[ID].Self
 	}
 
-	return d.elements[ID].Self
+	return nil
 }
 
 // GetNodeByID returns a UINode given its ID
 // returns nil if the Node isn't registered
 func (d *DOM) GetNodeByID(ID string) *UINode {
-	if !d.idIsRegisterd(ID) {
+	if d.idIsRegistered(ID) {
 		return d.elements[ID]
 	}
 
