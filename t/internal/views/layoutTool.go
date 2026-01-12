@@ -19,8 +19,13 @@ func BindWindowEvents(
 	bus *events.Bus,
 	tree *tview.TreeView,
 ) {
+	// I recon I have to change this for some type os event system that
+	// triggers directly on the UINodes I want them to be triggered on
 	bus.On(events.WindowCreated{}, func(e any) {
-		ctx.Log("Received a window created event")
+		ctx.Log("Received a window created event\n")
+	})
+	bus.On(events.Error{}, func(e any) {
+		ctx.Log("Error performing action: %s\n", e.(events.Error).Error.Error())
 	})
 }
 

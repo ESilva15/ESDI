@@ -22,21 +22,25 @@ func (wc *WindowingController) CreateWindow(x, y,
 	wc.Ctx.Log("title : %s\n", title)
 	// newWindow := tview.NewTreeNode(title)
 
-	xValue, err := strconv.ParseInt(x, 10, 1)
+	xValue, err := strconv.ParseUint(x, 10, 64)
 	if err != nil {
-		// return err
+		wc.Events.Emit(events.Error{Error: err})
+		return
 	}
-	yValue, err := strconv.ParseInt(y, 10, 1)
+	yValue, err := strconv.ParseUint(y, 10, 64)
 	if err != nil {
-		// return err
+		wc.Events.Emit(events.Error{Error: err})
+		return
 	}
-	widthValue, err := strconv.ParseInt(width, 10, 1)
+	widthValue, err := strconv.ParseUint(width, 10, 64)
 	if err != nil {
-		// return err
+		wc.Events.Emit(events.Error{Error: err})
+		return
 	}
-	heightValue, err := strconv.ParseInt(height, 10, 1)
+	heightValue, err := strconv.ParseUint(height, 10, 64)
 	if err != nil {
-		// return err
+		wc.Events.Emit(events.Error{Error: err})
+		return
 	}
 
 	window := models.Window{
