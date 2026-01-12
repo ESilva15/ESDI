@@ -63,8 +63,6 @@ func (t *TUI) Start() error {
 		Ctx:    ctx,
 	}
 
-	views.BindWindowEvents(ctx, t.Events, nil)
-
 	// Make the output window
 	err := views.BuildOutputWindow(t.Dom, ctx)
 	if err != nil {
