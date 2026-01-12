@@ -3,6 +3,7 @@ module esdi
 go 1.25.5
 
 require (
+	github.com/ESilva15/ESgoRepl v0.1.0
 	github.com/ESilva15/gobngsdk v0.0.2
 	github.com/ESilva15/goirsdk v0.2.0
 	github.com/charmbracelet/bubbletea v1.3.10
