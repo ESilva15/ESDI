@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"esdi/t"
+	"esdi/tui"
 
 	"github.com/spf13/cobra"
 )
@@ -98,9 +98,7 @@ import (
 
 func replCmdAction(cmd *cobra.Command, args []string) {
 	// repl.Run()
-	// tui.Run()
-	// teatui.Run()
-	t.Run()
+	tui.Run()
 }
 
 // removeLabelCmd represents the removeLabel command

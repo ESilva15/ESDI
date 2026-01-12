@@ -2,9 +2,9 @@
 package controllers
 
 import (
-	"esdi/t/internal/events"
-	"esdi/t/internal/models"
-	"esdi/t/internal/ui"
+	"esdi/tui/internal/events"
+	"esdi/tui/internal/models"
+	"esdi/tui/internal/ui"
 	"strconv"
 )
 

@@ -1,7 +1,7 @@
 package events
 
 import (
-	"esdi/t/internal/models"
+	"esdi/tui/internal/models"
 )
 
 type Error struct {

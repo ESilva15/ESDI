@@ -2,11 +2,11 @@
 package tui
 
 import (
-	"esdi/t/internal/controllers"
-	dom "esdi/t/internal/dom"
-	"esdi/t/internal/events"
-	"esdi/t/internal/ui"
-	"esdi/t/internal/views"
+	"esdi/tui/internal/controllers"
+	"esdi/tui/internal/dom"
+	"esdi/tui/internal/events"
+	"esdi/tui/internal/ui"
+	"esdi/tui/internal/views"
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"

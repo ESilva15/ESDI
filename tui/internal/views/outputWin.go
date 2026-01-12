@@ -1,8 +1,8 @@
 package views
 
 import (
-	"esdi/t/internal/dom"
-	"esdi/t/internal/ui"
+	"esdi/tui/internal/dom"
+	"esdi/tui/internal/ui"
 
 	"github.com/rivo/tview"
 )

@@ -4,9 +4,9 @@ package views
 import (
 	"fmt"
 
-	"esdi/t/internal/controllers"
-	"esdi/t/internal/dom"
-	"esdi/t/internal/ui"
+	"esdi/tui/internal/controllers"
+	"esdi/tui/internal/dom"
+	"esdi/tui/internal/ui"
 
 	"github.com/rivo/tview"
 )
