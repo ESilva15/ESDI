@@ -1,10 +1,12 @@
 package views
 
 import (
-	"esdi/tui/internal/controllers"
 	"esdi/tui/internal/dom"
 	"esdi/tui/internal/events"
+	"esdi/tui/internal/models"
 	"esdi/tui/internal/ui"
+	"fmt"
+	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -17,40 +19,42 @@ const (
 )
 
 func BindWindowEvents(
-	ctx *ui.UIContext,
 	bus *events.Bus,
+	doc *dom.DOM,
 	tree *tview.TreeView,
 ) {
 	// I recon I have to change this for some type os event system that
 	// triggers directly on the UINodes I want them to be triggered on
-	bus.On(events.WindowCreated{}, func(e any) {
-		ctx.Log("Received a window created event\n")
+	bus.On(ui.WindowCreatedEv{}, func(e any) {
+		bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
 		if tree == nil {
-			ctx.Log("tree view is nil")
+			bus.Emit(ui.LogEv{Log: "tree view is nil"})
 			return
 		}
 
 		root := tree.GetRoot()
 		if root == nil {
-			ctx.Log("unable to get root of tree view")
+			bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
 			return
 		}
 
-		newWindow := tview.NewTreeNode(e.(events.WindowCreated).Window.Title)
+		newWindow := tview.NewTreeNode(e.(ui.WindowCreatedEv).Window.Title)
 		root.AddChild(newWindow)
 	})
-	bus.On(events.Error{}, func(e any) {
-		ctx.Log("Error performing action: %s\n", e.(events.Error).Error.Error())
+	bus.On(ui.ErrorCreateWindowEv{}, func(e any) {
+		bus.Emit(ui.LogEv{
+			Log: fmt.Sprintf(
+				"Error performing action: %s\n", e.(ui.ErrorCreateWindowEv).Error.Error(),
+			)})
 	})
 }
 
-func layoutToolTreeViewEvents(root *dom.DOM, ctx *ui.UIContext,
-	tree *tview.TreeView, wc *controllers.WindowingController) func(
-	event *tcell.EventKey) *tcell.EventKey {
+func layoutToolTreeViewEvents(bus *events.Bus, doc *dom.DOM,
+	tree *tview.TreeView) func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEsc:
-			ctx.ChangeFocus(root.GetElemByID(deviceAPIListID))
+			bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(deviceAPIListID)})
 		}
 
 		switch event.Rune() {
@@ -59,20 +63,20 @@ func layoutToolTreeViewEvents(root *dom.DOM, ctx *ui.UIContext,
 			// I think I will leave this one for later
 		case 'n':
 			// Create a new window
-			ctx.Log("calling new window form\n")
-			createNewWindowForm(root, ctx, wc)
+			bus.Emit(ui.LogEv{Log: "calling new window form\n"})
+			createNewWindowForm(bus, doc)
 		case 'x':
 			// Delete selected window
-			ctx.Log("calling delete window\n")
+			bus.Emit(ui.LogEv{Log: "calling delete window\n"})
 			curNode := tree.GetCurrentNode()
 			if curNode == nil {
-				ctx.Log("unable to get current tree node")
+				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
 				break
 			}
 
 			root := tree.GetRoot()
 			if root == nil {
-				ctx.Log("unable to get current tree node")
+				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
 				break
 			}
 
@@ -87,36 +91,38 @@ func layoutToolTreeViewEvents(root *dom.DOM, ctx *ui.UIContext,
 	}
 }
 
-func layoutToolUIOnSelect(root *dom.DOM, ctx *ui.UIContext, wc *controllers.WindowingController) {
-	ctx.Log("Opening layout tool UI\n")
+func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
+	bus.Emit(ui.LogEv{Log: "Opening layout tool UI\n"})
 	var err error
 
 	// Get the api pages
-	apiToolPages := root.GetElemByID(apiToolPagesID).(*tview.Pages)
+	apiToolPages := doc.GetElemByID(apiToolPagesID).(*tview.Pages)
 	if apiToolPages == nil {
-		ctx.Log("  Failed to retrive apiToolPages UI\n")
+		bus.Emit(ui.LogEv{Log: "  Failed to retrive apiToolPages UI\n"})
 		return
 	}
 
-	ctx.Log("  Checking if `%s` UINode already exists\n", layoutToolFlexID)
-	layoutToolUINode := root.GetNodeByID(layoutToolFlexID)
+	bus.Emit(ui.LogEv{
+		Log: fmt.Sprintf("  Checking if `%s` UINode already exists\n", layoutToolFlexID),
+	})
+	layoutToolUINode := doc.GetNodeByID(layoutToolFlexID)
 	if layoutToolUINode == nil {
-		layoutToolUINode, err = buildLayoutFlexComponent(root, ctx, wc)
+		layoutToolUINode, err = buildLayoutFlexComponent(bus, doc)
 		if err != nil {
-			ctx.Log("      Failed to build layout tool UI: %s\n", err.Error())
+			bus.Emit(ui.LogEv{
+				Log: fmt.Sprintf("      Failed to build layout tool UI: %s\n", err.Error()),
+			})
 		}
 	}
 
-	AddAndShowPage(root, ctx, apiToolPages, layoutToolUINode)
+	AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode)
 }
 
-func buildLayoutTreeComponent(doc *dom.DOM, ctx *ui.UIContext,
-	wc *controllers.WindowingController) (*dom.UINode, error) {
-
+func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 	layoutTree := tview.NewTreeView()
 
 	layoutTree.SetBorder(true).SetTitle("Layout Tree").
-		SetInputCapture(layoutToolTreeViewEvents(doc, ctx, layoutTree, wc))
+		SetInputCapture(layoutToolTreeViewEvents(bus, doc, layoutTree))
 
 	layoutTreeUINode, err := doc.NewUINode(layoutToolTreeID,
 		doc.GetElemByID(rightFlexID), layoutTree)
@@ -125,7 +131,7 @@ func buildLayoutTreeComponent(doc *dom.DOM, ctx *ui.UIContext,
 	}
 
 	// Bind the events for the treeview
-	BindWindowEvents(ctx, wc.Events, layoutTreeUINode.Self.(*tview.TreeView))
+	BindWindowEvents(bus, doc, layoutTreeUINode.Self.(*tview.TreeView))
 
 	// Create a root element
 	rootElem := tview.NewTreeNode(".")
@@ -134,9 +140,7 @@ func buildLayoutTreeComponent(doc *dom.DOM, ctx *ui.UIContext,
 	return layoutTreeUINode, nil
 }
 
-func buildLayoutActionPagesComponent(doc *dom.DOM, _ *ui.UIContext,
-	_ *controllers.WindowingController) (*dom.UINode, error) {
-
+func buildLayoutActionPagesComponent(_ *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 	actionPages := tview.NewPages()
 
 	actionPages.SetBorder(true).SetTitle("Action Page")
@@ -150,23 +154,22 @@ func buildLayoutActionPagesComponent(doc *dom.DOM, _ *ui.UIContext,
 	return actionPagesUINode, nil
 }
 
-func buildLayoutFlexComponent(root *dom.DOM, ctx *ui.UIContext,
-	wc *controllers.WindowingController) (*dom.UINode, error) {
+func buildLayoutFlexComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 	// Want a TreeView at the top
-	layoutTreeUINode, err := buildLayoutTreeComponent(root, ctx, wc)
+	layoutTreeUINode, err := buildLayoutTreeComponent(bus, doc)
 	if err != nil {
 		return nil, err
 	}
 
 	// Want pages below to run actions
-	actionPagesUINode, err := buildLayoutActionPagesComponent(root, ctx, wc)
+	actionPagesUINode, err := buildLayoutActionPagesComponent(bus, doc)
 	if err != nil {
 		return nil, err
 	}
 
 	layoutToolFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-	layoutToolFlexNode, err := root.NewUINode(layoutToolFlexID,
-		root.GetElemByID(apiToolPagesID), layoutToolFlex)
+	layoutToolFlexNode, err := doc.NewUINode(layoutToolFlexID,
+		doc.GetElemByID(apiToolPagesID), layoutToolFlex)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +182,36 @@ func buildLayoutFlexComponent(root *dom.DOM, ctx *ui.UIContext,
 }
 
 // Layout tool actions
-func createNewWindowForm(root *dom.DOM, ctx *ui.UIContext,
-	wc *controllers.WindowingController) {
+
+// Validate the form inputs
+func validateFormInputs(x, y, w, h, title string) (models.Window, error) {
+	xValue, err := strconv.ParseUint(x, 10, 64)
+	if err != nil {
+		return models.Window{}, err
+	}
+	yValue, err := strconv.ParseUint(y, 10, 64)
+	if err != nil {
+		return models.Window{}, err
+	}
+	widthValue, err := strconv.ParseUint(w, 10, 64)
+	if err != nil {
+		return models.Window{}, err
+	}
+	heightValue, err := strconv.ParseUint(h, 10, 64)
+	if err != nil {
+		return models.Window{}, err
+	}
+
+	return models.Window{
+		X:      uint16(xValue),
+		Y:      uint16(yValue),
+		Width:  uint16(widthValue),
+		Height: uint16(heightValue),
+		Title:  title,
+	}, nil
+}
+
+func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 	var err error
 
 	x0 := tview.NewInputField().SetLabel("x")
@@ -196,13 +227,21 @@ func createNewWindowForm(root *dom.DOM, ctx *ui.UIContext,
 		AddFormItem(height).
 		AddFormItem(title).
 		AddButton("Create", func() {
-			wc.CreateWindow(
+			// Validate the inputs
+			window, err := validateFormInputs(
 				x0.GetText(),
 				y0.GetText(),
 				width.GetText(),
 				height.GetText(),
 				title.GetText(),
 			)
+
+			if err != nil {
+				bus.Emit(ui.LogEv{Log: fmt.Sprintf("failed to parse form: %s\n", err.Error())})
+				return
+			}
+
+			bus.Emit(ui.CreateWindowEv{Window: window})
 		})
 
 	form.SetBorder(true).
@@ -211,22 +250,22 @@ func createNewWindowForm(root *dom.DOM, ctx *ui.UIContext,
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Key() {
 			case tcell.KeyEscape:
-				ctx.ChangeFocus(root.GetElemByID(layoutToolFlexID))
+				bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(layoutToolFlexID)})
 			}
 
 			return ev
 		})
 
 	var formNode *dom.UINode
-	formNode = root.GetNodeByID("new-window-form")
+	formNode = doc.GetNodeByID("new-window-form")
 	if formNode == nil {
-		formNode, err = root.NewUINode("new-window-form",
-			root.GetElemByID(layoutToolActionPagesID), form)
+		formNode, err = doc.NewUINode("new-window-form",
+			doc.GetElemByID(layoutToolActionPagesID), form)
 		if err != nil {
 			panic("failed to create UI node for the new window form: " + err.Error())
 		}
 	}
 
-	AddAndShowPage(root, ctx, root.GetElemByID(layoutToolActionPagesID).(*tview.Pages),
+	AddAndShowPage(bus, doc, doc.GetElemByID(layoutToolActionPagesID).(*tview.Pages),
 		formNode)
 }

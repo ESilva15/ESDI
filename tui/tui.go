@@ -1,9 +1,8 @@
 // Package tui
 package tui
 
-import "esdi/tui/internal/tui"
+import t "esdi/tui/internal/tui"
 
 func Run() error {
-	app := tui.NewTUI()
-	return app.Start()
+	return t.Start()
 }

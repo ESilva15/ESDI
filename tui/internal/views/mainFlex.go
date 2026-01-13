@@ -4,8 +4,8 @@ package views
 import (
 	"fmt"
 
-	"esdi/tui/internal/controllers"
 	"esdi/tui/internal/dom"
+	"esdi/tui/internal/events"
 	"esdi/tui/internal/ui"
 
 	"github.com/rivo/tview"
@@ -23,12 +23,12 @@ const (
 	pageName = "empty-page"
 )
 
-func buildRightSidePages(root *dom.DOM, ctx *ui.UIContext) (*dom.UINode, error) {
+func buildRightSidePages(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 	// We need to build a set of pages with an empty page
 	emptyPage := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetChangedFunc(func() {
-			ctx.Redraw()
+			bus.Emit(ui.RedrawEv{})
 		})
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
 
@@ -37,7 +37,7 @@ func buildRightSidePages(root *dom.DOM, ctx *ui.UIContext) (*dom.UINode, error) 
 	apiToolPages := tview.NewPages().
 		AddPage(pageName, emptyPage, true, true)
 
-	apiToolPagesNode, err := root.NewUINode(apiToolPagesID, root.GetElemByID(rightFlexID),
+	apiToolPagesNode, err := doc.NewUINode(apiToolPagesID, doc.GetElemByID(rightFlexID),
 		apiToolPages)
 	if err != nil {
 		return nil, err
@@ -46,20 +46,20 @@ func buildRightSidePages(root *dom.DOM, ctx *ui.UIContext) (*dom.UINode, error) 
 	return apiToolPagesNode, nil
 }
 
-func buildRightSideFlex(root *dom.DOM, ctx *ui.UIContext) (*dom.UINode, error) {
-	apiToolPagesNode, err := buildRightSidePages(root, ctx)
+func buildRightSideFlex(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
+	apiToolPagesNode, err := buildRightSidePages(bus, doc)
 	if err != nil {
 		return nil, err
 	}
 
 	// This will be the right side flex
 	flex := tview.NewFlex().SetDirection(tview.FlexRow)
-	flexNode, err := root.NewUINode(rightFlexID, root.GetElemByID(mainFlexID), flex)
+	flexNode, err := doc.NewUINode(rightFlexID, doc.GetElemByID(mainFlexID), flex)
 	if err != nil {
 		return nil, err
 	}
 
-	outputWin := root.GetElemByID(outputPaneID)
+	outputWin := doc.GetElemByID(outputPaneID)
 	if outputWin == nil {
 		panic("failed to attach output win to UI")
 	}
@@ -71,30 +71,29 @@ func buildRightSideFlex(root *dom.DOM, ctx *ui.UIContext) (*dom.UINode, error) {
 	return flexNode, nil
 }
 
-func BuildMainFlex(root *dom.DOM, ctx *ui.UIContext,
-	wc *controllers.WindowingController) (*tview.Flex, error) {
+func BuildMainFlex(bus *events.Bus, doc *dom.DOM) (*tview.Flex, error) {
 	// To build the main view we must set the DOM root
 	mainFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
-	mainFlexUINode, err := root.NewUINode(mainFlexID, nil, mainFlex)
+	mainFlexUINode, err := doc.NewUINode(mainFlexID, nil, mainFlex)
 	if err != nil {
 		return nil, err
 	}
 
-	root.SetRoot(mainFlexUINode)
+	doc.SetRoot(mainFlexUINode)
 
 	deviceAPIList := tview.NewList().
 		AddItem("layout", "build a layout for CDashDisplay", 0, func() {
-			layoutToolUIOnSelect(root, ctx, wc)
+			layoutToolUIOnSelect(bus, doc)
 		})
 	deviceAPIList.SetBorder(true).SetTitle("list")
 
-	apiListWindowUINode, err := root.NewUINode(deviceAPIListID, root.GetRootElem(),
+	apiListWindowUINode, err := doc.NewUINode(deviceAPIListID, doc.GetRootElem(),
 		deviceAPIList)
 	if err != nil {
 		return nil, err
 	}
 
-	rightSideFlex, err := buildRightSideFlex(root, ctx)
+	rightSideFlex, err := buildRightSideFlex(bus, doc)
 	if err != nil {
 		return nil, err
 	}
