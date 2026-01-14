@@ -26,12 +26,6 @@ func Start() error {
 
 	controllers.NewLayoutController(mc.EvBus)
 
-	// Make the output window
-	err := views.BuildOutputWindow(mc.EvBus, mc.Dom)
-	if err != nil {
-		panic("failed to create output window")
-	}
-
 	// Set the main view
 	mainUINode, err := views.BuildMainFlex(mc.EvBus, mc.Dom)
 	if err != nil {

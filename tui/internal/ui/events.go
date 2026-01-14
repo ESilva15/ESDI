@@ -41,3 +41,11 @@ type ErrorCreateWindowEv struct {
 type ErrorFormParseEv struct {
 	Error error
 }
+
+// Layout events --------------------------------------------------------------
+
+// Device events
+
+type FindCDashDisplay struct{}
+
+// Device events --------------------------------------------------------------

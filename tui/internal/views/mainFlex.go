@@ -8,6 +8,7 @@ import (
 	"esdi/tui/internal/events"
 	"esdi/tui/internal/ui"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -59,14 +60,14 @@ func buildRightSideFlex(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 		return nil, err
 	}
 
-	outputWin := doc.GetElemByID(outputPaneID)
-	if outputWin == nil {
-		panic("failed to attach output win to UI")
-	}
+	// outputWin := doc.GetElemByID(outputPaneID)
+	// if outputWin == nil {
+	// 	panic("failed to attach output win to UI")
+	// }
 
 	flex.
-		AddItem(apiToolPagesNode.Self, 0, 5, false).
-		AddItem(outputWin, 0, 2, false)
+		AddItem(apiToolPagesNode.Self, 0, 5, false)
+		// AddItem(outputWin, 0, 2, false)
 
 	return flexNode, nil
 }
@@ -85,7 +86,14 @@ func BuildMainFlex(bus *events.Bus, doc *dom.DOM) (*tview.Flex, error) {
 		AddItem("layout", "build a layout for CDashDisplay", 0, func() {
 			layoutToolUIOnSelect(bus, doc)
 		})
-	deviceAPIList.SetBorder(true).SetTitle("list")
+	deviceAPIList.SetBorder(true).SetTitle("list").
+		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+			switch ev.Rune() {
+			case 'r':
+				bus.Emit(ui.FindCDashDisplay{})
+			}
+			return ev
+		})
 
 	apiListWindowUINode, err := doc.NewUINode(deviceAPIListID, doc.GetRootElem(),
 		deviceAPIList)
@@ -102,5 +110,19 @@ func BuildMainFlex(bus *events.Bus, doc *dom.DOM) (*tview.Flex, error) {
 		AddItem(apiListWindowUINode.Self, 0, 1, false).
 		AddItem(rightSideFlex.Self, 0, 4, false)
 
-	return mainFlex, nil
+	// Output window
+	err = BuildOutputWindow(bus, doc)
+	if err != nil {
+		panic("failed to create output window")
+	}
+
+	// Flex with debug window
+	// --------------------------------------------------------------------------
+	flexWithOutputWindow := tview.NewFlex().SetDirection(tview.FlexRow)
+	flexWithOutputWindow.
+		AddItem(mainFlex, 0, 5, true).
+		AddItem(doc.GetElemByID(outputPaneID), 0, 2, false)
+	// --------------------------------------------------------------------------
+
+	return flexWithOutputWindow, nil
 }
