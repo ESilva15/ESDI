@@ -5,7 +5,6 @@ import (
 	pack "esdi/peripheral/communication/packets"
 	"esdi/peripheral/devices"
 	"esdi/peripheral/types"
-	"fmt"
 	"time"
 
 	"github.com/tarm/serial"
@@ -83,8 +82,8 @@ func (p *PeripheralDevice) Probe() error {
 }
 
 func (p *PeripheralDevice) SendCommand(cmd types.Command, payload []byte) error {
-	fmt.Println("Send command:", cmd)
-	fmt.Println("With payload:", payload)
+	// fmt.Fprintf(os.Stderr, "Send command: %+v\n", cmd)
+	// fmt.Fprintf(os.Stderr, "With payload: %+v\n", payload)
 
 	var ack pack.AckPacket
 	err := p.WT.SendCommand(cmd, payload, &ack)
@@ -92,9 +91,9 @@ func (p *PeripheralDevice) SendCommand(cmd types.Command, payload []byte) error 
 		return err
 	}
 
-	if ack.AckByte == 0x06 {
-		fmt.Println("Succesfully received ack")
-	}
+	// if ack.AckByte == 0x06 {
+	// fmt.Fprintf(os.Stderr, "Succesfully received ack")
+	// }
 
 	return nil
 }

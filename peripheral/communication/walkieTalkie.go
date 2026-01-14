@@ -26,7 +26,7 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 		b := make([]byte, 1)
 		_, err := wt.Serial.Read(b)
 		if err != nil {
-			fmt.Println("dev read:", err.Error())
+			// fmt.Fprintf(os.Stderr, "dev read: %s\n", err.Error())
 			return err
 		}
 
@@ -119,7 +119,7 @@ func (wt *WalkieTalkie) sendPacket(cmd types.Command, data any) error {
 
 	// Send the payload
 	serializedPacket := packet.Serialize()
-	fmt.Println(serializedPacket)
+	// fmt.Fprintf(os.Stderr, "%+v", serializedPacket)
 
 	_, err = wt.Serial.Write(serializedPacket)
 	if err != nil {
@@ -177,8 +177,7 @@ func (wt *WalkieTalkie) readPacket(resp packets.Packet) error {
 // }
 
 func (wt *WalkieTalkie) SendCommand(cmd types.Command, payload any,
-	responseBody packets.Packet,
-) error {
+	responseBody packets.Packet) error {
 	// Prepare the header
 	// header := header{
 	// 	StartByte: constvar.StartOfText,

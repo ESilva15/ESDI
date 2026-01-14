@@ -58,22 +58,20 @@ func (clerk *PeripheralDeviceClerk) FindDevices() error {
 
 		err := newDevice.Probe()
 		if err != nil {
-			fmt.Println(p, err.Error())
+			// fmt.Fprintf(os.Stderr, "%+v - %s\n", p, err.Error())
 			continue
 		}
 
 		// Look for the device on our device list - we need its API
 		newDevice.DeviceAPI = clerk.FindDeviceAPI(newDevice.ID)
-		if newDevice.DeviceAPI == nil {
-			fmt.Printf("Failed to acquire API for device: [%2d] %s\n",
-				newDevice.ID, newDevice.Name)
-		}
+		// if newDevice.DeviceAPI == nil {
+		// 	fmt.Printf("Failed to acquire API for device: [%2d] %s\n",
+		// 		newDevice.ID, newDevice.Name)
+		// }
 
 		clerk.addDevice(newDevice)
-		fmt.Println(p, string(newDevice.Name[:]))
+		// fmt.Println(p, string(newDevice.Name[:]))
 	}
-
-	// go clerk.clerkBackgroundJob()
 
 	return nil
 }
@@ -100,9 +98,9 @@ func (clerk *PeripheralDeviceClerk) ListDeviceAPI(ID uint8) error {
 		return fmt.Errorf("device with ID %d not found", ID)
 	}
 
-	for _, f := range dev.DeviceAPI.API {
-		fmt.Printf("%s\t%s\n", f.Name, f.Desc)
-	}
+	// for _, f := range dev.DeviceAPI.API {
+	// 	fmt.Printf("%s\t%s\n", f.Name, f.Desc)
+	// }
 
 	return nil
 }

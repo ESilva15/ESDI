@@ -2,7 +2,6 @@ package packets
 
 import (
 	"esdi/peripheral/communication/constvar"
-	"fmt"
 )
 
 type IdentificationPacket struct {
@@ -14,12 +13,12 @@ type IdentificationPacket struct {
 }
 
 func (pkt *IdentificationPacket) Validate() bool {
-	fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-	fmt.Println(pkt.StartMarker)
-	fmt.Println(pkt.PktType.String())
-	fmt.Println(string(pkt.Name[:]))
-	fmt.Println(pkt.EndMarker)
-	fmt.Println("↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
+	// fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
+	// fmt.Println(pkt.StartMarker)
+	// fmt.Println(pkt.PktType.String())
+	// fmt.Println(string(pkt.Name[:]))
+	// fmt.Println(pkt.EndMarker)
+	// fmt.Println("↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 
 	// Change this to return an error and add a validation against available
 	// device ids
