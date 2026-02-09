@@ -18,6 +18,27 @@ const (
 	layoutToolActionPagesID = "layout-tool-action-pages"
 )
 
+func FindNodeByReference(
+	node *tview.TreeNode,
+	want any,
+) *tview.TreeNode {
+	if node == nil {
+		return nil
+	}
+
+	if node.GetReference() == want {
+		return node
+	}
+
+	for _, child := range node.GetChildren() {
+		if found := FindNodeByReference(child, want); found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
 func BindWindowEvents(
 	bus *events.Bus,
 	doc *dom.DOM,
@@ -38,9 +59,24 @@ func BindWindowEvents(
 			return
 		}
 
-		newWindow := tview.NewTreeNode(e.(ui.WindowCreatedEv).Window.Title)
+		newWindow := tview.NewTreeNode(e.(ui.WindowCreatedEv).Title).
+			SetReference(e.(ui.WindowCreatedEv).ID)
 		root.AddChild(newWindow)
 	})
+
+	bus.On(ui.WindowDestroyedEv{}, func(e any) {
+		root := tree.GetRoot()
+		if root == nil {
+			bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
+		}
+
+		node := FindNodeByReference(root, e.(ui.WindowDestroyedEv).ID)
+		if node != nil {
+			root.RemoveChild(node)
+		}
+		// NODE: add a log here in case it fails so we know whats going on
+	})
+
 	bus.On(ui.ErrorCreateWindowEv{}, func(e any) {
 		bus.Emit(ui.LogEv{
 			Log: fmt.Sprintf(
@@ -68,19 +104,21 @@ func layoutToolTreeViewEvents(bus *events.Bus, doc *dom.DOM,
 		case 'x':
 			// Delete selected window
 			bus.Emit(ui.LogEv{Log: "calling delete window\n"})
+
 			curNode := tree.GetCurrentNode()
 			if curNode == nil {
 				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
 				break
 			}
 
-			root := tree.GetRoot()
-			if root == nil {
-				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
+			ref := curNode.GetReference()
+			wID, ok := ref.(int16)
+			if !ok {
+				// Whatever, do something better here
 				break
 			}
 
-			root.RemoveChild(curNode)
+			bus.Emit(ui.DestroyWindowEv{ID: wID})
 		case 'm':
 			// Go into move mode
 		case 'e':

@@ -30,8 +30,21 @@ type CreateWindowEv struct {
 	Window models.Window
 }
 
-type WindowCreatedEv struct {
+type DestroyWindowEv struct {
+	ID int16
+}
+
+type LayoutRegisterWindowEv struct {
 	Window models.Window
+}
+
+type WindowCreatedEv struct {
+	ID    int16
+	Title string
+}
+
+type WindowDestroyedEv struct {
+	ID int16
 }
 
 type ErrorCreateWindowEv struct {

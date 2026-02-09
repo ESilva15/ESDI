@@ -18,9 +18,10 @@ var DeviceMap = map[int]Device{
 }
 
 type Device struct {
-	ID   uint8
-	Name [32]byte
-	API  map[string]DeviceCMD
+	ID    uint8
+	Name  [32]byte
+	API   map[string]DeviceCMD
+	State any
 }
 
 func (dev *Device) HasFunction(f string) *DeviceCMD {
@@ -52,8 +53,6 @@ type DeviceCMD struct {
 	Identifier types.Command
 	Name       string
 	Desc       string
-	Header     DeviceCMDHeader
-	Data       DeviceCMDPayload
 	ArgCheck   ArgCheckFn
 	Fn         DeviceCMDFn
 }
@@ -79,4 +78,10 @@ func (dCMD *DeviceCMD) GetName() string {
 
 func (dCMD *DeviceCMD) GetDesc() string {
 	return dCMD.Desc
+}
+
+type DeviceInstance[T any] struct {
+	Def   *Device
+	ID    uint8
+	State T
 }

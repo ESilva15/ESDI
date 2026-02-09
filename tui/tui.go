@@ -1,8 +1,11 @@
 // Package tui
 package tui
 
-import t "esdi/tui/internal/tui"
+import (
+	t "esdi/tui/internal/tui"
+	"log/slog"
+)
 
-func Run() error {
-	return t.Start()
+func Run(logger *slog.Logger) error {
+	return t.Start(logger)
 }

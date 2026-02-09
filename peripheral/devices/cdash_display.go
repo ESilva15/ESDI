@@ -16,10 +16,11 @@ const (
 	newWindowCMDID     types.Command = 3
 	destroyWindowCMDID types.Command = 4
 	moveWindowCMDID    types.Command = 5
+	newLayoutCMDID     types.Command = 6
 )
 
 var (
-	defaultDecorations = UIDecorations{
+	DefaultDecorations = UIDecorations{
 		HasBorder:    1,
 		BGColour:     0x1041, // Look in the eslabsCurses library for these colours
 		FGColour:     0xffff,
@@ -55,6 +56,29 @@ type UIWindow struct {
 	Title [32]byte
 }
 
+type LayoutTree struct {
+	Windows map[int]UIWindow
+}
+
+func (l *LayoutTree) AddWindow(idx int, w UIWindow) {
+	l.Windows[idx] = w
+}
+
+func NewLayoutTree() *LayoutTree {
+	return &LayoutTree{
+		Windows: make(map[int]UIWindow),
+	}
+}
+
+type CDashState struct {
+	Layout *LayoutTree
+}
+
+// Well fuck it really, this will make do for now really lmao
+var (
+	state *CDashState
+)
+
 var CDashDisplay = Device{
 	ID:   CDashDisplayDevID,
 	Name: helper.B32("ESLabs CDashDisplay"),
@@ -79,6 +103,13 @@ var CDashDisplay = Device{
 			Desc:       "moves a window by its ID",
 			ArgCheck:   moveWindowArgCheck,
 			Fn:         moveWindow,
+		},
+		"new-layout": {
+			Identifier: newLayoutCMDID,
+			Name:       "new-layout",
+			Desc:       "creates a new layout",
+			ArgCheck:   nil,
+			Fn:         nil,
 		},
 	},
 }
@@ -121,7 +152,7 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 			Width:  uint16(width),
 			Height: uint16(height),
 		},
-		Decor: defaultDecorations,
+		Decor: DefaultDecorations,
 		Title: helper.B32(args[4]),
 	}
 
@@ -129,6 +160,13 @@ func createWindow(dCMD *DeviceCMD, args []string) (types.Command, []byte, error)
 	if err != nil {
 		return 0, []byte{}, err
 	}
+
+	// All went well so far so we can update the state
+	if state == nil {
+		state = &CDashState{Layout: NewLayoutTree()}
+	}
+
+	state.Layout.AddWindow(0, data)
 
 	return dCMD.GetIdentifier(), bytes, nil
 }

@@ -5,15 +5,16 @@ import (
 	"esdi/tui/internal/controllers"
 	"esdi/tui/internal/views"
 	"fmt"
+	"log/slog"
 
 	"github.com/gdamore/tcell/v2"
 )
 
-func Start() error {
+func Start(logger *slog.Logger) error {
 	// The app starts running here!
 	//
 	// Set the event capture for the global app itself here
-	mc := controllers.NewMainController()
+	mc := controllers.NewMainController(logger.With("[ctrl]", "main"))
 
 	mc.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyCtrlC || event.Rune() == 'q' {
