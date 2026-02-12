@@ -16,6 +16,21 @@ const (
 	layoutToolActionPagesID = "layout-tool-action-pages"
 )
 
+type windowReference struct {
+	ID int16
+}
+
+func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
+	ref := node.GetReference()
+	wRef, ok := ref.(windowReference)
+
+	if !ok {
+		return nil
+	}
+
+	return &wRef
+}
+
 func FindNodeByReference(
 	node *tview.TreeNode,
 	want any,
@@ -45,7 +60,10 @@ func appendWindow(bus *events.Bus, tree *tview.TreeView, idx int16, title string
 	}
 
 	fmtTitle := fmt.Sprintf("%s [%2d]", title, idx)
-	newWindow := tview.NewTreeNode(fmtTitle).SetReference(idx)
+	ref := windowReference{
+		ID: idx,
+	}
+	newWindow := tview.NewTreeNode(fmtTitle).SetReference(ref)
 	root.AddChild(newWindow)
 }
 
@@ -135,14 +153,13 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 				break
 			}
 
-			ref := curNode.GetReference()
-			wID, ok := ref.(int16)
-			if !ok {
+			winRef := getWindowRefFromNode(curNode)
+			if winRef == nil {
 				// Whatever, do something better here
 				break
 			}
 
-			bus.Emit(ui.DestroyWindowEv{ID: wID})
+			bus.Emit(ui.DestroyWindowEv{ID: winRef.ID})
 		case 'm':
 			// Go into move mode
 			curNode := tree.GetCurrentNode()
@@ -151,14 +168,13 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 				break
 			}
 
-			ref := curNode.GetReference()
-			wID, ok := ref.(int16)
-			if !ok {
+			winRef := getWindowRefFromNode(curNode)
+			if winRef == nil {
 				// Whatever, do something better here
 				break
 			}
 
-			windowManipulationTool(bus, doc, wID)
+			windowManipulationTool(bus, doc, winRef.ID)
 		case 'e':
 			// Go into edit mode
 		case 's':
