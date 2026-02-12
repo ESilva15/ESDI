@@ -49,6 +49,12 @@ func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 	width := tview.NewInputField().SetLabel("width")
 	height := tview.NewInputField().SetLabel("height")
 	title := tview.NewInputField().SetLabel("title")
+	winType := tview.NewDropDown().SetLabel("type").
+		SetOptions([]string{"string", "bar"}, func(s string, id int) {
+			// Here we have to add extra options for the configuration of default
+			// values and so on
+		}).
+		SetCurrentOption(0)
 
 	form := tview.NewForm().
 		AddFormItem(x0).
@@ -56,6 +62,7 @@ func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 		AddFormItem(width).
 		AddFormItem(height).
 		AddFormItem(title).
+		AddFormItem(winType).
 		AddButton("Create", func() {
 			// Validate the inputs
 			window, err := validateFormInputs(
