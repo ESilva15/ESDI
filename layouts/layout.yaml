@@ -1,0 +1,33 @@
+Windows:
+    1:
+        Dims:
+            X0: 250
+            Y0: 120
+            Width: 148
+            Height: 76
+        Decor:
+            BGColour: 4161
+            FGColour: 65535
+            TitleColour: 65535
+            BorderColour: 63488
+            TitleSize: 2
+            TextSize: 4
+            HasBorder: 1
+            Padding: 0
+        Title: TITLE
+    2:
+        Dims:
+            X0: 401
+            Y0: 120
+            Width: 176
+            Height: 76
+        Decor:
+            BGColour: 4161
+            FGColour: 65535
+            TitleColour: 65535
+            BorderColour: 63488
+            TitleSize: 2
+            TextSize: 4
+            HasBorder: 1
+            Padding: 0
+        Title: NEWTITLE

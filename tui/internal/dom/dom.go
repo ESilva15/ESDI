@@ -112,3 +112,8 @@ func (d *DOM) GetNodeByID(ID string) *UINode {
 func (d *DOM) AppendElem(root *UINode, elem *UINode) error {
 	return root.AppendItem(elem)
 }
+
+// DeleteElem deletes and element from the DOM
+func (d *DOM) DeleteElem(elem *UINode) {
+	delete(d.elements, elem.ID)
+}

@@ -6,6 +6,11 @@ import (
 	"encoding/binary"
 )
 
+type Vector struct {
+	DX uint16
+	DY uint16
+}
+
 func B32(s string) [32]byte {
 	var b [32]byte
 	copy(b[:], s)

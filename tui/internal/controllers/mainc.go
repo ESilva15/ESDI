@@ -9,10 +9,17 @@ import (
 	"esdi/tui/internal/events"
 	"esdi/tui/internal/ui"
 	"fmt"
+	"io"
 	"log/slog"
 
 	"github.com/rivo/tview"
 )
+
+var pLogger *slog.Logger
+
+func mcLog(msg string, args ...any) {
+	pLogger.Debug(msg, args)
+}
 
 type Ctrls struct {
 	MC                  *MainController
@@ -29,8 +36,8 @@ type MainController struct {
 }
 
 func NewMainController(logger *slog.Logger) *MainController {
+	pLogger = logger
 	mc := &MainController{
-		Logger:   logger,
 		App:      tview.NewApplication(),
 		Dom:      dom.NewDOM(),
 		EvBus:    events.NewBus(),
@@ -83,22 +90,65 @@ func NewMainController(logger *slog.Logger) *MainController {
 	})
 
 	mc.EvBus.On(ui.DestroyWindowEv{}, func(e any) {
-		mc.Logger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
-		mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
+		go func() {
+			pLogger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
+			mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
+
+			mc.EvBus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
+		}()
+	})
+
+	mc.EvBus.On(ui.MoveWindowEv{}, func(e any) {
+		mvData := e.(ui.MoveWindowEv)
+		pLogger.Debug(fmt.Sprintf("request to move window '%d'", mvData.WindowID))
+		err := mc.CDash.MoveWindow(mvData.WindowID, mvData.Delta)
+		if err != nil && err != io.EOF {
+			pLogger.Debug(fmt.Sprintf("failed to move window '%d' %s", mvData.WindowID, err.Error()))
+			return
+		}
+	})
+
+	mc.EvBus.On(ui.ResizeWindowEv{}, func(e any) {
+		mvData := e.(ui.ResizeWindowEv)
+		pLogger.Debug(fmt.Sprintf("requested to resize window '%d'", mvData.WindowID))
+		err := mc.CDash.ResizeWindow(mvData.WindowID, mvData.Delta)
+		if err != nil && err != io.EOF {
+			pLogger.Debug(fmt.Sprintf("failed to resize window '%d' %s", mvData.WindowID, err.Error()))
+			return
+		}
+	})
+
+	mc.EvBus.On(ui.SaveLayoutEv{}, func(e any) {
+		mc.CDash.SaveLayout()
+	})
+
+	mc.EvBus.On(ui.LoadLayoutEv{}, func(e any) {
+		mc.CDash.LoadLayout()
+		mc.EvBus.Emit(ui.RegisterLoadedLayout{*mc.CDash.State.Layout})
 	})
 
 	mc.EvBus.On(ui.FindCDashDisplay{}, func(e any) {
 		go func() {
-			mc.Logger.Info("Looking for CDashDisplay")
-			cdashdisplay.SetLogger(mc.Logger.With("[device]", "cdashdisplay"))
+			mc.EvBus.Emit(ui.PrintLogEv{Log: "looking for cdash display\n"})
+			pLogger.Info("Looking for CDashDisplay")
+
+			cdashdisplay.SetLogger(pLogger.With("[device]", "cdashdisplay"))
 
 			display, err := cdashdisplay.NewCDashDisplay()
 			if err != nil {
+				pLogger.Info("didn't find cdashdisplay")
+				mc.EvBus.Emit(ui.PrintLogEv{Log: "didn't find cdash display\n"})
 				return
 			}
 
+			// pLogger.Info(fmt.Sprintf("found cdashdisplay on %s!", mc.CDash.WT.Cfg.Name))
+			// mc.EvBus.Emit(ui.PrintLogEv{Log: "found cdashdisplay" + mc.CDash.WT.Cfg.Name + "\n"})
 			mc.CDash = display
 		}()
+	})
+
+	mc.EvBus.On(ui.ForceRedraw{}, func(e any) {
+		mc.App.QueueUpdateDraw(func() {})
 	})
 
 	return mc
