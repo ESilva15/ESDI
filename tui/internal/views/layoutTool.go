@@ -37,6 +37,18 @@ func FindNodeByReference(
 	return nil
 }
 
+func appendWindow(bus *events.Bus, tree *tview.TreeView, idx int16, title string) {
+	root := tree.GetRoot()
+	if root == nil {
+		bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
+		return
+	}
+
+	fmtTitle := fmt.Sprintf("%s [%2d]", title, idx)
+	newWindow := tview.NewTreeNode(fmtTitle).SetReference(idx)
+	root.AddChild(newWindow)
+}
+
 func BindWindowEvents(
 	bus *events.Bus,
 	doc *dom.DOM,
@@ -44,23 +56,18 @@ func BindWindowEvents(
 ) {
 	// I recon I have to change this for some type os event system that
 	// triggers directly on the UINodes I want them to be triggered on
+
 	bus.On(ui.WindowCreatedEv{}, func(e any) {
 		go func() {
+			win := e.(ui.WindowCreatedEv)
+
 			bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
 			if tree == nil {
 				bus.Emit(ui.LogEv{Log: "tree view is nil"})
 				return
 			}
 
-			root := tree.GetRoot()
-			if root == nil {
-				bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
-				return
-			}
-
-			newWindow := tview.NewTreeNode(e.(ui.WindowCreatedEv).Title).
-				SetReference(e.(ui.WindowCreatedEv).ID)
-			root.AddChild(newWindow)
+			appendWindow(bus, tree, win.ID, win.Title)
 		}()
 	})
 
@@ -89,8 +96,7 @@ func BindWindowEvents(
 
 		layout := e.(ui.RegisterLoadedLayout)
 		for idx, w := range layout.Layout.Windows {
-			newWindow := tview.NewTreeNode(w.Title.String()).SetReference(idx)
-			root.AddChild(newWindow)
+			appendWindow(bus, tree, idx, w.Title.String())
 		}
 
 		// bus.Emit(ui.ForceRedraw{})
@@ -106,7 +112,7 @@ func BindWindowEvents(
 	})
 }
 
-func layoutToolTreeViewEvents(bus *events.Bus, doc *dom.DOM,
+func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 	tree *tview.TreeView) func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -115,9 +121,6 @@ func layoutToolTreeViewEvents(bus *events.Bus, doc *dom.DOM,
 		}
 
 		switch event.Rune() {
-		case 'N':
-			// Create a new screen
-			// I think I will leave this one for later
 		case 'n':
 			// Create a new window
 			bus.Emit(ui.LogEv{Log: "calling new window form\n"})
@@ -197,11 +200,18 @@ func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
 	AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode)
 }
 
+func layoutToolTreeViewOnChange() func(node *tview.TreeNode) {
+	return func(node *tview.TreeNode) {
+	}
+}
+
 func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 	layoutTree := tview.NewTreeView()
 
 	layoutTree.SetBorder(true).SetTitle("Layout Tree").
-		SetInputCapture(layoutToolTreeViewEvents(bus, doc, layoutTree))
+		SetInputCapture(layoutToolTreeViewEvCapture(bus, doc, layoutTree))
+
+	layoutTree.SetChangedFunc(layoutToolTreeViewOnChange())
 
 	layoutTreeUINode, err := doc.NewUINode(layoutToolTreeID,
 		doc.GetElemByID(rightFlexID), layoutTree)
