@@ -21,7 +21,7 @@ const (
 )
 
 const (
-	pageName = "empty-page"
+	emptyPageName = "empty-page"
 )
 
 func buildRightSidePages(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
@@ -32,11 +32,9 @@ func buildRightSidePages(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
 			bus.Emit(ui.RedrawEv{})
 		})
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
-
 	fmt.Fprintf(emptyPage, "No Tool Selected")
 
-	apiToolPages := tview.NewPages().
-		AddPage(pageName, emptyPage, true, true)
+	apiToolPages := tview.NewPages().AddPage(emptyPageName, emptyPage, true, true)
 
 	apiToolPagesNode, err := doc.NewUINode(apiToolPagesID, doc.GetElemByID(rightFlexID),
 		apiToolPages)

@@ -202,6 +202,7 @@ func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
 
 func layoutToolTreeViewOnChange() func(node *tview.TreeNode) {
 	return func(node *tview.TreeNode) {
+		// Here we want to change the current existing form on the action pages
 	}
 }
 
@@ -229,10 +230,17 @@ func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error
 	return layoutTreeUINode, nil
 }
 
-func buildLayoutActionPagesComponent(_ *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
-	actionPages := tview.NewPages()
+func buildLayoutActionPagesComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
+	// Create an empty page for it
+	emptyPage := tview.NewTextView().
+		SetTextAlign(tview.AlignCenter).
+		SetChangedFunc(func() {
+			bus.Emit(ui.RedrawEv{})
+		})
+	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
+	fmt.Fprintf(emptyPage, "No tool selected")
 
-	actionPages.SetBorder(true).SetTitle("Action Page")
+	actionPages := tview.NewPages().AddPage(emptyPageName, emptyPage, true, true)
 
 	actionPagesUINode, err := doc.NewUINode(layoutToolActionPagesID,
 		doc.GetElemByID("right-flex"), actionPages)
