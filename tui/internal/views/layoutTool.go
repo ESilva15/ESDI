@@ -132,6 +132,21 @@ func BindWindowEvents(
 	})
 }
 
+func getCurNodeRef(tree *tview.TreeView) (*windowReference, error) {
+	curNode := tree.GetCurrentNode()
+
+	if curNode == nil {
+		return nil, fmt.Errorf("unable to get current tree node")
+	}
+
+	winRef := getWindowRefFromNode(curNode)
+	if winRef == nil {
+		return nil, fmt.Errorf("unable to get window reference from tree node")
+	}
+
+	return winRef, nil
+}
+
 func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 	tree *tview.TreeView) func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
@@ -148,35 +163,21 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 		case 'x':
 			// Delete selected window
 			bus.Emit(ui.LogEv{Log: "calling delete window\n"})
-
-			curNode := tree.GetCurrentNode()
-			if curNode == nil {
-				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
+			wRef, err := getCurNodeRef(tree)
+			if err != nil {
+				bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
 				break
 			}
-
-			winRef := getWindowRefFromNode(curNode)
-			if winRef == nil {
-				// Whatever, do something better here
-				break
-			}
-
-			bus.Emit(ui.DestroyWindowEv{ID: winRef.ID})
+			bus.Emit(ui.DestroyWindowEv{ID: wRef.ID})
 		case 'm':
 			// Go into move mode
-			curNode := tree.GetCurrentNode()
-			if curNode == nil {
-				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
+			bus.Emit(ui.LogEv{Log: "calling dimensions tool\n"})
+			wRef, err := getCurNodeRef(tree)
+			if err != nil {
+				bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
 				break
 			}
-
-			winRef := getWindowRefFromNode(curNode)
-			if winRef == nil {
-				// Whatever, do something better here
-				break
-			}
-
-			windowManipulationTool(bus, doc, winRef.ID)
+			windowManipulationTool(bus, doc, wRef.ID)
 		case 'e':
 			// Go into edit mode
 		case 's':
