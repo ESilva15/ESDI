@@ -209,8 +209,7 @@ func (d *CDashDisplay) DestroyWindow(wID int16) error {
 		return err
 	}
 
-	var ack packets.AckPacket
-	err = d.WT.SendCommand(destroyWindowCMDID, bytes, &ack)
+	err = d.WT.SendCommand(destroyWindowCMDID, bytes, nil)
 	if err != nil {
 		return err
 	}
