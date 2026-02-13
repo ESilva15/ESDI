@@ -171,7 +171,7 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 			bus.Emit(ui.DestroyWindowEv{ID: wRef.ID})
 		case 'm':
 			// Go into move mode
-			bus.Emit(ui.LogEv{Log: "calling dimensions tool\n"})
+			bus.Emit(ui.LogEv{Log: "calling window manipulation tool\n"})
 			wRef, err := getCurNodeRef(tree)
 			if err != nil {
 				bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
