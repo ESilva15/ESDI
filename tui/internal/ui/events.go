@@ -37,6 +37,11 @@ type RegisterLoadedLayout struct {
 	Layout cdashdisplay.LayoutTree
 }
 
+type UpdateWindowEv struct {
+	ID     int16
+	Window models.Window
+}
+
 type CreateWindowEv struct {
 	Window models.Window
 }
@@ -60,8 +65,8 @@ type ResizeWindowEv struct {
 }
 
 type WindowCreatedEv struct {
-	ID    int16
-	Title string
+	ID  int16
+	Win cdashdisplay.UIWindow
 }
 
 type WindowDestroyedEv struct {

@@ -1,6 +1,7 @@
 package views
 
 import (
+	"esdi/cdashdisplay"
 	"esdi/tui/internal/dom"
 	"esdi/tui/internal/events"
 	"esdi/tui/internal/ui"
@@ -17,7 +18,8 @@ const (
 )
 
 type windowReference struct {
-	ID int16
+	ID   int16
+	Form *dom.UINode
 }
 
 func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
@@ -54,16 +56,21 @@ func FindNodeByID(
 	return nil
 }
 
-func appendWindow(bus *events.Bus, tree *tview.TreeView, idx int16, title string) {
+func appendWindow(bus *events.Bus, doc *dom.DOM, tree *tview.TreeView, idx int16,
+	win *cdashdisplay.UIWindow) {
 	root := tree.GetRoot()
 	if root == nil {
 		bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
 		return
 	}
 
-	fmtTitle := fmt.Sprintf("%s [%2d]", title, idx)
+	// Create the update tool
+	updateForm := windowInfoForm(bus, doc, idx, win)
+
+	fmtTitle := fmt.Sprintf("%s [%2d]", win.Title.String(), idx)
 	ref := windowReference{
-		ID: idx,
+		ID:   idx,
+		Form: updateForm,
 	}
 	newWindow := tview.NewTreeNode(fmtTitle).SetReference(&ref)
 	root.AddChild(newWindow)
@@ -79,7 +86,7 @@ func BindWindowEvents(
 
 	bus.On(ui.WindowCreatedEv{}, func(e any) {
 		go func() {
-			win := e.(ui.WindowCreatedEv)
+			ev := e.(ui.WindowCreatedEv)
 
 			bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
 			if tree == nil {
@@ -87,7 +94,7 @@ func BindWindowEvents(
 				return
 			}
 
-			appendWindow(bus, tree, win.ID, win.Title)
+			appendWindow(bus, doc, tree, ev.ID, &ev.Win)
 		}()
 	})
 
@@ -116,7 +123,7 @@ func BindWindowEvents(
 
 		layout := e.(ui.RegisterLoadedLayout)
 		for idx, w := range layout.Layout.Windows {
-			appendWindow(bus, tree, idx, w.Title.String())
+			appendWindow(bus, doc, tree, idx, w)
 		}
 
 		// bus.Emit(ui.ForceRedraw{})
@@ -216,12 +223,42 @@ func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
 		}
 	}
 
-	AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode)
+	AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode, true)
 }
 
-func layoutToolTreeViewOnChange() func(node *tview.TreeNode) {
+func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.TreeNode) {
 	return func(node *tview.TreeNode) {
 		// Here we want to change the current existing form on the action pages
+		nodeRef := node.GetReference()
+		if nodeRef == nil {
+			// its probably root I guess, thats what I'll believe
+			return
+		}
+
+		nodeWinRef := nodeRef.(*windowReference)
+
+		bus.Emit(ui.LogEv{
+			Log: fmt.Sprintf("changing to -> %d | %s\n", nodeWinRef.ID, nodeWinRef.Form.ID),
+		})
+
+		pages := doc.GetElemByID(layoutToolActionPagesID)
+		AddAndShowPage(bus, doc, pages.(*tview.Pages), nodeWinRef.Form, false)
+	}
+}
+
+func layoutToolTreeViewOnSelect(bus *events.Bus) func(node *tview.TreeNode) {
+	return func(node *tview.TreeNode) {
+		// Get the window reference which will have the ID for the form
+		bus.Emit(ui.LogEv{Log: "PRESSED ENTER\n"})
+
+		ref := node.GetReference()
+		if ref == nil {
+			bus.Emit(ui.LogEv{Log: "Couldn't find reference for node\n"})
+			return
+		}
+
+		nodeWinRef := ref.(*windowReference)
+		bus.Emit(ui.ChangeFocusEv{Target: nodeWinRef.Form.Self})
 	}
 }
 
@@ -231,7 +268,8 @@ func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error
 	layoutTree.SetBorder(true).SetTitle("Layout Tree").
 		SetInputCapture(layoutToolTreeViewEvCapture(bus, doc, layoutTree))
 
-	layoutTree.SetChangedFunc(layoutToolTreeViewOnChange())
+	layoutTree.SetChangedFunc(layoutToolTreeViewOnChange(bus, doc))
+	layoutTree.SetSelectedFunc(layoutToolTreeViewOnSelect(bus))
 
 	layoutTreeUINode, err := doc.NewUINode(layoutToolTreeID,
 		doc.GetElemByID(rightFlexID), layoutTree)

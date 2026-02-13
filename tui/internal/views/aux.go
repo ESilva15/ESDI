@@ -9,8 +9,13 @@ import (
 	"github.com/rivo/tview"
 )
 
-func AddAndShowPage(bus *events.Bus, doc *dom.DOM,
-	pages *tview.Pages, page *dom.UINode) error {
+func AddAndShowPage(
+	bus *events.Bus,
+	doc *dom.DOM,
+	pages *tview.Pages,
+	page *dom.UINode,
+	changeFocus bool,
+) error {
 	if !slices.Contains(pages.GetPageNames(false), page.ID) {
 		pages.AddAndSwitchToPage(page.ID, page.Self, true)
 	} else {
@@ -19,7 +24,9 @@ func AddAndShowPage(bus *events.Bus, doc *dom.DOM,
 	}
 
 	// Set focus to our new tool
-	bus.Emit(ui.ChangeFocusEv{Target: page.Self})
+	if changeFocus {
+		bus.Emit(ui.ChangeFocusEv{Target: page.Self})
+	}
 
 	return nil
 }

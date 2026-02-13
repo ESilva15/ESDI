@@ -32,7 +32,8 @@ const (
 	newWindowCMDID        types.Command = 3
 	destroyWindowCMDID    types.Command = 4
 	updateWindowDimsCMDID types.Command = 5
-	newLayoutCMDID        types.Command = 6
+	updateWindowCMDID     types.Command = 6 // Change this to a move cmd instead
+	newLayoutCMDID        types.Command = 7
 )
 
 const (
@@ -53,27 +54,9 @@ var DefaultDecorations = UIDecorations{
 	Padding:      0x00,
 }
 
-type UIDimensions struct {
-	X0     uint16 `yaml:"X0"`
-	Y0     uint16 `yaml:"Y0"`
-	Width  uint16 `yaml:"Width"`
-	Height uint16 `yaml:"Height"`
-}
-
 type UpdateDimsPacket struct {
 	ID   int16
 	Dims UIDimensions
-}
-
-type UIDecorations struct {
-	BGColour     uint16 `yaml:"BGColour"`
-	FGColour     uint16 `yaml:"FGColour"`
-	TitleColour  uint16 `yaml:"TitleColour"`
-	BorderColour uint16 `yaml:"BorderColour"`
-	TitleSize    uint8  `yaml:"TitleSize"`
-	TextSize     uint8  `yaml:"TextSize"`
-	HasBorder    uint8  `yaml:"HasBorder"`
-	Padding      uint8  `yaml:"Padding"`
 }
 
 type FString32 [32]byte
@@ -113,12 +96,6 @@ func (s *FString32) UnmarshalYAML(value *yaml.Node) error {
 
 	copy(s[:], b)
 	return nil
-}
-
-type UIWindow struct {
-	Dims  UIDimensions  `yaml:"Dims"`
-	Decor UIDecorations `yaml:"Decor"`
-	Title FString32     `yaml:"Title"`
 }
 
 type LayoutTree struct {
@@ -193,6 +170,36 @@ func (d *CDashDisplay) CreateWindow(win UIWindow) (int16, error) {
 	d.State.Layout.AddWindow(wID.ID, win)
 
 	return wID.ID, nil
+}
+
+func (d *CDashDisplay) UpdateWindow(wID int16, win *UIWindow) error {
+	data := UIWindowUpdatePacket{
+		WinID:  wID,
+		Window: *win,
+	}
+
+	bytes, err := helper.StructToBytes(data)
+	if err != nil {
+		return err
+	}
+
+	err = d.WT.SendCommand(updateWindowCMDID, bytes, nil)
+	if err != nil {
+		return err
+	}
+
+	// NOTE: need to check the flow of this because:
+	// windows has a pointer to a UIWindow stored
+	// I get it and update it in the controller
+	// I send the pointer here
+	// -> it should be the same pointer then right?
+	pLogger.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
+	d.State.Layout.Windows[wID] = win
+	pLogger.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
+	// Yeah, same address as suspected
+	// I can't think about it right now. I'll think about that tomorrow
+
+	return nil
 }
 
 func (d *CDashDisplay) DestroyWindow(wID int16) error {

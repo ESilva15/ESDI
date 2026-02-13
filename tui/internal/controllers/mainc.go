@@ -84,9 +84,31 @@ func NewMainController(logger *slog.Logger) *MainController {
 				return
 			}
 
-			mc.EvBus.Emit(ui.WindowCreatedEv{ID: wID, Title: win.Title})
+			mc.EvBus.Emit(ui.WindowCreatedEv{ID: wID, Win: uiWindow})
 			mc.EvBus.Emit(ui.PrintLogEv{Log: "Window created!\n"})
 		}()
+	})
+
+	mc.EvBus.On(ui.UpdateWindowEv{}, func(e any) {
+		winModel := e.(ui.UpdateWindowEv)
+
+		// Build a new UIWindow here I guess
+		curWindow, ok := mc.CDash.State.Layout.Windows[winModel.ID]
+		if !ok {
+			mc.EvBus.Emit(ui.PrintLogEv{Log: "could not acquire window from display state"})
+			return
+		}
+
+		curWindow.Dims.X0 = winModel.Window.X
+		curWindow.Dims.Y0 = winModel.Window.Y
+		curWindow.Dims.Width = winModel.Window.Width
+		curWindow.Dims.Height = winModel.Window.Height
+		curWindow.Title = helper.B32(winModel.Window.Title)
+
+		err := mc.CDash.UpdateWindow(winModel.ID, curWindow)
+		if err != nil {
+			mc.EvBus.Emit(ui.PrintLogEv{Log: "failed to update window"})
+		}
 	})
 
 	mc.EvBus.On(ui.DestroyWindowEv{}, func(e any) {
