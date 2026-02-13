@@ -22,29 +22,31 @@ type windowReference struct {
 
 func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
 	ref := node.GetReference()
-	wRef, ok := ref.(windowReference)
+	wRef, ok := ref.(*windowReference)
 
 	if !ok {
 		return nil
 	}
 
-	return &wRef
+	return wRef
 }
 
-func FindNodeByReference(
+func FindNodeByID(
 	node *tview.TreeNode,
-	want any,
+	id int16,
 ) *tview.TreeNode {
 	if node == nil {
 		return nil
 	}
 
-	if node.GetReference() == want {
-		return node
+	if ref, ok := node.GetReference().(*windowReference); ok {
+		if ref.ID == id {
+			return node
+		}
 	}
 
 	for _, child := range node.GetChildren() {
-		if found := FindNodeByReference(child, want); found != nil {
+		if found := FindNodeByID(child, id); found != nil {
 			return found
 		}
 	}
@@ -63,7 +65,7 @@ func appendWindow(bus *events.Bus, tree *tview.TreeView, idx int16, title string
 	ref := windowReference{
 		ID: idx,
 	}
-	newWindow := tview.NewTreeNode(fmtTitle).SetReference(ref)
+	newWindow := tview.NewTreeNode(fmtTitle).SetReference(&ref)
 	root.AddChild(newWindow)
 }
 
@@ -96,7 +98,7 @@ func BindWindowEvents(
 				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
 			}
 
-			node := FindNodeByReference(root, e.(ui.WindowDestroyedEv).ID)
+			node := FindNodeByID(root, e.(ui.WindowDestroyedEv).ID)
 			if node != nil {
 				root.RemoveChild(node)
 			}
