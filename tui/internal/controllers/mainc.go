@@ -46,47 +46,39 @@ func NewMainController(logger *slog.Logger) *MainController {
 	}
 
 	mc.EvBus.On(ui.RedrawEv{}, func(e any) {
-		go func() {
-			mc.App.QueueUpdateDraw(func() {})
-		}()
+		mc.App.QueueUpdateDraw(func() {})
 	})
 
 	mc.EvBus.On(ui.ChangeFocusEv{}, func(e any) {
-		go func() {
-			mc.App.SetFocus(e.(ui.ChangeFocusEv).Target)
-		}()
+		mc.App.SetFocus(e.(ui.ChangeFocusEv).Target)
 	})
 
 	mc.EvBus.On(ui.LogEv{}, func(e any) {
-		go func() {
-			mc.EvBus.Emit(ui.PrintLogEv{Log: e.(ui.LogEv).Log})
-		}()
+		mc.EvBus.Emit(ui.PrintLogEv{Log: e.(ui.LogEv).Log})
 	})
 
 	mc.EvBus.On(ui.CreateWindowEv{}, func(e any) {
-		go func() {
-			win := e.(ui.CreateWindowEv).Window
+		win := e.(ui.CreateWindowEv).Window
 
-			uiWindow := cdashdisplay.UIWindow{
-				Dims: cdashdisplay.UIDimensions{
-					X0:     win.X,
-					Y0:     win.Y,
-					Width:  win.Width,
-					Height: win.Height,
-				},
-				Decor: cdashdisplay.DefaultDecorations,
-				Title: helper.B32(win.Title),
-			}
+		uiWindow := cdashdisplay.UIWindow{
+			Dims: cdashdisplay.UIDimensions{
+				X0:     win.X,
+				Y0:     win.Y,
+				Width:  win.Width,
+				Height: win.Height,
+			},
+			Decor: cdashdisplay.DefaultDecorations,
+			Title: helper.B32(win.Title),
+		}
 
-			wID, err := mc.CDash.CreateWindow(uiWindow)
-			if err != nil {
-				mc.EvBus.Emit(ui.PrintLogEv{Log: "failed to create window\n"})
-				return
-			}
+		wID, err := mc.CDash.CreateWindow(uiWindow)
+		if err != nil {
+			mc.EvBus.Emit(ui.PrintLogEv{Log: "failed to create window\n"})
+			return
+		}
 
-			mc.EvBus.Emit(ui.WindowCreatedEv{ID: wID, Win: uiWindow})
-			mc.EvBus.Emit(ui.PrintLogEv{Log: "Window created!\n"})
-		}()
+		mc.EvBus.Emit(ui.WindowCreatedEv{ID: wID, Win: uiWindow})
+		mc.EvBus.Emit(ui.PrintLogEv{Log: "Window created!\n"})
 	})
 
 	mc.EvBus.On(ui.UpdateWindowEv{}, func(e any) {
@@ -112,12 +104,10 @@ func NewMainController(logger *slog.Logger) *MainController {
 	})
 
 	mc.EvBus.On(ui.DestroyWindowEv{}, func(e any) {
-		go func() {
-			pLogger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
-			mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
+		pLogger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
+		mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
 
-			mc.EvBus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
-		}()
+		mc.EvBus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
 	})
 
 	mc.EvBus.On(ui.MoveWindowEv{}, func(e any) {

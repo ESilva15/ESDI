@@ -85,34 +85,30 @@ func BindWindowEvents(
 	// triggers directly on the UINodes I want them to be triggered on
 
 	bus.On(ui.WindowCreatedEv{}, func(e any) {
-		go func() {
-			ev := e.(ui.WindowCreatedEv)
+		ev := e.(ui.WindowCreatedEv)
 
-			bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
-			if tree == nil {
-				bus.Emit(ui.LogEv{Log: "tree view is nil"})
-				return
-			}
+		bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
+		if tree == nil {
+			bus.Emit(ui.LogEv{Log: "tree view is nil"})
+			return
+		}
 
-			appendWindow(bus, doc, tree, ev.ID, &ev.Win)
-		}()
+		appendWindow(bus, doc, tree, ev.ID, &ev.Win)
 	})
 
 	bus.On(ui.WindowDestroyedEv{}, func(e any) {
-		go func() {
-			root := tree.GetRoot()
-			if root == nil {
-				bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
-			}
+		root := tree.GetRoot()
+		if root == nil {
+			bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
+		}
 
-			node := FindNodeByID(root, e.(ui.WindowDestroyedEv).ID)
-			if node != nil {
-				root.RemoveChild(node)
-			}
+		node := FindNodeByID(root, e.(ui.WindowDestroyedEv).ID)
+		if node != nil {
+			root.RemoveChild(node)
+		}
 
-			// NODE: add a log here in case it fails so we know whats going on
-			bus.Emit(ui.ForceRedraw{})
-		}()
+		// NODE: add a log here in case it fails so we know whats going on
+		bus.Emit(ui.ForceRedraw{})
 	})
 
 	bus.On(ui.RegisterLoadedLayout{}, func(e any) {
