@@ -1,20 +1,24 @@
 Windows:
     1:
         Dims:
-            X0: 250
-            Y0: 120
-            Width: 148
-            Height: 76
+            X0: 234
+            Y0: 124
+            Width: 117
+            Height: 72
         Decor:
             BGColour: 4161
             FGColour: 65535
             TitleColour: 65535
             BorderColour: 63488
             TitleSize: 2
-            TextSize: 4
+            TextSize: 6
             HasBorder: 1
             Padding: 0
-        Title: TITLE
+        Opts:
+            ShowID: 0
+            WinType: 0
+            PreviewValue: "255"
+        Title: SPEEDO
     2:
         Dims:
             X0: 401
@@ -27,7 +31,31 @@ Windows:
             TitleColour: 65535
             BorderColour: 63488
             TitleSize: 2
-            TextSize: 4
+            TextSize: 6
             HasBorder: 1
             Padding: 0
-        Title: NEWTITLE
+        Opts:
+            ShowID: 0
+            WinType: 0
+            PreviewValue: "7456"
+        Title: TACH
+    3:
+        Dims:
+            X0: 340
+            Y0: 240
+            Width: 84
+            Height: 126
+        Decor:
+            BGColour: 4161
+            FGColour: 65535
+            TitleColour: 65535
+            BorderColour: 63488
+            TitleSize: 2
+            TextSize: 14
+            HasBorder: 1
+            Padding: 0
+        Opts:
+            ShowID: 0
+            WinType: 0
+            PreviewValue: "6"
+        Title: GEAR

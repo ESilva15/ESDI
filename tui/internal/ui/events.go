@@ -69,6 +69,11 @@ type WindowCreatedEv struct {
 	Win cdashdisplay.UIWindow
 }
 
+type WindowMovedEv struct {
+	ID   int16
+	Dims cdashdisplay.UIDimensions
+}
+
 type WindowDestroyedEv struct {
 	ID int16
 }

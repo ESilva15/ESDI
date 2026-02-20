@@ -3,6 +3,11 @@ package cdashdisplay
 // In this file we will place all structs that are 1:1 representation of the
 // types in the device transport layer ->
 
+const (
+	ShowIDFalse uint8 = 0
+	ShowIDTrue  uint8 = 1
+)
+
 type UIDimensions struct {
 	X0     uint16 `yaml:"X0"`
 	Y0     uint16 `yaml:"Y0"`
@@ -21,9 +26,18 @@ type UIDecorations struct {
 	Padding      uint8  `yaml:"Padding"`
 }
 
+// NOTE: we can't use FString32 for this - too many bytes
+// NOTE: use a bit flags for this options instead
+type UIWindowOpts struct {
+	ShowID       uint8     `yaml:"ShowID"`
+	WinType      uint8     `yaml:"WinType"`
+	PreviewValue FString32 `yaml:"PreviewValue"`
+}
+
 type UIWindow struct {
 	Dims  UIDimensions  `yaml:"Dims"`
 	Decor UIDecorations `yaml:"Decor"`
+	Opts  UIWindowOpts  `yaml:"Opts"`
 	Title FString32     `yaml:"Title"`
 }
 

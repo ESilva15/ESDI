@@ -60,6 +60,10 @@ func NewMainController(logger *slog.Logger) *MainController {
 	mc.EvBus.On(ui.CreateWindowEv{}, func(e any) {
 		win := e.(ui.CreateWindowEv).Window
 
+		winDecor := cdashdisplay.DefaultDecorations
+		winDecor.TextSize = win.TextSize
+		winDecor.TitleSize = win.TitleSize
+
 		uiWindow := cdashdisplay.UIWindow{
 			Dims: cdashdisplay.UIDimensions{
 				X0:     win.X,
@@ -67,7 +71,12 @@ func NewMainController(logger *slog.Logger) *MainController {
 				Width:  win.Width,
 				Height: win.Height,
 			},
-			Decor: cdashdisplay.DefaultDecorations,
+			Opts: cdashdisplay.UIWindowOpts{
+				WinType:      win.Type, // NOTE: values aren't implemented yet
+				ShowID:       win.ShowID,
+				PreviewValue: helper.B32(win.PreviewValue),
+			},
+			Decor: winDecor,
 			Title: helper.B32(win.Title),
 		}
 
@@ -91,10 +100,20 @@ func NewMainController(logger *slog.Logger) *MainController {
 			return
 		}
 
+		// Need to use a better interface for this me things
+		// Update the dimensions
 		curWindow.Dims.X0 = winModel.Window.X
 		curWindow.Dims.Y0 = winModel.Window.Y
 		curWindow.Dims.Width = winModel.Window.Width
 		curWindow.Dims.Height = winModel.Window.Height
+		// Update the opts
+		curWindow.Opts.ShowID = winModel.Window.ShowID
+		curWindow.Opts.WinType = winModel.Window.Type
+		curWindow.Opts.PreviewValue = helper.B32(winModel.Window.PreviewValue)
+		// Update the decorations
+		curWindow.Decor.TitleSize = winModel.Window.TitleSize
+		curWindow.Decor.TextSize = winModel.Window.TextSize
+		// Update the title
 		curWindow.Title = helper.B32(winModel.Window.Title)
 
 		err := mc.CDash.UpdateWindow(winModel.ID, curWindow)
@@ -113,11 +132,14 @@ func NewMainController(logger *slog.Logger) *MainController {
 	mc.EvBus.On(ui.MoveWindowEv{}, func(e any) {
 		mvData := e.(ui.MoveWindowEv)
 		pLogger.Debug(fmt.Sprintf("request to move window '%d'", mvData.WindowID))
-		err := mc.CDash.MoveWindow(mvData.WindowID, mvData.Delta)
+
+		newDims, err := mc.CDash.MoveWindow(mvData.WindowID, mvData.Delta)
 		if err != nil && err != io.EOF {
 			pLogger.Debug(fmt.Sprintf("failed to move window '%d' %s", mvData.WindowID, err.Error()))
 			return
 		}
+
+		mc.EvBus.Emit(ui.WindowMovedEv{ID: mvData.WindowID, Dims: newDims})
 	})
 
 	mc.EvBus.On(ui.ResizeWindowEv{}, func(e any) {
@@ -153,14 +175,15 @@ func NewMainController(logger *slog.Logger) *MainController {
 				return
 			}
 
-			// pLogger.Info(fmt.Sprintf("found cdashdisplay on %s!", mc.CDash.WT.Cfg.Name))
-			// mc.EvBus.Emit(ui.PrintLogEv{Log: "found cdashdisplay" + mc.CDash.WT.Cfg.Name + "\n"})
 			mc.CDash = display
+			pLogger.Info("found cdashdisplay on: " + display.WT.Cfg.Name)
+			mc.EvBus.Emit(ui.PrintLogEv{Log: "found cdashdisplay on: " + display.WT.Cfg.Name + "\n"})
 		}()
 	})
 
 	mc.EvBus.On(ui.ForceRedraw{}, func(e any) {
-		mc.App.QueueUpdateDraw(func() {})
+		// mc.App.QueueUpdateDraw(func() {})
+		mc.App.Draw()
 	})
 
 	return mc

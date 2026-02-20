@@ -189,6 +189,9 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 		case 'l':
 			// Load the layout
 			bus.Emit(ui.LoadLayoutEv{})
+		case 'g':
+			// Go -> launches the current set up source
+			streamingWindow(bus, doc)
 		}
 
 		return event

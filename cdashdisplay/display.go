@@ -249,11 +249,11 @@ func (d *CDashDisplay) updateWindowDimensions(win *UIWindow, packet UpdateDimsPa
 	return nil
 }
 
-func (d *CDashDisplay) MoveWindow(wID int16, delta helper.Vector) error {
+func (d *CDashDisplay) MoveWindow(wID int16, delta helper.Vector) (UIDimensions, error) {
 	// Get the window from the layout
 	window, ok := d.State.Layout.Windows[wID]
 	if !ok {
-		return fmt.Errorf("window with ID '%d' doesn't exist", wID)
+		return UIDimensions{}, fmt.Errorf("window with ID '%d' doesn't exist", wID)
 	}
 
 	// Now we will create new dimensions
@@ -267,7 +267,7 @@ func (d *CDashDisplay) MoveWindow(wID int16, delta helper.Vector) error {
 		Dims: newDimensions,
 	}
 
-	return d.updateWindowDimensions(window, packet)
+	return newDimensions, d.updateWindowDimensions(window, packet)
 }
 
 func (d *CDashDisplay) ResizeWindow(wID int16, delta helper.Vector) error {
