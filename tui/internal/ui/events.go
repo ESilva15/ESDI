@@ -93,3 +93,14 @@ type ErrorFormParseEv struct {
 type FindCDashDisplay struct{}
 
 // Device events --------------------------------------------------------------
+
+// + Stream events ------------------------------------------------------------
+
+type StartStreamingReqEv struct{}
+type StopStreamingReqEv struct{}
+
+type StreamDataEv struct {
+	Str string
+}
+
+// - Stream events ------------------------------------------------------------

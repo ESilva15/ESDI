@@ -27,22 +27,24 @@ type Ctrls struct {
 }
 
 type MainController struct {
-	Logger   *slog.Logger
-	App      *tview.Application
-	Dom      *dom.DOM
-	EvBus    *events.Bus
-	DevClerk *peripheral.PeripheralDeviceClerk
-	CDash    *cdashdisplay.CDashDisplay
+	Logger     *slog.Logger
+	App        *tview.Application
+	Dom        *dom.DOM
+	EvBus      *events.Bus
+	DevClerk   *peripheral.PeripheralDeviceClerk
+	CDash      *cdashdisplay.CDashDisplay
+	StreamStrl *StreamingCtrl
 }
 
 func NewMainController(logger *slog.Logger) *MainController {
 	pLogger = logger
 	mc := &MainController{
-		App:      tview.NewApplication(),
-		Dom:      dom.NewDOM(),
-		EvBus:    events.NewBus(),
-		DevClerk: peripheral.NewPeripheralDeviceClerk(),
-		CDash:    nil,
+		App:        tview.NewApplication(),
+		Dom:        dom.NewDOM(),
+		EvBus:      events.NewBus(),
+		DevClerk:   peripheral.NewPeripheralDeviceClerk(),
+		CDash:      nil,
+		StreamStrl: NewStreamingCtrl(),
 	}
 
 	mc.EvBus.On(ui.RedrawEv{}, func(e any) {
@@ -184,6 +186,14 @@ func NewMainController(logger *slog.Logger) *MainController {
 	mc.EvBus.On(ui.ForceRedraw{}, func(e any) {
 		// mc.App.QueueUpdateDraw(func() {})
 		mc.App.Draw()
+	})
+
+	mc.EvBus.On(ui.StartStreamingReqEv{}, func(e any) {
+		mc.StreamStrl.Start(mc.EvBus)
+	})
+
+	mc.EvBus.On(ui.StopStreamingReqEv{}, func(e any) {
+		mc.StreamStrl.Stop(mc.EvBus)
 	})
 
 	return mc
