@@ -67,9 +67,11 @@ func streamingWindow(bus *events.Bus, doc *dom.DOM) {
 	bus.Emit(ui.StartStreamingReqEv{})
 
 	bus.On(ui.StreamDataEv{}, func(e any) {
-		sd := e.(ui.StreamDataEv)
-		box.SetText(sd.Str)
-
-		bus.Emit(ui.ForceRedraw{})
+		bus.Emit(ui.RedrawEv{
+			Fn: func() {
+				sd := e.(ui.StreamDataEv)
+				box.SetText(sd.Str)
+			},
+		})
 	})
 }

@@ -21,7 +21,9 @@ type PrintLogEv struct {
 	Log string
 }
 
-type RedrawEv struct{}
+type RedrawEv struct {
+	Fn func()
+}
 
 type ChangeFocusEv struct {
 	Target tview.Primitive

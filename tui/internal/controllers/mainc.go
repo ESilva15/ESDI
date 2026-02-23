@@ -48,7 +48,10 @@ func NewMainController(logger *slog.Logger) *MainController {
 	}
 
 	mc.EvBus.On(ui.RedrawEv{}, func(e any) {
-		mc.App.QueueUpdateDraw(func() {})
+		rev := e.(ui.RedrawEv)
+		if rev.Fn != nil {
+			mc.App.QueueUpdateDraw(e.(ui.RedrawEv).Fn)
+		}
 	})
 
 	mc.EvBus.On(ui.ChangeFocusEv{}, func(e any) {
