@@ -128,7 +128,7 @@ func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Key() {
 			case tcell.KeyEscape:
-				bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(layoutToolFlexID)})
+				bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(LayoutToolFlexID)})
 			}
 
 			return ev
@@ -138,13 +138,13 @@ func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 	formNode = doc.GetNodeByID("new-window-form")
 	if formNode == nil {
 		formNode, err = doc.NewUINode("new-window-form",
-			doc.GetElemByID(layoutToolActionPagesID), form)
+			doc.GetElemByID(LayoutToolActionPagesID), form)
 		if err != nil {
 			panic("failed to create UI node for the new window form: " + err.Error())
 		}
 	}
 
-	AddAndShowPage(bus, doc, doc.GetElemByID(layoutToolActionPagesID).(*tview.Pages),
+	AddAndShowPage(bus, doc, doc.GetElemByID(LayoutToolActionPagesID).(*tview.Pages),
 		formNode, true)
 }
 
@@ -234,7 +234,7 @@ func windowInfoForm(bus *events.Bus, doc *dom.DOM, idx int16,
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Key() {
 			case tcell.KeyEscape:
-				bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(layoutToolTreeID)})
+				bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(LayoutToolTreeID)})
 			}
 
 			return ev
@@ -264,7 +264,7 @@ func windowInfoForm(bus *events.Bus, doc *dom.DOM, idx int16,
 	var formNode *dom.UINode
 	elemID := windowInfoPageID(idx)
 	formNode = doc.GetNodeByID(elemID)
-	layoutToolActionPagesElem := doc.GetElemByID(layoutToolActionPagesID)
+	layoutToolActionPagesElem := doc.GetElemByID(LayoutToolActionPagesID)
 	if formNode == nil {
 		formNode, err = doc.NewUINode(elemID, layoutToolActionPagesElem, form)
 		if err != nil {

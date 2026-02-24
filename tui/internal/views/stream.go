@@ -42,7 +42,7 @@ func streamingWindow(bus *events.Bus, doc *dom.DOM) {
 	var boxNode *dom.UINode
 
 	// delete the currently existing streaming-box
-	actionPages := doc.GetElemByID(layoutToolActionPagesID).(*tview.Pages)
+	actionPages := doc.GetElemByID(LayoutToolActionPagesID).(*tview.Pages)
 	actionPages.RemovePage(streamingBoxID)
 
 	// Get the currently exisiting streaming box in the dom so we can delete it
@@ -54,7 +54,7 @@ func streamingWindow(bus *events.Bus, doc *dom.DOM) {
 	// Register this streaming box as an UINode
 	boxNode, err = doc.NewUINode(
 		streamingBoxID,
-		doc.GetElemByID(layoutToolActionPagesID),
+		doc.GetElemByID(LayoutToolActionPagesID),
 		box,
 	)
 	if err != nil {

@@ -104,7 +104,7 @@ func windowManipulationEvCapture(
 		switch ev.Key() {
 		case tcell.KeyEscape:
 			bus.Emit(ui.ChangeFocusEv{
-				Target: doc.GetElemByID(layoutToolFlexID),
+				Target: doc.GetElemByID(LayoutToolFlexID),
 			})
 			return ev
 		}
@@ -144,7 +144,7 @@ func windowManipulationTool(bus *events.Bus, doc *dom.DOM, idx int16) {
 	var boxNode *dom.UINode
 
 	// delete the currently existing move-window-box
-	actionPages := doc.GetElemByID(layoutToolActionPagesID).(*tview.Pages)
+	actionPages := doc.GetElemByID(LayoutToolActionPagesID).(*tview.Pages)
 	actionPages.RemovePage("move-window-box")
 
 	boxNode = doc.GetNodeByID("move-window-box")
@@ -154,7 +154,7 @@ func windowManipulationTool(bus *events.Bus, doc *dom.DOM, idx int16) {
 
 	boxNode, err = doc.NewUINode(
 		"move-window-box",
-		doc.GetElemByID(layoutToolActionPagesID),
+		doc.GetElemByID(LayoutToolActionPagesID),
 		box,
 	)
 

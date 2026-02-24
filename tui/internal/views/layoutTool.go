@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	layoutToolFlexID        = "layout-tool-flex"
-	layoutToolTreeID        = "layout-tool-tree"
-	layoutToolActionPagesID = "layout-tool-action-pages"
+	LayoutToolFlexID        = "layout-tool-flex"
+	LayoutToolTreeID        = "layout-tool-tree"
+	LayoutToolActionPagesID = "layout-tool-action-pages"
 )
 
 type windowReference struct {
@@ -155,7 +155,7 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEsc:
-			bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(deviceAPIListID)})
+			bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(DeviceAPIListID)})
 		}
 
 		switch event.Rune() {
@@ -198,34 +198,12 @@ func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
 	}
 }
 
-func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
-	bus.Emit(ui.LogEv{Log: "Opening layout tool UI\n"})
-	var err error
-
-	// Get the api pages
-	apiToolPages := doc.GetElemByID(apiToolPagesID).(*tview.Pages)
-	if apiToolPages == nil {
-		bus.Emit(ui.LogEv{Log: "  Failed to retrive apiToolPages UI\n"})
-		return
-	}
-
-	bus.Emit(ui.LogEv{
-		Log: fmt.Sprintf("  Checking if `%s` UINode already exists\n", layoutToolFlexID),
-	})
-	layoutToolUINode := doc.GetNodeByID(layoutToolFlexID)
-	if layoutToolUINode == nil {
-		layoutToolUINode, err = buildLayoutFlexComponent(bus, doc)
-		if err != nil {
-			bus.Emit(ui.LogEv{
-				Log: fmt.Sprintf("      Failed to build layout tool UI: %s\n", err.Error()),
-			})
-		}
-	}
-
-	AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode, true)
-}
-
 func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.TreeNode) {
+	// Set focus to our new tool
+	// if changeFocus {
+	// 	bus.Emit(ui.ChangeFocusEv{Target: page.Self})
+	// }
+
 	return func(node *tview.TreeNode) {
 		// Here we want to change the current existing form on the action pages
 		nodeRef := node.GetReference()
@@ -240,7 +218,7 @@ func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.
 			Log: fmt.Sprintf("changing to -> %d | %s\n", nodeWinRef.ID, nodeWinRef.Form.ID),
 		})
 
-		pages := doc.GetElemByID(layoutToolActionPagesID)
+		pages := doc.GetElemByID(LayoutToolActionPagesID)
 		AddAndShowPage(bus, doc, pages.(*tview.Pages), nodeWinRef.Form, false)
 	}
 }
@@ -270,8 +248,8 @@ func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error
 	layoutTree.SetChangedFunc(layoutToolTreeViewOnChange(bus, doc))
 	layoutTree.SetSelectedFunc(layoutToolTreeViewOnSelect(bus))
 
-	layoutTreeUINode, err := doc.NewUINode(layoutToolTreeID,
-		doc.GetElemByID(rightFlexID), layoutTree)
+	layoutTreeUINode, err := doc.NewUINode(LayoutToolTreeID,
+		doc.GetElemByID(RightFlexID), layoutTree)
 	if err != nil {
 		return nil, err
 	}
@@ -296,9 +274,9 @@ func buildLayoutActionPagesComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
 	fmt.Fprintf(emptyPage, "No tool selected")
 
-	actionPages := tview.NewPages().AddPage(emptyPageName, emptyPage, true, true)
+	actionPages := tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
 
-	actionPagesUINode, err := doc.NewUINode(layoutToolActionPagesID,
+	actionPagesUINode, err := doc.NewUINode(LayoutToolActionPagesID,
 		doc.GetElemByID("right-flex"), actionPages)
 	if err != nil {
 		return nil, err
@@ -321,8 +299,8 @@ func buildLayoutFlexComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error
 	}
 
 	layoutToolFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-	layoutToolFlexNode, err := doc.NewUINode(layoutToolFlexID,
-		doc.GetElemByID(apiToolPagesID), layoutToolFlex)
+	layoutToolFlexNode, err := doc.NewUINode(LayoutToolFlexID,
+		doc.GetElemByID(APIToolPagesID), layoutToolFlex)
 	if err != nil {
 		return nil, err
 	}

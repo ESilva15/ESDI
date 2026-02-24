@@ -5,113 +5,111 @@ import (
 	"fmt"
 
 	"esdi/tui/internal/dom"
-	"esdi/tui/internal/events"
-	"esdi/tui/internal/ui"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 const (
-	mainFlexID      = "main-flex"
-	apiToolPagesID  = "api-tool-pages"
-	rightFlexID     = "right-flex"
-	outputPaneID    = "output-window"
-	deviceAPIListID = "device-api-list"
+	MainFlexID      = "main-flex"
+	APIToolPagesID  = "api-tool-pages"
+	RightFlexID     = "right-flex"
+	OutputPaneID    = "output-window"
+	DeviceAPIListID = "device-api-list"
 )
 
 const (
-	emptyPageName = "empty-page"
+	EmptyPageName = "empty-page"
 )
 
-func buildRightSidePages(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
+type DeviceAPIToolView struct {
+	Pages     *tview.Pages
+	ChangedFn func()
+}
+
+func NewDeviceAPIToolView() *DeviceAPIToolView {
 	// We need to build a set of pages with an empty page
 	emptyPage := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetChangedFunc(func() {
-			bus.Emit(ui.RedrawEv{})
+			// bus.Emit(ui.RedrawEv{})
 		})
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
 	fmt.Fprintf(emptyPage, "No Tool Selected")
 
-	apiToolPages := tview.NewPages().AddPage(emptyPageName, emptyPage, true, true)
+	apiToolPages := tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
 
-	apiToolPagesNode, err := doc.NewUINode(apiToolPagesID, doc.GetElemByID(rightFlexID),
-		apiToolPages)
-	if err != nil {
-		return nil, err
+	return &DeviceAPIToolView{
+		Pages:     apiToolPages,
+		ChangedFn: func() {}, // blank function to be hooked on
 	}
-
-	return apiToolPagesNode, nil
 }
 
-func buildRightSideFlex(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
-	apiToolPagesNode, err := buildRightSidePages(bus, doc)
-	if err != nil {
-		return nil, err
-	}
-
-	// This will be the right side flex
-	flex := tview.NewFlex().SetDirection(tview.FlexRow)
-	flexNode, err := doc.NewUINode(rightFlexID, doc.GetElemByID(mainFlexID), flex)
-	if err != nil {
-		return nil, err
-	}
-
-	// outputWin := doc.GetElemByID(outputPaneID)
-	// if outputWin == nil {
-	// 	panic("failed to attach output win to UI")
-	// }
-
-	flex.
-		AddItem(apiToolPagesNode.Self, 0, 5, false)
-		// AddItem(outputWin, 0, 2, false)
-
-	return flexNode, nil
+type DeviceAPIListView struct {
+	List         *tview.List
+	InputCapture func(*tcell.EventKey) *tcell.EventKey
+	ItemOnSelect func()
 }
 
-func BuildMainFlex(bus *events.Bus, doc *dom.DOM) (*tview.Flex, error) {
+func NewDeviceAPIListView() *DeviceAPIListView {
+	deviceAPIList := tview.NewList().
+		AddItem("layout", "build a layout for CDashDisplay", 0, func() {
+			// layoutToolUIOnSelect(bus, doc)
+		})
+	deviceAPIList.SetBorder(true).SetTitle("list")
+
+	return &DeviceAPIListView{
+		List:         deviceAPIList,
+		InputCapture: func(ev *tcell.EventKey) *tcell.EventKey { return ev },
+		ItemOnSelect: func() {}, // blank functions, they have to be hooked on by the controller
+	}
+}
+
+type DeviceAPIView struct {
+	MainFlex       *tview.Flex
+	DevAPIList     *DeviceAPIListView
+	DevAPIToolView *DeviceAPIToolView
+	OutputWindow   *OutputWinView
+}
+
+func (dl *DeviceAPIListView) AddItem(name, description string, onSelect func()) {
+	dl.List.AddItem(name, description, 0, onSelect)
+}
+
+func NewDeviceAPIView(doc *dom.DOM) (*DeviceAPIView, error) {
 	// To build the main view we must set the DOM root
 	mainFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
-	mainFlexUINode, err := doc.NewUINode(mainFlexID, nil, mainFlex)
+	mainFlexUINode, err := doc.NewUINode(MainFlexID, nil, mainFlex)
 	if err != nil {
 		return nil, err
 	}
 
 	doc.SetRoot(mainFlexUINode)
 
-	deviceAPIList := tview.NewList().
-		AddItem("layout", "build a layout for CDashDisplay", 0, func() {
-			layoutToolUIOnSelect(bus, doc)
-		})
-	deviceAPIList.SetBorder(true).SetTitle("list").
-		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-			switch ev.Rune() {
-			case 'r':
-				bus.Emit(ui.FindCDashDisplay{})
-			}
-			return ev
-		})
-
-	apiListWindowUINode, err := doc.NewUINode(deviceAPIListID, doc.GetRootElem(),
-		deviceAPIList)
+	deviceAPIList := NewDeviceAPIListView()
+	apiListWindowUINode, err := doc.NewUINode(DeviceAPIListID, doc.GetRootElem(),
+		deviceAPIList.List)
 	if err != nil {
 		return nil, err
 	}
 
-	rightSideFlex, err := buildRightSideFlex(bus, doc)
+	apiToolPages := NewDeviceAPIToolView()
+	apiToolPagesNode, err := doc.NewUINode(APIToolPagesID, doc.GetElemByID(RightFlexID),
+		apiToolPages.Pages)
 	if err != nil {
 		return nil, err
 	}
 
 	mainFlex.
 		AddItem(apiListWindowUINode.Self, 0, 1, false).
-		AddItem(rightSideFlex.Self, 0, 4, false)
+		AddItem(apiToolPagesNode.Self, 0, 4, false)
 
 	// Output window
-	err = BuildOutputWindow(bus, doc)
+
+	outputWin := NewOutputWinView()
+	_, err = doc.NewUINode("output-window", nil, outputWin.TextArea)
 	if err != nil {
-		panic("failed to create output window")
+		return nil, err
 	}
 
 	// Flex with debug window
@@ -119,8 +117,13 @@ func BuildMainFlex(bus *events.Bus, doc *dom.DOM) (*tview.Flex, error) {
 	flexWithOutputWindow := tview.NewFlex().SetDirection(tview.FlexRow)
 	flexWithOutputWindow.
 		AddItem(mainFlex, 0, 5, true).
-		AddItem(doc.GetElemByID(outputPaneID), 0, 2, false)
+		AddItem(doc.GetElemByID(OutputPaneID), 0, 2, false)
 	// --------------------------------------------------------------------------
 
-	return flexWithOutputWindow, nil
+	return &DeviceAPIView{
+		MainFlex:       flexWithOutputWindow,
+		DevAPIList:     deviceAPIList,
+		DevAPIToolView: apiToolPages,
+		OutputWindow:   outputWin,
+	}, nil
 }

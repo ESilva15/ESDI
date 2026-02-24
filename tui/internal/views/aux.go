@@ -2,16 +2,12 @@ package views
 
 import (
 	"esdi/tui/internal/dom"
-	"esdi/tui/internal/events"
-	"esdi/tui/internal/ui"
 	"slices"
 
 	"github.com/rivo/tview"
 )
 
 func AddAndShowPage(
-	bus *events.Bus,
-	doc *dom.DOM,
 	pages *tview.Pages,
 	page *dom.UINode,
 	changeFocus bool,
@@ -21,11 +17,6 @@ func AddAndShowPage(
 	} else {
 		// Only change to page
 		pages.SwitchToPage(page.ID)
-	}
-
-	// Set focus to our new tool
-	if changeFocus {
-		bus.Emit(ui.ChangeFocusEv{Target: page.Self})
 	}
 
 	return nil
