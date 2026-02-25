@@ -11,45 +11,27 @@ import (
 	"esdi/tui/internal/views"
 	"fmt"
 	"io"
-	"log/slog"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
-var pLogger *slog.Logger
-
-func mcLog(msg string, args ...any) {
-	pLogger.Debug(msg, args)
-}
-
-type Ctrls struct {
-	MC *MainController
-}
-
-type MainController struct {
+type DeviceController struct {
+	*Controller
 	DeviceAPIView *views.DeviceAPIView
-	Logger        *slog.Logger
-	App           *tview.Application
-	Dom           *dom.DOM
-	EvBus         *events.Bus
 	DevClerk      *peripheral.PeripheralDeviceClerk
 	CDash         *cdashdisplay.CDashDisplay
 	StreamStrl    *StreamingCtrl
 }
 
-func NewMainController(logger *slog.Logger) *MainController {
-	pLogger = logger
-	mc := &MainController{
-		App:        tview.NewApplication(),
-		Dom:        dom.NewDOM(),
-		EvBus:      events.NewBus(),
+func NewDeviceController(base *Controller) *DeviceController {
+	mc := &DeviceController{
+		Controller: base,
 		DevClerk:   peripheral.NewPeripheralDeviceClerk(),
 		CDash:      nil,
 		StreamStrl: NewStreamingCtrl(),
 	}
 
-	mc.EvBus.On(ui.RedrawEv{}, func(e any) {
+	mc.Bus.On(ui.RedrawEv{}, func(e any) {
 		go func() {
 			rev := e.(ui.RedrawEv)
 			if rev.Fn != nil {
@@ -58,19 +40,25 @@ func NewMainController(logger *slog.Logger) *MainController {
 		}()
 	})
 
-	mc.EvBus.On(ui.ChangeFocusEv{}, func(e any) {
+	mc.Bus.On(ui.TUILoaded{}, func(e any) {
+		mc.Logger.Debug("Yo, we do get here!\n")
+		mc.Main()
+		mc.PrintToOutputWindow("TUI LOADED EVENT")
+	})
+
+	mc.Bus.On(ui.ChangeFocusEv{}, func(e any) {
 		mc.App.SetFocus(e.(ui.ChangeFocusEv).Target)
 	})
 
-	mc.EvBus.On(ui.LogEv{}, func(e any) {
+	mc.Bus.On(ui.LogEv{}, func(e any) {
 		go func() {
 			mc.App.QueueUpdateDraw(func() {
-				mc.EvBus.Emit(ui.PrintLogEv{Log: e.(ui.LogEv).Log})
+				mc.Bus.Emit(ui.PrintLogEv{Log: e.(ui.LogEv).Log})
 			})
 		}()
 	})
 
-	mc.EvBus.On(ui.CreateWindowEv{}, func(e any) {
+	mc.Bus.On(ui.CreateWindowEv{}, func(e any) {
 		win := e.(ui.CreateWindowEv).Window
 
 		winDecor := cdashdisplay.DefaultDecorations
@@ -95,21 +83,21 @@ func NewMainController(logger *slog.Logger) *MainController {
 
 		wID, err := mc.CDash.CreateWindow(uiWindow)
 		if err != nil {
-			mc.EvBus.Emit(ui.PrintLogEv{Log: "failed to create window\n"})
+			mc.Bus.Emit(ui.PrintLogEv{Log: "failed to create window\n"})
 			return
 		}
 
-		mc.EvBus.Emit(ui.WindowCreatedEv{ID: wID, Win: uiWindow})
-		mc.EvBus.Emit(ui.PrintLogEv{Log: "Window created!\n"})
+		mc.Bus.Emit(ui.WindowCreatedEv{ID: wID, Win: uiWindow})
+		mc.Bus.Emit(ui.PrintLogEv{Log: "Window created!\n"})
 	})
 
-	mc.EvBus.On(ui.UpdateWindowEv{}, func(e any) {
+	mc.Bus.On(ui.UpdateWindowEv{}, func(e any) {
 		winModel := e.(ui.UpdateWindowEv)
 
 		// Build a new UIWindow here I guess
 		curWindow, ok := mc.CDash.State.Layout.Windows[winModel.ID]
 		if !ok {
-			mc.EvBus.Emit(ui.PrintLogEv{Log: "could not acquire window from display state"})
+			mc.Bus.Emit(ui.PrintLogEv{Log: "could not acquire window from display state"})
 			return
 		}
 
@@ -131,91 +119,91 @@ func NewMainController(logger *slog.Logger) *MainController {
 
 		err := mc.CDash.UpdateWindow(winModel.ID, curWindow)
 		if err != nil {
-			mc.EvBus.Emit(ui.PrintLogEv{Log: "failed to update window"})
+			mc.Bus.Emit(ui.PrintLogEv{Log: "failed to update window"})
 		}
 	})
 
-	mc.EvBus.On(ui.DestroyWindowEv{}, func(e any) {
-		pLogger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
+	mc.Bus.On(ui.DestroyWindowEv{}, func(e any) {
+		mc.Logger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
 		mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
 
-		mc.EvBus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
+		mc.Bus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
 	})
 
-	mc.EvBus.On(ui.MoveWindowEv{}, func(e any) {
+	mc.Bus.On(ui.MoveWindowEv{}, func(e any) {
 		mvData := e.(ui.MoveWindowEv)
-		pLogger.Debug(fmt.Sprintf("request to move window '%d'", mvData.WindowID))
+		mc.Logger.Debug(fmt.Sprintf("request to move window '%d'", mvData.WindowID))
 
 		newDims, err := mc.CDash.MoveWindow(mvData.WindowID, mvData.Delta)
 		if err != nil && err != io.EOF {
-			pLogger.Debug(fmt.Sprintf("failed to move window '%d' %s", mvData.WindowID, err.Error()))
+			mc.Logger.Debug(fmt.Sprintf("failed to move window '%d' %s", mvData.WindowID, err.Error()))
 			return
 		}
 
-		mc.EvBus.Emit(ui.WindowMovedEv{ID: mvData.WindowID, Dims: newDims})
+		mc.Bus.Emit(ui.WindowMovedEv{ID: mvData.WindowID, Dims: newDims})
 	})
 
-	mc.EvBus.On(ui.ResizeWindowEv{}, func(e any) {
+	mc.Bus.On(ui.ResizeWindowEv{}, func(e any) {
 		mvData := e.(ui.ResizeWindowEv)
-		pLogger.Debug(fmt.Sprintf("requested to resize window '%d'", mvData.WindowID))
+		mc.Logger.Debug(fmt.Sprintf("requested to resize window '%d'", mvData.WindowID))
 		err := mc.CDash.ResizeWindow(mvData.WindowID, mvData.Delta)
 		if err != nil && err != io.EOF {
-			pLogger.Debug(fmt.Sprintf("failed to resize window '%d' %s", mvData.WindowID, err.Error()))
+			mc.Logger.Debug(fmt.Sprintf("failed to resize window '%d' %s", mvData.WindowID, err.Error()))
 			return
 		}
 	})
 
-	mc.EvBus.On(ui.SaveLayoutEv{}, func(e any) {
+	mc.Bus.On(ui.SaveLayoutEv{}, func(e any) {
 		mc.CDash.SaveLayout()
 	})
 
-	mc.EvBus.On(ui.LoadLayoutEv{}, func(e any) {
+	mc.Bus.On(ui.LoadLayoutEv{}, func(e any) {
 		mc.CDash.LoadLayout()
-		mc.EvBus.Emit(ui.RegisterLoadedLayout{*mc.CDash.State.Layout})
+		mc.Bus.Emit(ui.RegisterLoadedLayout{*mc.CDash.State.Layout})
 	})
 
-	mc.EvBus.On(ui.ForceRedraw{}, func(e any) {
+	mc.Bus.On(ui.ForceRedraw{}, func(e any) {
 		// mc.App.QueueUpdateDraw(func() {})
 		mc.App.Draw()
 	})
 
-	mc.EvBus.On(ui.StartStreamingReqEv{}, func(e any) {
-		mc.StreamStrl.Start(mc.EvBus)
+	mc.Bus.On(ui.StartStreamingReqEv{}, func(e any) {
+		mc.StreamStrl.Start(mc.Bus)
 	})
 
-	mc.EvBus.On(ui.StopStreamingReqEv{}, func(e any) {
-		mc.StreamStrl.Stop(mc.EvBus)
+	mc.Bus.On(ui.StopStreamingReqEv{}, func(e any) {
+		mc.StreamStrl.Stop(mc.Bus)
 	})
 
 	return mc
 }
 
-func (mc *MainController) PrintToOutputWindow(msg string) {
+func (mc *DeviceController) PrintToOutputWindow(msg string) {
 	mc.App.QueueUpdateDraw(func() {
 		fmt.Fprintf(mc.DeviceAPIView.OutputWindow.TextArea,
 			"%s", msg)
 	})
 }
 
-func (mc *MainController) findCDashDisplay() {
+func (mc *DeviceController) findCDashDisplay() {
 	mc.PrintToOutputWindow("looking for cdash display\n")
-	pLogger.Info("Looking for CDashDisplay")
+	mc.Logger.Info("Looking for CDashDisplay")
 
-	cdashdisplay.SetLogger(pLogger.With("[device]", "cdashdisplay"))
+	cdashdisplay.SetLogger(mc.Logger.With("[device]", "cdashdisplay"))
 
 	display, err := cdashdisplay.NewCDashDisplay()
 	if err != nil {
-		pLogger.Info("didn't find cdashdisplay")
+		mc.Logger.Info("didn't find cdashdisplay")
 		mc.PrintToOutputWindow("didn't find cdash display\n")
 		return
 	}
 
 	mc.CDash = display
-	pLogger.Info("found cdashdisplay on: " + display.WT.Cfg.Name)
+	mc.Logger.Info("found cdashdisplay on: " + display.WT.Cfg.Name)
 	mc.PrintToOutputWindow("found cdashdisplay on: " + display.WT.Cfg.Name + "\n")
 }
 
-func (mc *MainController) setAppEventCapture() {
+func (mc *DeviceController) setAppEventCapture() {
 	mc.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyCtrlC || event.Rune() == 'q' {
 			mc.App.Stop()
@@ -226,7 +214,7 @@ func (mc *MainController) setAppEventCapture() {
 	})
 }
 
-func (mc *MainController) setDeviceAPIViewEvents() {
+func (mc *DeviceController) setDeviceAPIViewEvents() {
 	mc.DeviceAPIView.MainFlex.
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Rune() {
@@ -238,43 +226,39 @@ func (mc *MainController) setDeviceAPIViewEvents() {
 
 }
 
-func (mc *MainController) AddDeviceAPIListItems() {
+func (mc *DeviceController) AddDeviceAPIListItems() {
 	mc.DeviceAPIView.DevAPIList.AddItem("layout", "build a layout for CDashDisplay",
 		func() {
-			var err error
-
-			// Get the api pages
-			apiToolPages := mc.DeviceAPIView.DevAPIToolView
-
-			layoutToolUINode := doc.GetNodeByID(views.LayoutToolFlexID)
-			if layoutToolUINode == nil {
-				layoutToolUINode, err = buildLayoutFlexComponent(bus, doc)
-				if err != nil {
-					bus.Emit(ui.LogEv{
-						Log: fmt.Sprintf("      Failed to build layout tool UI: %s\n", err.Error()),
-					})
-				}
-			}
-
-			err = views.AddAndShowPage(bus, doc, apiToolPages, layoutToolUINode, true)
-			if err == nil {
-				mc.App.SetFocus(e.(ui.ChangeFocusEv).Target)
-			}
-
-			// Set focus to our new tool
-			// if changeFocus {
-			// 	bus.Emit(ui.ChangeFocusEv{Target: page.Self})
+			// var err error
+			//
+			// // Get the api pages
+			// apiToolPages := mc.DeviceAPIView.DevAPIToolView
+			//
+			// layoutToolUINode := mc.Dom.GetNodeByID(views.LayoutToolFlexID)
+			// if layoutToolUINode == nil {
+			// 	layoutToolUINode, err = buildLayoutFlexComponent(mc.Bus, mc.Dom)
+			// 	if err != nil {
+			// 		mc.PrintToOutputWindow(
+			// 			fmt.Sprintf("      Failed to build layout tool UI: %s\n", err.Error()),
+			// 		)
+			// 	}
 			// }
-
+			//
+			// err = views.AddAndShowPage(apiToolPages.Pages, layoutToolUINode, true)
+			// if err == nil {
+			// 	mc.App.SetFocus(layoutToolUINode.Self)
+			// }
 		})
 }
 
 func layoutToolUIOnSelect(bus *events.Bus, doc *dom.DOM) {
 }
 
-func (mc *MainController) mainUI() error {
+func (mc *DeviceController) mainUI() error {
+	var err error
+
 	// Set the main view
-	deviceAPIView, err := views.NewDeviceAPIView(mc.Dom)
+	mc.DeviceAPIView, err = views.NewDeviceAPIView(mc.Dom)
 	if err != nil {
 		return err
 	}
@@ -284,32 +268,32 @@ func (mc *MainController) mainUI() error {
 	// Add the API things to the deviceAPIListView
 	mc.AddDeviceAPIListItems()
 
-	rootNode, err := mc.Dom.NewUINode("root", nil, deviceAPIView.MainFlex)
+	rootNode, err := mc.Dom.NewUINode("root", nil, mc.DeviceAPIView.MainFlex)
 	if err != nil {
 		return err
 	}
 
-	mc.DeviceAPIView = deviceAPIView
 	mc.Dom.SetRoot(rootNode)
 
 	return nil
 }
 
-func (mc *MainController) Main() error {
-	mc.setAppEventCapture()
+func (mc *DeviceController) Main() error {
+	mc.Logger.Debug("and then here")
 	err := mc.mainUI()
+	mc.Logger.Debug("and then here x2")
+	mc.setAppEventCapture()
 
 	// First focused element
+	mc.Logger.Debug("and then here x3")
 	firstFocus := mc.Dom.GetElemByID(views.DeviceAPIListID)
 	if firstFocus == nil {
 		return err
 	}
 
-	// Star the app
-	err = mc.App.SetRoot(mc.Dom.GetRootElem(), true).SetFocus(firstFocus).Run()
-	if err != nil {
-		return err
-	}
+	mc.Logger.Debug("and then here x4")
+	mc.App.SetRoot(mc.DeviceAPIView.MainFlex, true)
+	mc.App.SetFocus(firstFocus)
 
 	return err
 }

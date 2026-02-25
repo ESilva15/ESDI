@@ -168,5 +168,5 @@ func windowManipulationTool(bus *events.Bus, doc *dom.DOM, idx int16) {
 	}
 
 	box.SetInputCapture(windowManipulationEvCapture(bus, doc, idx, &state))
-	AddAndShowPage(bus, doc, actionPages, boxNode, true)
+	AddAndShowPage(actionPages, boxNode, true)
 }

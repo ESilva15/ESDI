@@ -62,7 +62,7 @@ func streamingWindow(bus *events.Bus, doc *dom.DOM) {
 	}
 
 	// Add it to the action pages and view it
-	AddAndShowPage(bus, doc, actionPages, boxNode, true)
+	AddAndShowPage(actionPages, boxNode, true)
 
 	bus.Emit(ui.StartStreamingReqEv{})
 

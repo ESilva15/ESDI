@@ -52,10 +52,10 @@ type DeviceAPIListView struct {
 }
 
 func NewDeviceAPIListView() *DeviceAPIListView {
-	deviceAPIList := tview.NewList().
-		AddItem("layout", "build a layout for CDashDisplay", 0, func() {
-			// layoutToolUIOnSelect(bus, doc)
-		})
+	deviceAPIList := tview.NewList()
+	// AddItem("layout", "build a layout for CDashDisplay", 0, func() {
+	// layoutToolUIOnSelect(bus, doc)
+	// })
 	deviceAPIList.SetBorder(true).SetTitle("list")
 
 	return &DeviceAPIListView{

@@ -8,6 +8,12 @@ import (
 	"github.com/rivo/tview"
 )
 
+//
+
+type TUILoaded struct{}
+
+//
+
 // Main controller events
 
 // Find a way to remove this

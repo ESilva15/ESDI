@@ -219,7 +219,7 @@ func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.
 		})
 
 		pages := doc.GetElemByID(LayoutToolActionPagesID)
-		AddAndShowPage(bus, doc, pages.(*tview.Pages), nodeWinRef.Form, false)
+		AddAndShowPage(pages.(*tview.Pages), nodeWinRef.Form, false)
 	}
 }
 

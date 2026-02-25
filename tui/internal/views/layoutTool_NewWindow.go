@@ -144,8 +144,7 @@ func createNewWindowForm(bus *events.Bus, doc *dom.DOM) {
 		}
 	}
 
-	AddAndShowPage(bus, doc, doc.GetElemByID(LayoutToolActionPagesID).(*tview.Pages),
-		formNode, true)
+	AddAndShowPage(doc.GetElemByID(LayoutToolActionPagesID).(*tview.Pages), formNode, true)
 }
 
 func windowInfoPageID(idx int16) string {
