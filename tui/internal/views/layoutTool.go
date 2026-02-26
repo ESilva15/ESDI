@@ -58,22 +58,22 @@ func FindNodeByID(
 
 func appendWindow(bus *events.Bus, doc *dom.DOM, tree *tview.TreeView, idx int16,
 	win *cdashdisplay.UIWindow) {
-	root := tree.GetRoot()
-	if root == nil {
-		bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
-		return
-	}
-
-	// Create the update tool
-	updateForm := windowInfoForm(bus, doc, idx, win)
-
-	fmtTitle := fmt.Sprintf("%s [%2d]", win.Title.String(), idx)
-	ref := windowReference{
-		ID:   idx,
-		Form: updateForm,
-	}
-	newWindow := tview.NewTreeNode(fmtTitle).SetReference(&ref)
-	root.AddChild(newWindow)
+	// root := tree.GetRoot()
+	// if root == nil {
+	// 	bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
+	// 	return
+	// }
+	//
+	// // Create the update tool
+	// updateForm := windowInfoForm(bus, doc, idx, win)
+	//
+	// fmtTitle := fmt.Sprintf("%s [%2d]", win.Title.String(), idx)
+	// ref := windowReference{
+	// 	ID:   idx,
+	// 	Form: updateForm,
+	// }
+	// newWindow := tview.NewTreeNode(fmtTitle).SetReference(&ref)
+	// root.AddChild(newWindow)
 }
 
 func BindWindowEvents(
@@ -150,54 +150,6 @@ func getCurNodeRef(tree *tview.TreeView) (*windowReference, error) {
 	return winRef, nil
 }
 
-func layoutToolTreeViewEvCapture(bus *events.Bus, doc *dom.DOM,
-	tree *tview.TreeView) func(event *tcell.EventKey) *tcell.EventKey {
-	return func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyEsc:
-			bus.Emit(ui.ChangeFocusEv{Target: doc.GetElemByID(DeviceAPIListID)})
-		}
-
-		switch event.Rune() {
-		case 'n':
-			// Create a new window
-			bus.Emit(ui.LogEv{Log: "calling new window form\n"})
-			createNewWindowForm(bus, doc)
-		case 'x':
-			// Delete selected window
-			bus.Emit(ui.LogEv{Log: "calling delete window\n"})
-			wRef, err := getCurNodeRef(tree)
-			if err != nil {
-				bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
-				break
-			}
-			bus.Emit(ui.DestroyWindowEv{ID: wRef.ID})
-		case 'm':
-			// Go into move mode
-			bus.Emit(ui.LogEv{Log: "calling window manipulation tool\n"})
-			wRef, err := getCurNodeRef(tree)
-			if err != nil {
-				bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
-				break
-			}
-			windowManipulationTool(bus, doc, wRef.ID)
-		case 'e':
-			// Go into edit mode
-		case 's':
-			// Save the current layout
-			bus.Emit(ui.SaveLayoutEv{})
-		case 'l':
-			// Load the layout
-			bus.Emit(ui.LoadLayoutEv{})
-		case 'g':
-			// Go -> launches the current set up source
-			streamingWindow(bus, doc)
-		}
-
-		return event
-	}
-}
-
 func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.TreeNode) {
 	// Set focus to our new tool
 	// if changeFocus {
@@ -205,21 +157,21 @@ func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.
 	// }
 
 	return func(node *tview.TreeNode) {
-		// Here we want to change the current existing form on the action pages
-		nodeRef := node.GetReference()
-		if nodeRef == nil {
-			// its probably root I guess, thats what I'll believe
-			return
-		}
-
-		nodeWinRef := nodeRef.(*windowReference)
-
-		bus.Emit(ui.LogEv{
-			Log: fmt.Sprintf("changing to -> %d | %s\n", nodeWinRef.ID, nodeWinRef.Form.ID),
-		})
-
-		pages := doc.GetElemByID(LayoutToolActionPagesID)
-		AddAndShowPage(pages.(*tview.Pages), nodeWinRef.Form, false)
+		// // Here we want to change the current existing form on the action pages
+		// nodeRef := node.GetReference()
+		// if nodeRef == nil {
+		// 	// its probably root I guess, thats what I'll believe
+		// 	return
+		// }
+		//
+		// nodeWinRef := nodeRef.(*windowReference)
+		//
+		// bus.Emit(ui.LogEv{
+		// 	Log: fmt.Sprintf("changing to -> %d | %s\n", nodeWinRef.ID, nodeWinRef.Form.ID),
+		// })
+		//
+		// pages := doc.GetElemByID(LayoutToolActionPagesID)
+		// AddAndShowPage(pages.(*tview.Pages), nodeWinRef.Form, false)
 	}
 }
 
@@ -239,75 +191,87 @@ func layoutToolTreeViewOnSelect(bus *events.Bus) func(node *tview.TreeNode) {
 	}
 }
 
-func buildLayoutTreeComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
-	layoutTree := tview.NewTreeView()
+type LayoutTreeView struct {
+	Tree         *tview.TreeView
+	InputCapture func(*tcell.EventKey) *tcell.EventKey
+	OnChange     func(node *tview.TreeNode)
+	OnSelect     func(node *tview.TreeNode)
+}
 
-	layoutTree.SetBorder(true).SetTitle("Layout Tree").
-		SetInputCapture(layoutToolTreeViewEvCapture(bus, doc, layoutTree))
-
-	layoutTree.SetChangedFunc(layoutToolTreeViewOnChange(bus, doc))
-	layoutTree.SetSelectedFunc(layoutToolTreeViewOnSelect(bus))
-
-	layoutTreeUINode, err := doc.NewUINode(LayoutToolTreeID,
-		doc.GetElemByID(RightFlexID), layoutTree)
-	if err != nil {
-		return nil, err
+func NewLayoutTreeView() *LayoutTreeView {
+	view := &LayoutTreeView{
+		InputCapture: blankInputCapture,
+		OnChange:     blankTreeViewOnChange,
+		OnSelect:     blankTreeViewOnChange,
 	}
 
+	view.Tree = tview.NewTreeView()
+
+	view.Tree.SetBorder(true).SetTitle("Layout Tree")
+	view.Tree.SetInputCapture(view.InputCapture)
+	view.Tree.SetChangedFunc(view.OnChange)
+	view.Tree.SetSelectedFunc(view.OnSelect)
+
+	// view.Tree.SetChangedFunc(layoutToolTreeViewOnChange(bus, doc))
+	// view.Tree.SetSelectedFunc(layoutToolTreeViewOnSelect(bus))
+
 	// Bind the events for the treeview
-	BindWindowEvents(bus, doc, layoutTreeUINode.Self.(*tview.TreeView))
+	// BindWindowEvents(bus, doc, layoutTreeUINode.Self.(*tview.TreeView))
 
 	// Create a root element
 	rootElem := tview.NewTreeNode(".")
-	layoutTree.SetRoot(rootElem).SetCurrentNode(rootElem)
+	view.Tree.SetRoot(rootElem).SetCurrentNode(rootElem)
 
-	return layoutTreeUINode, nil
+	return view
 }
 
-func buildLayoutActionPagesComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
+type LayoutToolActionView struct {
+	Pages            *tview.Pages
+	CreateWindowView *CreateWindowFormView
+}
+
+func NewLayoutToolActionView() *LayoutToolActionView {
+	view := &LayoutToolActionView{
+		CreateWindowView: nil,
+	}
+
 	// Create an empty page for it
 	emptyPage := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
-		SetChangedFunc(func() {
-			bus.Emit(ui.RedrawEv{})
-		})
+		SetChangedFunc(func() {}) // Need to hook here
+
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
 	fmt.Fprintf(emptyPage, "No tool selected")
 
-	actionPages := tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
+	view.Pages = tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
 
-	actionPagesUINode, err := doc.NewUINode(LayoutToolActionPagesID,
-		doc.GetElemByID("right-flex"), actionPages)
-	if err != nil {
-		return nil, err
-	}
-
-	return actionPagesUINode, nil
+	return view
 }
 
-func buildLayoutFlexComponent(bus *events.Bus, doc *dom.DOM) (*dom.UINode, error) {
+type LayoutToolView struct {
+	Flex          *tview.Flex
+	LayoutTree    *LayoutTreeView
+	LayoutActions *LayoutToolActionView
+}
+
+func NewLayoutToolView() *LayoutToolView {
+	view := &LayoutToolView{}
+
 	// Want a TreeView at the top
-	layoutTreeUINode, err := buildLayoutTreeComponent(bus, doc)
-	if err != nil {
-		return nil, err
-	}
+	view.LayoutTree = NewLayoutTreeView()
 
 	// Want pages below to run actions
-	actionPagesUINode, err := buildLayoutActionPagesComponent(bus, doc)
-	if err != nil {
-		return nil, err
-	}
+	view.LayoutActions = NewLayoutToolActionView()
 
-	layoutToolFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-	layoutToolFlexNode, err := doc.NewUINode(LayoutToolFlexID,
-		doc.GetElemByID(APIToolPagesID), layoutToolFlex)
-	if err != nil {
-		return nil, err
-	}
+	// Create the flex
+	view.Flex = tview.NewFlex().SetDirection(tview.FlexRow)
 
-	layoutToolFlex.
-		AddItem(layoutTreeUINode.Self, 0, 2, true).
-		AddItem(actionPagesUINode.Self, 0, 5, false)
+	view.Flex.
+		AddItem(view.LayoutTree.Tree, 0, 2, true).
+		AddItem(view.LayoutActions.Pages, 0, 5, false)
 
-	return layoutToolFlexNode, nil
+	return view
+}
+
+func (ltv *LayoutToolView) AddWindow() {
 }

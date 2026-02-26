@@ -1,27 +1,16 @@
 package views
 
 import (
-	"esdi/tui/internal/dom"
 	"slices"
 
 	"github.com/rivo/tview"
 )
 
-func AddAndShowPage(
-	pages *tview.Pages,
-	page *dom.UINode,
-	changeFocus bool,
-) error {
-	if !slices.Contains(pages.GetPageNames(false), page.ID) {
-		pages.AddAndSwitchToPage(page.ID, page.Self, true)
+func AddAndShowPage(pages *tview.Pages, pageID string, page tview.Primitive) {
+	if !slices.Contains(pages.GetPageNames(false), pageID) {
+		pages.AddAndSwitchToPage(pageID, page, true)
 	} else {
 		// Only change to page
-		pages.SwitchToPage(page.ID)
+		pages.SwitchToPage(pageID)
 	}
-
-	return nil
 }
-
-// func PageExists(pages *tview.Pages, needle string) bool {
-// 	return slices.Contains(pages.GetPageNames(false), needle)
-// }
