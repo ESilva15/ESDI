@@ -39,3 +39,24 @@ func (cds *CDashService) FindDevice() {
 	cds.Logger.Info("found cdashdisplay on: " + display.WT.Cfg.Name)
 	cds.Messages <- "found cdashdisplay on: " + display.WT.Cfg.Name + "\n"
 }
+
+func (cds *CDashService) CreateWindow(win *cdashdisplay.UIWindow) (int16, error) {
+	wID, err := cds.CDash.CreateWindow(*win)
+	if err != nil {
+		return -1, err
+	}
+
+	return wID, nil
+}
+
+func (cds *CDashService) LoadLayout(layoutPath string) error {
+	return cds.CDash.LoadLayout(layoutPath)
+}
+
+func (cds *CDashService) SaveLayout(layoutPath string) error {
+	return cds.CDash.SaveLayout(layoutPath)
+}
+
+func (cds *CDashService) UpdateWindow(idx int16, win *cdashdisplay.UIWindow) error {
+	return cds.CDash.UpdateWindow(idx, win)
+}

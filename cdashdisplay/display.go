@@ -302,40 +302,45 @@ func (d *CDashDisplay) ResizeWindow(wID int16, delta helper.Vector) error {
 	return d.updateWindowDimensions(window, packet)
 }
 
-func (d *CDashDisplay) SaveLayout() {
-	file, err := os.OpenFile(path.Join(layoutsDir, "layout.yaml"),
+func (d *CDashDisplay) SaveLayout(outputPath string) error {
+	file, err := os.OpenFile(path.Join(layoutsDir, outputPath),
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
-		panic("failed to open logging file: " + err.Error())
+		return err
 	}
 
 	data, err := yaml.Marshal(d.State.Layout)
 	if err != nil {
-		panic("failed to marshal layout data")
+		return err
 	}
 
 	_, err = file.Write(data)
 	if err != nil {
-		panic("failed to write data to file")
+		return err
 	}
+
+	return nil
 }
 
-func (d *CDashDisplay) LoadLayout() {
-	data, err := os.ReadFile(path.Join(layoutsDir, "layout.yaml"))
+func (d *CDashDisplay) LoadLayout(layoutName string) error {
+	data, err := os.ReadFile(path.Join(layoutsDir, layoutName))
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	layout := NewLayoutTree()
 	err = yaml.Unmarshal(data, layout)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	for _, w := range layout.Windows {
 		_, err = d.CreateWindow(*w)
 		if err != nil {
-			pLogger.Debug(fmt.Sprintf("Failed to create window: %v", w))
+			// NOTE: Add a way to handle multiple errors ?
+			return err
 		}
 	}
+
+	return nil
 }

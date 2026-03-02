@@ -1,9 +1,9 @@
 package views
 
 import (
-	"esdi/cdashdisplay"
 	"esdi/tui/internal/dom"
 	"esdi/tui/internal/events"
+	"esdi/tui/internal/models"
 	"esdi/tui/internal/ui"
 	"fmt"
 
@@ -15,6 +15,7 @@ const (
 	LayoutToolFlexID        = "layout-tool-flex"
 	LayoutToolTreeID        = "layout-tool-tree"
 	LayoutToolActionPagesID = "layout-tool-action-pages"
+	LayoutToolNewWindowID   = "new-window-action-form"
 )
 
 type windowReference struct {
@@ -56,46 +57,11 @@ func FindNodeByID(
 	return nil
 }
 
-func appendWindow(bus *events.Bus, doc *dom.DOM, tree *tview.TreeView, idx int16,
-	win *cdashdisplay.UIWindow) {
-	// root := tree.GetRoot()
-	// if root == nil {
-	// 	bus.Emit(ui.LogEv{Log: "unable to get root of tree view"})
-	// 	return
-	// }
-	//
-	// // Create the update tool
-	// updateForm := windowInfoForm(bus, doc, idx, win)
-	//
-	// fmtTitle := fmt.Sprintf("%s [%2d]", win.Title.String(), idx)
-	// ref := windowReference{
-	// 	ID:   idx,
-	// 	Form: updateForm,
-	// }
-	// newWindow := tview.NewTreeNode(fmtTitle).SetReference(&ref)
-	// root.AddChild(newWindow)
-}
-
 func BindWindowEvents(
 	bus *events.Bus,
 	doc *dom.DOM,
 	tree *tview.TreeView,
 ) {
-	// I recon I have to change this for some type os event system that
-	// triggers directly on the UINodes I want them to be triggered on
-
-	bus.On(ui.WindowCreatedEv{}, func(e any) {
-		ev := e.(ui.WindowCreatedEv)
-
-		bus.Emit(ui.LogEv{Log: "Received a window created event\n"})
-		if tree == nil {
-			bus.Emit(ui.LogEv{Log: "tree view is nil"})
-			return
-		}
-
-		appendWindow(bus, doc, tree, ev.ID, &ev.Win)
-	})
-
 	bus.On(ui.WindowDestroyedEv{}, func(e any) {
 		root := tree.GetRoot()
 		if root == nil {
@@ -109,20 +75,6 @@ func BindWindowEvents(
 
 		// NODE: add a log here in case it fails so we know whats going on
 		bus.Emit(ui.ForceRedraw{})
-	})
-
-	bus.On(ui.RegisterLoadedLayout{}, func(e any) {
-		root := tree.GetRoot()
-		if root == nil {
-			return
-		}
-
-		layout := e.(ui.RegisterLoadedLayout)
-		for idx, w := range layout.Layout.Windows {
-			appendWindow(bus, doc, tree, idx, w)
-		}
-
-		// bus.Emit(ui.ForceRedraw{})
 	})
 
 	bus.On(ui.ErrorCreateWindowEv{}, func(e any) {
@@ -150,31 +102,6 @@ func getCurNodeRef(tree *tview.TreeView) (*windowReference, error) {
 	return winRef, nil
 }
 
-func layoutToolTreeViewOnChange(bus *events.Bus, doc *dom.DOM) func(node *tview.TreeNode) {
-	// Set focus to our new tool
-	// if changeFocus {
-	// 	bus.Emit(ui.ChangeFocusEv{Target: page.Self})
-	// }
-
-	return func(node *tview.TreeNode) {
-		// // Here we want to change the current existing form on the action pages
-		// nodeRef := node.GetReference()
-		// if nodeRef == nil {
-		// 	// its probably root I guess, thats what I'll believe
-		// 	return
-		// }
-		//
-		// nodeWinRef := nodeRef.(*windowReference)
-		//
-		// bus.Emit(ui.LogEv{
-		// 	Log: fmt.Sprintf("changing to -> %d | %s\n", nodeWinRef.ID, nodeWinRef.Form.ID),
-		// })
-		//
-		// pages := doc.GetElemByID(LayoutToolActionPagesID)
-		// AddAndShowPage(pages.(*tview.Pages), nodeWinRef.Form, false)
-	}
-}
-
 func layoutToolTreeViewOnSelect(bus *events.Bus) func(node *tview.TreeNode) {
 	return func(node *tview.TreeNode) {
 		// Get the window reference which will have the ID for the form
@@ -194,35 +121,45 @@ func layoutToolTreeViewOnSelect(bus *events.Bus) func(node *tview.TreeNode) {
 type LayoutTreeView struct {
 	Tree         *tview.TreeView
 	InputCapture func(*tcell.EventKey) *tcell.EventKey
-	OnChange     func(node *tview.TreeNode)
-	OnSelect     func(node *tview.TreeNode)
+	// OnChange     func(node *tview.TreeNode)
+	// OnSelect     func(node *tview.TreeNode)
 }
 
 func NewLayoutTreeView() *LayoutTreeView {
 	view := &LayoutTreeView{
 		InputCapture: blankInputCapture,
-		OnChange:     blankTreeViewOnChange,
-		OnSelect:     blankTreeViewOnChange,
+		// OnChange:     blankTreeViewOnChange,
+		// OnSelect:     blankTreeViewOnChange,
 	}
 
 	view.Tree = tview.NewTreeView()
 
 	view.Tree.SetBorder(true).SetTitle("Layout Tree")
 	view.Tree.SetInputCapture(view.InputCapture)
-	view.Tree.SetChangedFunc(view.OnChange)
-	view.Tree.SetSelectedFunc(view.OnSelect)
-
-	// view.Tree.SetChangedFunc(layoutToolTreeViewOnChange(bus, doc))
-	// view.Tree.SetSelectedFunc(layoutToolTreeViewOnSelect(bus))
-
-	// Bind the events for the treeview
-	// BindWindowEvents(bus, doc, layoutTreeUINode.Self.(*tview.TreeView))
+	// Inject ChangedFunc
+	// Inject SelectedFunc
 
 	// Create a root element
 	rootElem := tview.NewTreeNode(".")
 	view.Tree.SetRoot(rootElem).SetCurrentNode(rootElem)
 
 	return view
+}
+
+func (lt *LayoutTreeView) AddWindow(win *models.UIWindow) error {
+	root := lt.Tree.GetRoot()
+	if root == nil {
+		return fmt.Errorf("unable to get root of treeview")
+	}
+
+	// Create this new node
+	newWindow := tview.NewTreeNode(
+		windowInfoPageTitle(win.WID, win.Data.Title.String()),
+	).SetReference(win)
+
+	root.AddChild(newWindow)
+
+	return nil
 }
 
 type LayoutToolActionView struct {
@@ -249,13 +186,16 @@ func NewLayoutToolActionView() *LayoutToolActionView {
 }
 
 type LayoutToolView struct {
-	Flex          *tview.Flex
-	LayoutTree    *LayoutTreeView
-	LayoutActions *LayoutToolActionView
+	Flex            *tview.Flex
+	FormQuickAccess map[int16]*WindowFormView
+	LayoutTree      *LayoutTreeView
+	LayoutActions   *LayoutToolActionView
 }
 
 func NewLayoutToolView() *LayoutToolView {
-	view := &LayoutToolView{}
+	view := &LayoutToolView{
+		FormQuickAccess: make(map[int16]*WindowFormView),
+	}
 
 	// Want a TreeView at the top
 	view.LayoutTree = NewLayoutTreeView()
@@ -273,5 +213,39 @@ func NewLayoutToolView() *LayoutToolView {
 	return view
 }
 
-func (ltv *LayoutToolView) AddWindow() {
+func (ltv *LayoutToolView) WindowCreatedSuccessfuly(win *models.UIWindow) error {
+	updateWindowForm := NewWindowFormView(&win.Data)
+
+	// Update the pages ID
+	ltv.LayoutActions.Pages.RemovePage(LayoutToolNewWindowID)
+	AddAndShowPage(
+		ltv.LayoutActions.Pages,
+		windowInfoPageID(win.WID),
+		updateWindowForm.Form.Form,
+	)
+
+	// Then set the CreateWindowView pointer to nil
+	ltv.LayoutActions.CreateWindowView = nil
+
+	// Add this form thing to the quick access map
+	ltv.FormQuickAccess[win.WID] = updateWindowForm
+
+	// Add it to the tree view
+	return ltv.LayoutTree.AddWindow(win)
+}
+
+func (ltv *LayoutToolView) ShowCreateWindowForm() {
+	AddAndShowPage(
+		ltv.LayoutActions.Pages,
+		LayoutToolNewWindowID,
+		ltv.LayoutActions.CreateWindowView.Form.Form,
+	)
+}
+
+func (ltv *LayoutToolView) ShowWindowFormByID(idx int16) {
+	AddAndShowPage(
+		ltv.LayoutActions.Pages,
+		windowInfoPageID(idx),
+		nil,
+	)
 }

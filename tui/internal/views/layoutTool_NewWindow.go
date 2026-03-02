@@ -45,7 +45,7 @@ func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
 	for k := range 20 {
 		view.TextSize.AddOption(fmt.Sprintf("%d", k+1), blankDropdownOptionCallback)
 	}
-	view.TitleSize.SetCurrentOption(0)
+	view.TextSize.SetCurrentOption(0)
 
 	view.Form = tview.NewForm().
 		AddFormItem(view.X).
@@ -97,33 +97,6 @@ func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
 
 	view.UpdateBtn = tview.NewButton("Update")
 	// Need to inject the button functionality later
-	// AddButton("Update", func() {
-	// 	bus.Emit(ui.LogEv{Log: "update event was created\n"})
-	//
-	// 	_, titleSizeTxt := titleSize.GetCurrentOption()
-	// 	_, textSizeTxt := textSize.GetCurrentOption()
-	// 	// Validate the inputs
-	// 	window, err := validateFormInputs(
-	// 		x0.GetText(),
-	// 		y0.GetText(),
-	// 		width.GetText(),
-	// 		height.GetText(),
-	// 		title.GetText(),
-	// 		previewValue.GetText(),
-	// 		titleSizeTxt,
-	// 		textSizeTxt,
-	// 		showID.IsChecked(),
-	// 	)
-	//
-	// 	if err != nil {
-	// 		bus.Emit(ui.LogEv{Log: fmt.Sprintf("failed to parse form: %s\n", err.Error())})
-	// 		return
-	// 	}
-	//
-	// 	bus.Emit(ui.LogEv{Log: fmt.Sprintf("showID: %d\n", window.ShowID)})
-	// 	bus.Emit(ui.LogEv{Log: "sending update window ev\n"})
-	// 	bus.Emit(ui.UpdateWindowEv{ID: idx, Window: window})
-	// })
 
 	// In case the window is moved we need to update this form
 	// bus.On(ui.WindowMovedEv{}, func(e any) {
@@ -157,10 +130,15 @@ func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
 	view.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
 	view.Form.TitleSize.SetCurrentOption(int(win.Decor.TitleSize))
 	view.Form.TextSize.SetCurrentOption(int(win.Decor.TextSize))
+	view.Form.Form.AddButton("Update", func() {})
 
 	return view
 }
 
-func WindowInfoPageID(idx int16) string {
+func windowInfoPageID(idx int16) string {
 	return fmt.Sprintf("layout-tool-win-info-%d", idx)
+}
+
+func windowInfoPageTitle(idx int16, title string) string {
+	return fmt.Sprintf("%s [%02d]", title, idx)
 }

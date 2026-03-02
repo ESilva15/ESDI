@@ -8,6 +8,10 @@ const (
 	ShowIDTrue  uint8 = 1
 )
 
+const (
+	WinTypeString uint8 = 0
+)
+
 type UIDimensions struct {
 	X0     uint16 `yaml:"X0"`
 	Y0     uint16 `yaml:"Y0"`

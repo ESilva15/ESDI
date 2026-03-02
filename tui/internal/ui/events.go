@@ -47,11 +47,11 @@ type RegisterLoadedLayout struct {
 
 type UpdateWindowEv struct {
 	ID     int16
-	Window models.Window
+	Window models.WindowForm
 }
 
 type CreateWindowEv struct {
-	Window models.Window
+	Window models.WindowForm
 }
 
 type DestroyWindowEv struct {
@@ -59,7 +59,7 @@ type DestroyWindowEv struct {
 }
 
 type LayoutRegisterWindowEv struct {
-	Window models.Window
+	Window models.WindowForm
 }
 
 type MoveWindowEv struct {

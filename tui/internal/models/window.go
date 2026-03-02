@@ -1,7 +1,9 @@
 // Package models
 package models
 
-type Window struct {
+import "esdi/cdashdisplay"
+
+type WindowForm struct {
 	X            uint16
 	Y            uint16
 	Width        uint16
@@ -12,4 +14,9 @@ type Window struct {
 	Type         uint8
 	ShowID       uint8
 	PreviewValue string
+}
+
+type UIWindow struct {
+	WID  int16
+	Data cdashdisplay.UIWindow
 }

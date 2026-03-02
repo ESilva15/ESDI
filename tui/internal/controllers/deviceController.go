@@ -21,7 +21,7 @@ type DeviceController struct {
 func NewDeviceController(base *Controller, devService *serv.CDashService) *DeviceController {
 	mc := &DeviceController{
 		Controller: base,
-		LayoutCtrl: NewLayoutController(base),
+		LayoutCtrl: NewLayoutController(base, devService),
 		DevService: devService,
 		StreamStrl: NewStreamingCtrl(),
 	}
@@ -120,11 +120,6 @@ func NewDeviceController(base *Controller, devService *serv.CDashService) *Devic
 
 	// mc.Bus.On(ui.SaveLayoutEv{}, func(e any) {
 	// 	mc.CDash.SaveLayout()
-	// })
-
-	// mc.Bus.On(ui.LoadLayoutEv{}, func(e any) {
-	// 	mc.CDash.LoadLayout()
-	// 	mc.Bus.Emit(ui.RegisterLoadedLayout{*mc.CDash.State.Layout})
 	// })
 
 	// mc.Bus.On(ui.ForceRedraw{}, func(e any) {
