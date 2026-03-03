@@ -9,9 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"esdi/tui/internal/events"
-	"esdi/tui/internal/ui"
-
 	"github.com/ESilva15/goirsdk"
 )
 
@@ -42,10 +39,10 @@ func NewStreamingCtrl() *StreamingCtrl {
 	}
 }
 
-func (sc *StreamingCtrl) Stop(bus *events.Bus) {
-}
+// func (sc *StreamingCtrl) Stop(bus *events.Bus) {
+// }
 
-func (sc *StreamingCtrl) Start(bus *events.Bus) {
+func (sc *StreamingCtrl) Start() {
 	// Open the telemetry file
 	file, err := os.Open("/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/supercars_indianapolis.ibt")
 	if err != nil {
@@ -73,10 +70,10 @@ func (sc *StreamingCtrl) Start(bus *events.Bus) {
 
 			delta := currentTime.Sub(startTime)
 
-			str := sc.Stringified() + fmt.Sprintf("%v - %7d\n%5f - %5f",
+			_ = sc.Stringified() + fmt.Sprintf("%v - %7d\n%5f - %5f",
 				t.UTC(), counter, delta.Seconds(), delta.Seconds()/float64(counter))
 
-			bus.Emit(ui.StreamDataEv{Str: str})
+			// bus.Emit(ui.StreamDataEv{Str: str})
 			counter++
 		}
 	}()

@@ -15,22 +15,6 @@ const (
 	LayoutToolNewWindowID   = "new-window-action-form"
 )
 
-// type windowReference struct {
-// 	ID   int16
-// 	Form *dom.UINode
-// }
-
-// func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
-// 	ref := node.GetReference()
-// 	wRef, ok := ref.(*windowReference)
-//
-// 	if !ok {
-// 		return nil
-// 	}
-//
-// 	return wRef
-// }
-
 func FindNodeByID(node *tview.TreeNode, id int16) *tview.TreeNode {
 	if node == nil {
 		return nil
@@ -54,15 +38,11 @@ func FindNodeByID(node *tview.TreeNode, id int16) *tview.TreeNode {
 type LayoutTreeView struct {
 	Tree         *tview.TreeView
 	InputCapture func(*tcell.EventKey) *tcell.EventKey
-	// OnChange     func(node *tview.TreeNode)
-	// OnSelect     func(node *tview.TreeNode)
 }
 
 func NewLayoutTreeView() *LayoutTreeView {
 	view := &LayoutTreeView{
 		InputCapture: blankInputCapture,
-		// OnChange:     blankTreeViewOnChange,
-		// OnSelect:     blankTreeViewOnChange,
 	}
 
 	view.Tree = tview.NewTreeView()

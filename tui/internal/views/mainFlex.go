@@ -4,8 +4,6 @@ package views
 import (
 	"fmt"
 
-	"esdi/tui/internal/dom"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -76,48 +74,48 @@ func (dl *DeviceAPIListView) AddItem(name, description string, onSelect func()) 
 	dl.List.AddItem(name, description, 0, onSelect)
 }
 
-func NewDeviceAPIView(doc *dom.DOM) (*DeviceAPIView, error) {
+func NewDeviceAPIView() (*DeviceAPIView, error) {
 	// To build the main view we must set the DOM root
 	mainFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
-	mainFlexUINode, err := doc.NewUINode(MainFlexID, nil, mainFlex)
-	if err != nil {
-		return nil, err
-	}
-
-	doc.SetRoot(mainFlexUINode)
+	// mainFlexUINode, err := doc.NewUINode(MainFlexID, nil, mainFlex)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// doc.SetRoot(mainFlexUINode)
 
 	deviceAPIList := NewDeviceAPIListView()
-	apiListWindowUINode, err := doc.NewUINode(DeviceAPIListID, doc.GetRootElem(),
-		deviceAPIList.List)
-	if err != nil {
-		return nil, err
-	}
+	// apiListWindowUINode, err := doc.NewUINode(DeviceAPIListID, doc.GetRootElem(),
+	// 	deviceAPIList.List)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	apiToolPages := NewDeviceAPIToolView()
-	apiToolPagesNode, err := doc.NewUINode(APIToolPagesID, doc.GetElemByID(RightFlexID),
-		apiToolPages.Pages)
-	if err != nil {
-		return nil, err
-	}
+	// apiToolPagesNode, err := doc.NewUINode(APIToolPagesID, doc.GetElemByID(RightFlexID),
+	// 	apiToolPages.Pages)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	mainFlex.
-		AddItem(apiListWindowUINode.Self, 0, 1, false).
-		AddItem(apiToolPagesNode.Self, 0, 4, false)
+		AddItem(deviceAPIList.List, 0, 1, false).
+		AddItem(apiToolPages.Pages, 0, 4, false)
 
 	// Output window
 
 	outputWin := NewOutputWinView()
-	_, err = doc.NewUINode("output-window", nil, outputWin.TextArea)
-	if err != nil {
-		return nil, err
-	}
+	// _, err = doc.NewUINode("output-window", nil, outputWin.TextArea)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// Flex with debug window
 	// --------------------------------------------------------------------------
 	flexWithOutputWindow := tview.NewFlex().SetDirection(tview.FlexRow)
 	flexWithOutputWindow.
 		AddItem(mainFlex, 0, 5, true).
-		AddItem(doc.GetElemByID(OutputPaneID), 0, 2, false)
+		AddItem(outputWin.TextArea, 0, 2, false)
 	// --------------------------------------------------------------------------
 
 	return &DeviceAPIView{

@@ -25,45 +25,6 @@ func NewDeviceController(base *Controller, devService *serv.CDashService) *Devic
 		StreamStrl: NewStreamingCtrl(),
 	}
 
-	// mc.Bus.On(ui.DestroyWindowEv{}, func(e any) {
-	// 	mc.Logger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))
-	// 	mc.CDash.DestroyWindow(e.(ui.DestroyWindowEv).ID)
-	//
-	// 	mc.Bus.Emit(ui.WindowDestroyedEv{ID: e.(ui.DestroyWindowEv).ID})
-	// })
-
-	// mc.Bus.On(ui.MoveWindowEv{}, func(e any) {
-	// 	mvData := e.(ui.MoveWindowEv)
-	// 	mc.Logger.Debug(fmt.Sprintf("request to move window '%d'", mvData.WindowID))
-	//
-	// 	newDims, err := mc.CDash.MoveWindow(mvData.WindowID, mvData.Delta)
-	// 	if err != nil && err != io.EOF {
-	// 		mc.Logger.Debug(fmt.Sprintf("failed to move window '%d' %s", mvData.WindowID, err.Error()))
-	// 		return
-	// 	}
-	//
-	// 	mc.Bus.Emit(ui.WindowMovedEv{ID: mvData.WindowID, Dims: newDims})
-	// })
-
-	// mc.Bus.On(ui.ResizeWindowEv{}, func(e any) {
-	// 	mvData := e.(ui.ResizeWindowEv)
-	// 	mc.Logger.Debug(fmt.Sprintf("requested to resize window '%d'", mvData.WindowID))
-	// 	err := mc.CDash.ResizeWindow(mvData.WindowID, mvData.Delta)
-	// 	if err != nil && err != io.EOF {
-	// 		mc.Logger.Debug(fmt.Sprintf("failed to resize window '%d' %s", mvData.WindowID, err.Error()))
-	// 		return
-	// 	}
-	// })
-
-	// mc.Bus.On(ui.SaveLayoutEv{}, func(e any) {
-	// 	mc.CDash.SaveLayout()
-	// })
-
-	// mc.Bus.On(ui.ForceRedraw{}, func(e any) {
-	// 	// mc.App.QueueUpdateDraw(func() {})
-	// 	mc.App.Draw()
-	// })
-
 	// mc.Bus.On(ui.StartStreamingReqEv{}, func(e any) {
 	// 	mc.StreamStrl.Start(mc.Bus)
 	// })
@@ -147,7 +108,7 @@ func (mc *DeviceController) mainUI() error {
 	var err error
 
 	// Set the main view
-	mc.DeviceAPIView, err = views.NewDeviceAPIView(mc.Dom)
+	mc.DeviceAPIView, err = views.NewDeviceAPIView()
 	if err != nil {
 		return err
 	}

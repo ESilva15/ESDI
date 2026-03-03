@@ -3,8 +3,6 @@ package tui
 
 import (
 	"esdi/tui/internal/controllers"
-	"esdi/tui/internal/dom"
-	"esdi/tui/internal/events"
 	"esdi/tui/internal/services"
 	"log/slog"
 
@@ -20,9 +18,7 @@ type ControlPanel struct {
 func NewControlPanel(logger *slog.Logger) *ControlPanel {
 	baseController := &controllers.Controller{
 		Logger: logger,
-		Bus:    events.NewBus(),
 		App:    tview.NewApplication(),
-		Dom:    dom.NewDOM(),
 	}
 
 	deviceService := services.NewCDashService(logger)

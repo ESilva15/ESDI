@@ -2,8 +2,6 @@
 package controllers
 
 import (
-	"esdi/tui/internal/dom"
-	"esdi/tui/internal/events"
 	"fmt"
 	"log/slog"
 
@@ -12,9 +10,7 @@ import (
 
 type Controller struct {
 	Logger *slog.Logger
-	Bus    *events.Bus
 	App    *tview.Application
-	Dom    *dom.DOM
 }
 
 func ListFormButtonLabels(form *tview.Form) []string {
