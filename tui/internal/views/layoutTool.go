@@ -154,7 +154,7 @@ func (lt *LayoutTreeView) AddWindow(win *models.UIWindow) error {
 
 	// Create this new node
 	newWindow := tview.NewTreeNode(
-		windowInfoPageTitle(win.WID, win.Data.Title.String()),
+		windowInfoPageTitle(win.IDX, win.Window.Title.String()),
 	).SetReference(win)
 
 	root.AddChild(newWindow)
@@ -214,13 +214,13 @@ func NewLayoutToolView() *LayoutToolView {
 }
 
 func (ltv *LayoutToolView) WindowCreatedSuccessfuly(win *models.UIWindow) error {
-	updateWindowForm := NewWindowFormView(&win.Data)
+	updateWindowForm := NewWindowFormView(win)
 
 	// Update the pages ID
 	ltv.LayoutActions.Pages.RemovePage(LayoutToolNewWindowID)
 	AddAndShowPage(
 		ltv.LayoutActions.Pages,
-		windowInfoPageID(win.WID),
+		windowInfoPageID(win.IDX),
 		updateWindowForm.Form.Form,
 	)
 
@@ -228,7 +228,7 @@ func (ltv *LayoutToolView) WindowCreatedSuccessfuly(win *models.UIWindow) error 
 	ltv.LayoutActions.CreateWindowView = nil
 
 	// Add this form thing to the quick access map
-	ltv.FormQuickAccess[win.WID] = updateWindowForm
+	ltv.FormQuickAccess[win.IDX] = updateWindowForm
 
 	// Add it to the tree view
 	return ltv.LayoutTree.AddWindow(win)
@@ -261,6 +261,10 @@ func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
 
 	// We have to delete it from the map
 	// This isn't very safe now is it?
-	delete(ltv.FormQuickAccess, node.GetReference().(*models.UIWindow).WID)
+	delete(ltv.FormQuickAccess, node.GetReference().(*models.UIWindow).IDX)
 	// Did we delete everything ???
+}
+
+func (ltv *LayoutToolView) UpdateFormView(win *models.UIWindow) {
+	ltv.FormQuickAccess[win.IDX].SetValues(win)
 }

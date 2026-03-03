@@ -17,6 +17,6 @@ type WindowForm struct {
 }
 
 type UIWindow struct {
-	WID  int16
-	Data cdashdisplay.UIWindow
+	IDX    int16
+	Window cdashdisplay.UIWindow
 }

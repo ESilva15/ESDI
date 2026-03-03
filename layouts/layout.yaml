@@ -1,8 +1,8 @@
 Windows:
     1:
         Dims:
-            X0: 234
-            Y0: 124
+            X0: 252
+            Y0: 122
             Width: 117
             Height: 72
         Decor:
@@ -21,10 +21,10 @@ Windows:
         Title: SPEEDO
     2:
         Dims:
-            X0: 401
+            X0: 399
             Y0: 120
-            Width: 176
-            Height: 76
+            Width: 155
+            Height: 70
         Decor:
             BGColour: 4161
             FGColour: 65535

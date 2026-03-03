@@ -3,7 +3,7 @@ package views
 import (
 	"fmt"
 
-	"esdi/cdashdisplay"
+	"esdi/tui/internal/models"
 
 	"github.com/rivo/tview"
 )
@@ -90,7 +90,7 @@ type WindowFormView struct {
 	UpdateBtn *tview.Button
 }
 
-func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
+func NewWindowFormView(win *models.UIWindow) *WindowFormView {
 	view := &WindowFormView{
 		Form: NewCDashDisplayWindowFormView(),
 	}
@@ -98,41 +98,25 @@ func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
 	view.UpdateBtn = tview.NewButton("Update")
 	// Need to inject the button functionality later
 
-	// In case the window is moved we need to update this form
-	// bus.On(ui.WindowMovedEv{}, func(e any) {
-	// 	data := e.(ui.WindowMovedEv)
-	// 	// Only update the fields if the event is for this thing
-	// 	if data.ID != idx {
-	// 		return
-	// 	}
-	//
-	// 	// Get the current window-info-page
-	// 	elem := doc.GetElemByID(windowInfoPageID(data.ID))
-	// 	if elem == nil {
-	// 		bus.Emit(ui.LogEv{Log: "could't get hold of info page"})
-	// 		return
-	// 	}
-	//
-	// 	x0.SetText(fmt.Sprintf("%d", data.Dims.X0))
-	// 	x0.SetText(fmt.Sprintf("%d", data.Dims.Y0))
-	// 	width.SetText(fmt.Sprintf("%d", data.Dims.Width))
-	// 	height.SetText(fmt.Sprintf("%d", data.Dims.Height))
-	// })
-
 	// Set the fields data
-	view.Form.X.SetText(fmt.Sprintf("%d", win.Dims.X0))
-	view.Form.Y.SetText(fmt.Sprintf("%d", win.Dims.Y0))
-	view.Form.Width.SetText(fmt.Sprintf("%d", win.Dims.Width))
-	view.Form.Height.SetText(fmt.Sprintf("%d", win.Dims.Height))
-	view.Form.Title.SetText(win.Title.String())
-	view.Form.PreviewValue.SetText(win.Opts.PreviewValue.String())
-	view.Form.ShowID.SetChecked(win.Opts.ShowID == 1)
-	view.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
-	view.Form.TitleSize.SetCurrentOption(int(win.Decor.TitleSize))
-	view.Form.TextSize.SetCurrentOption(int(win.Decor.TextSize))
+	view.SetValues(win)
+
 	view.Form.Form.AddButton("Update", func() {})
 
 	return view
+}
+
+func (fv *WindowFormView) SetValues(win *models.UIWindow) {
+	fv.Form.X.SetText(fmt.Sprintf("%d", win.Window.Dims.X0))
+	fv.Form.Y.SetText(fmt.Sprintf("%d", win.Window.Dims.Y0))
+	fv.Form.Width.SetText(fmt.Sprintf("%d", win.Window.Dims.Width))
+	fv.Form.Height.SetText(fmt.Sprintf("%d", win.Window.Dims.Height))
+	fv.Form.Title.SetText(win.Window.Title.String())
+	fv.Form.PreviewValue.SetText(win.Window.Opts.PreviewValue.String())
+	fv.Form.ShowID.SetChecked(win.Window.Opts.ShowID == 1)
+	fv.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
+	fv.Form.TitleSize.SetCurrentOption(int(win.Window.Decor.TitleSize))
+	fv.Form.TextSize.SetCurrentOption(int(win.Window.Decor.TextSize))
 }
 
 func windowInfoPageID(idx int16) string {
