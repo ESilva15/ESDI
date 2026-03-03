@@ -9,18 +9,21 @@ import (
 )
 
 type CDashService struct {
-	Logger   *slog.Logger
-	CDash    *cdashdisplay.CDashDisplay
-	DevClerk *peripheral.PeripheralDeviceClerk
-	Messages chan string
+	Logger           *slog.Logger
+	CDash            *cdashdisplay.CDashDisplay
+	iRacingTelemetry *IRacingService
+	DevClerk         *peripheral.PeripheralDeviceClerk
+	Messages         chan string
 }
 
 func NewCDashService(logger *slog.Logger) *CDashService {
+	sharedChannel := make(chan string, 10)
 	return &CDashService{
-		Logger:   logger,
-		CDash:    nil,
-		DevClerk: peripheral.NewPeripheralDeviceClerk(),
-		Messages: make(chan string, 10),
+		Logger:           logger,
+		CDash:            nil,
+		DevClerk:         peripheral.NewPeripheralDeviceClerk(),
+		Messages:         sharedChannel,
+		iRacingTelemetry: NewIRacingService(sharedChannel),
 	}
 }
 
@@ -89,4 +92,16 @@ func (cds *CDashService) MoveWindow(win *models.UIWindow, vec *helper.Vector) er
 	win.Window = *cds.CDash.State.Layout.Windows[win.IDX]
 
 	return nil
+}
+
+func (cds *CDashService) StartStream() {
+	cds.iRacingTelemetry.StartStream()
+}
+
+func (cds *CDashService) GetStream() <-chan string {
+	return cds.iRacingTelemetry.GetStream()
+}
+
+func (cds *CDashService) StopStream() {
+	cds.iRacingTelemetry.StopStream()
 }
