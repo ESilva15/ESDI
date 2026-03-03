@@ -2,6 +2,8 @@ package controllers
 
 import (
 	esdi "esdi/oldEsdi"
+	"esdi/tui/internal/services"
+	"esdi/tui/internal/views"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ESilva15/goirsdk"
+	"github.com/gdamore/tcell/v2"
 )
 
 // Car data lengths
@@ -21,6 +24,8 @@ const (
 )
 
 type StreamingCtrl struct {
+	*Controller
+	Service         *services.CDashService
 	LastMessageTime time.Time
 	Data            *esdi.SimulationData
 	DataView        *esdi.DataPacket
@@ -28,19 +33,57 @@ type StreamingCtrl struct {
 	LastTime        time.Time
 	Mut             sync.Mutex
 	Irsdk           *goirsdk.IBT
+	StreamView      *views.StreamView
+	Messages        chan string
+	Internal        chan string
+	Run             bool
+	OnExit          func()
+	isRunning       bool
 }
 
-func NewStreamingCtrl() *StreamingCtrl {
-	return &StreamingCtrl{
+func NewStreamingCtrl(base *Controller, ser *services.CDashService) *StreamingCtrl {
+	ctrl := &StreamingCtrl{
+		Controller:  base,
+		Service:     ser,
 		Data:        &esdi.SimulationData{},
 		DataView:    &esdi.DataPacket{},
 		InitialTime: time.Now(),
 		LastTime:    time.Now(),
+		Messages:    make(chan string, 10),
+		Internal:    make(chan string, 10),
+		Run:         false,
+		StreamView:  views.NewStreamView(),
+		isRunning:   false,
 	}
+
+	ctrl.registerHooks()
+
+	return ctrl
 }
 
-// func (sc *StreamingCtrl) Stop(bus *events.Bus) {
-// }
+func (sc *StreamingCtrl) registerHooks() {
+	sc.StreamView.TextView.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		switch ev.Key() {
+		case tcell.KeyEsc:
+			sc.OnExit()
+		}
+
+		switch ev.Rune() {
+		case 's':
+			// Start
+			sc.Start()
+		case 'p':
+			// Pause
+			sc.Stop()
+		}
+
+		return ev
+	})
+}
+
+func (sc *StreamingCtrl) Stop() {
+	sc.Run = false
+}
 
 func (sc *StreamingCtrl) Start() {
 	// Open the telemetry file
@@ -58,6 +101,8 @@ func (sc *StreamingCtrl) Start() {
 
 	go sc.ReadData()
 
+	sc.Run = true
+
 	// global irsdk is now here
 	go func() {
 		ticker := time.NewTicker(time.Second / 60)
@@ -65,15 +110,21 @@ func (sc *StreamingCtrl) Start() {
 
 		counter := 0
 		for t := range ticker.C {
+			if !sc.Run {
+				break
+			}
 			// whatever
 			currentTime := time.Now()
 
 			delta := currentTime.Sub(startTime)
 
-			_ = sc.Stringified() + fmt.Sprintf("%v - %7d\n%5f - %5f",
+			str := sc.Stringified() + fmt.Sprintf("%v - %7d\n%5f - %5f",
 				t.UTC(), counter, delta.Seconds(), delta.Seconds()/float64(counter))
 
-			// bus.Emit(ui.StreamDataEv{Str: str})
+			sc.App.QueueUpdateDraw(func() {
+				sc.StreamView.Update(str)
+			})
+
 			counter++
 		}
 	}()

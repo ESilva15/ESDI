@@ -13,7 +13,7 @@ type DeviceController struct {
 	*Controller
 	DeviceAPIView *views.DeviceAPIView
 	LayoutCtrl    *LayoutController
-	StreamStrl    *StreamingCtrl
+	StreamCtrl    *StreamingCtrl
 	DevService    *serv.CDashService
 }
 
@@ -22,7 +22,7 @@ func NewDeviceController(base *Controller, devService *serv.CDashService) *Devic
 		Controller: base,
 		LayoutCtrl: NewLayoutController(base, devService),
 		DevService: devService,
-		StreamStrl: NewStreamingCtrl(),
+		StreamCtrl: NewStreamingCtrl(base, devService),
 	}
 
 	// mc.Bus.On(ui.StartStreamingReqEv{}, func(e any) {
@@ -38,8 +38,7 @@ func NewDeviceController(base *Controller, devService *serv.CDashService) *Devic
 
 func (mc *DeviceController) PrintToOutputWindow(msg string) {
 	mc.App.QueueUpdateDraw(func() {
-		fmt.Fprintf(mc.DeviceAPIView.OutputWindow.TextArea,
-			"%s", msg)
+		fmt.Fprintf(mc.DeviceAPIView.OutputWindow.TextArea, "%s", msg)
 	})
 }
 
@@ -67,8 +66,8 @@ func (mc *DeviceController) setDeviceAPIViewEvents() {
 }
 
 func (mc *DeviceController) AddDeviceAPIListItems() {
-	mc.DeviceAPIView.DevAPIList.AddItem("layout", "build a layout for CDashDisplay",
-		func() {
+	mc.DeviceAPIView.DevAPIList.
+		AddItem("layout", "build a layout for CDashDisplay", func() {
 			// Get the api pages
 			views.AddAndShowPage(
 				mc.DeviceAPIView.DevAPIToolView.Pages,
@@ -76,6 +75,14 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 				mc.LayoutCtrl.LayoutToolView.Flex,
 			)
 			mc.App.SetFocus(mc.LayoutCtrl.LayoutToolView.LayoutTree.Tree)
+		})
+	mc.DeviceAPIView.DevAPIList.
+		AddItem("stream", "stream data to the display", func() {
+			views.AddAndShowPage(mc.DeviceAPIView.DevAPIToolView.Pages,
+				"streaming-tool",
+				mc.StreamCtrl.StreamView.TextView,
+			)
+			mc.App.SetFocus(mc.StreamCtrl.StreamView.TextView)
 		})
 }
 
@@ -85,9 +92,12 @@ func (mc *DeviceController) injectViewCallbacks() {
 
 func (mc *DeviceController) injectControllerCallbacks() {
 	// Tell the layout controller what to do on exit
-	mc.LayoutCtrl.OnExit = func() {
+	giveFocusToAPIList := func() {
 		mc.App.SetFocus(mc.DeviceAPIView.DevAPIList.List)
 	}
+
+	mc.LayoutCtrl.OnExit = giveFocusToAPIList
+	mc.StreamCtrl.OnExit = giveFocusToAPIList
 }
 
 func (mc *DeviceController) injectChannels() {
@@ -99,6 +109,12 @@ func (mc *DeviceController) injectChannels() {
 
 	go func() {
 		for msg := range mc.LayoutCtrl.Messages {
+			mc.PrintToOutputWindow(msg)
+		}
+	}()
+
+	go func() {
+		for msg := range mc.StreamCtrl.Messages {
 			mc.PrintToOutputWindow(msg)
 		}
 	}()
