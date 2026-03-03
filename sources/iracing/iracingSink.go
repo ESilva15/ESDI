@@ -41,5 +41,5 @@ func (i *IRacing) UpdateData() error {
 }
 
 func (i *IRacing) GetSessionInfo() (interface{}, error) {
-  return i.SDK.SessionInfo, nil
+	return i.SDK.SessionInfo, nil
 }

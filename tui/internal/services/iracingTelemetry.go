@@ -34,16 +34,20 @@ const (
 )
 
 type IRacingService struct {
-	Message         chan string
+	Message chan string
+	// Timers
 	LastMessageTime time.Time
-	Data            *esdi.SimulationData
-	DataView        *esdi.DataPacket
 	InitialTime     time.Time
 	LastTime        time.Time
-	Mut             sync.Mutex
 	ticker          *time.Ticker
-	Irsdk           *goirsdk.IBT
-	//
+	// Data vessels
+	data     *esdi.SimulationData
+	dataView *esdi.DataPacket
+	// Data access control
+	Mut sync.Mutex
+	// Source
+	Irsdk *goirsdk.IBT
+	// Stream control
 	isRunning    bool
 	Stream       chan string
 	StreamCancel context.CancelFunc
@@ -66,8 +70,8 @@ func NewIRacingService(msg chan string) *IRacingService {
 		ticker:    time.NewTicker(time.Second / 60),
 		Irsdk:     irsdk,
 		Stream:    make(chan string, 10),
-		Data:      &esdi.SimulationData{},
-		DataView:  &esdi.DataPacket{},
+		data:      &esdi.SimulationData{},
+		dataView:  &esdi.DataPacket{},
 		isRunning: false,
 	}
 }
@@ -127,9 +131,9 @@ func (irs *IRacingService) ReadData(ctx context.Context) {
 	irs.getVehicleData()
 
 	// Test the actual dataPacket we are sending over the wire
-	copyBytes(irs.DataView.Speed[:], SpeedLen, fmt.Sprintf("%3d", irs.Data.Speed))
-	copyBytes(irs.DataView.Gear[:], GearLen, fmt.Sprintf("%2d", irs.Data.Gear))
-	copyBytes(irs.DataView.RPM[:], RpmLen, fmt.Sprintf("%3d", irs.Data.RPM))
+	copyBytes(irs.dataView.Speed[:], SpeedLen, fmt.Sprintf("%3d", irs.data.Speed))
+	copyBytes(irs.dataView.Gear[:], GearLen, fmt.Sprintf("%2d", irs.data.Gear))
+	copyBytes(irs.dataView.RPM[:], RpmLen, fmt.Sprintf("%3d", irs.data.RPM))
 
 	irs.LastMessageTime = time.Now()
 }
@@ -139,9 +143,9 @@ func (irs *IRacingService) getVehicleData() {
 	curRPM := irs.Irsdk.Vars.Vars["RPM"].Value
 	curSpeed := irs.Irsdk.Vars.Vars["Speed"].Value
 
-	irs.Data.Gear = int32(curGear.(int))
-	irs.Data.RPM = int32(curRPM.(float32))
-	irs.Data.Speed = int32(msToKph(curSpeed.(float32)))
+	irs.data.Gear = int32(curGear.(int))
+	irs.data.RPM = int32(curRPM.(float32))
+	irs.data.Speed = int32(msToKph(curSpeed.(float32)))
 }
 
 func copyBytes(dest []byte, destSize int, src string) {
@@ -179,7 +183,7 @@ func (irs *IRacingService) Stringified() string {
 
 	// buffer.WriteString("Car data:\n")
 	buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
-		irs.Data.Gear, irs.Data.RPM, irs.Data.Speed))
+		irs.data.Gear, irs.data.RPM, irs.data.Speed))
 
 	// buffer.WriteString("Fuel data:\n")
 	// buffer.WriteString(fmt.Sprintf("Fuel Est: %s\n\n", e.dataPacket.FuelEst))
