@@ -61,8 +61,6 @@ func (lc *LayoutController) registerHooks() {
 				// 	break
 				// }
 				// windowManipulationTool(bus, doc, wRef.ID)
-			case 'e':
-				// Go into edit mode
 			case 's':
 				// Save the current layout
 				lc.Messages <- "calling save layout\n"
