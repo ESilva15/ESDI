@@ -3,7 +3,6 @@ package controllers
 
 import (
 	serv "esdi/tui/internal/services"
-	"esdi/tui/internal/ui"
 	"esdi/tui/internal/views"
 	"fmt"
 
@@ -25,68 +24,6 @@ func NewDeviceController(base *Controller, devService *serv.CDashService) *Devic
 		DevService: devService,
 		StreamStrl: NewStreamingCtrl(),
 	}
-
-	mc.Bus.On(ui.RedrawEv{}, func(e any) {
-		go func() {
-			rev := e.(ui.RedrawEv)
-			if rev.Fn != nil {
-				mc.App.QueueUpdateDraw(e.(ui.RedrawEv).Fn)
-			}
-		}()
-	})
-
-	mc.Bus.On(ui.TUILoaded{}, func(e any) {
-		mc.Logger.Debug("Yo, we do get here!\n")
-		mc.Main()
-		mc.PrintToOutputWindow("TUI LOADED EVENT")
-	})
-
-	mc.Bus.On(ui.ChangeFocusEv{}, func(e any) {
-		mc.App.SetFocus(e.(ui.ChangeFocusEv).Target)
-	})
-
-	mc.Bus.On(ui.LogEv{}, func(e any) {
-		go func() {
-			mc.App.QueueUpdateDraw(func() {
-				mc.Bus.Emit(ui.PrintLogEv{Log: e.(ui.LogEv).Log})
-			})
-		}()
-	})
-
-	// mc.Bus.On(ui.CreateWindowEv{}, func(e any) {
-	// })
-
-	// mc.Bus.On(ui.UpdateWindowEv{}, func(e any) {
-	// 	winModel := e.(ui.UpdateWindowEv)
-	//
-	// 	// Build a new UIWindow here I guess
-	// 	curWindow, ok := mc.CDash.State.Layout.Windows[winModel.ID]
-	// 	if !ok {
-	// 		mc.Bus.Emit(ui.PrintLogEv{Log: "could not acquire window from display state"})
-	// 		return
-	// 	}
-	//
-	// 	// Need to use a better interface for this me things
-	// 	// Update the dimensions
-	// 	curWindow.Dims.X0 = winModel.Window.X
-	// 	curWindow.Dims.Y0 = winModel.Window.Y
-	// 	curWindow.Dims.Width = winModel.Window.Width
-	// 	curWindow.Dims.Height = winModel.Window.Height
-	// 	// Update the opts
-	// 	curWindow.Opts.ShowID = winModel.Window.ShowID
-	// 	curWindow.Opts.WinType = winModel.Window.Type
-	// 	curWindow.Opts.PreviewValue = helper.B32(winModel.Window.PreviewValue)
-	// 	// Update the decorations
-	// 	curWindow.Decor.TitleSize = winModel.Window.TitleSize
-	// 	curWindow.Decor.TextSize = winModel.Window.TextSize
-	// 	// Update the title
-	// 	curWindow.Title = helper.B32(winModel.Window.Title)
-	//
-	// 	err := mc.CDash.UpdateWindow(winModel.ID, curWindow)
-	// 	if err != nil {
-	// 		mc.Bus.Emit(ui.PrintLogEv{Log: "failed to update window"})
-	// 	}
-	// })
 
 	// mc.Bus.On(ui.DestroyWindowEv{}, func(e any) {
 	// 	mc.Logger.Info(fmt.Sprintf("Called in to destroy win: %d", e.(ui.DestroyWindowEv).ID))

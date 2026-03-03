@@ -194,6 +194,8 @@ func (lc *LayoutController) createWindow() {
 		// altogether given we won't be able to manipulate it any further
 		lc.Messages <- "failed to append window to views " + err.Error()
 	}
+
+	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
 }
 
 func (lc *LayoutController) updateFormView(win *models.UIWindow) error {
@@ -287,6 +289,9 @@ func (lc *LayoutController) updateWindowAction(win *models.UIWindow) {
 		lc.Messages <- "failed to update window due to " + err.Error() + "\n"
 		return
 	}
+
+	// I guess it was a success, we must update the view
+	lc.LayoutToolView.UpdateFormView(win)
 }
 
 func (lc *LayoutController) displayLoadedLayouts() {

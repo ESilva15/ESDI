@@ -1,10 +1,7 @@
 package views
 
 import (
-	"esdi/tui/internal/dom"
-	"esdi/tui/internal/events"
 	"esdi/tui/internal/models"
-	"esdi/tui/internal/ui"
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"
@@ -18,32 +15,29 @@ const (
 	LayoutToolNewWindowID   = "new-window-action-form"
 )
 
-type windowReference struct {
-	ID   int16
-	Form *dom.UINode
-}
+// type windowReference struct {
+// 	ID   int16
+// 	Form *dom.UINode
+// }
 
-func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
-	ref := node.GetReference()
-	wRef, ok := ref.(*windowReference)
+// func getWindowRefFromNode(node *tview.TreeNode) *windowReference {
+// 	ref := node.GetReference()
+// 	wRef, ok := ref.(*windowReference)
+//
+// 	if !ok {
+// 		return nil
+// 	}
+//
+// 	return wRef
+// }
 
-	if !ok {
-		return nil
-	}
-
-	return wRef
-}
-
-func FindNodeByID(
-	node *tview.TreeNode,
-	id int16,
-) *tview.TreeNode {
+func FindNodeByID(node *tview.TreeNode, id int16) *tview.TreeNode {
 	if node == nil {
 		return nil
 	}
 
-	if ref, ok := node.GetReference().(*windowReference); ok {
-		if ref.ID == id {
+	if ref, ok := node.GetReference().(*models.UIWindow); ok {
+		if ref.IDX == id {
 			return node
 		}
 	}
@@ -55,67 +49,6 @@ func FindNodeByID(
 	}
 
 	return nil
-}
-
-func BindWindowEvents(
-	bus *events.Bus,
-	doc *dom.DOM,
-	tree *tview.TreeView,
-) {
-	bus.On(ui.WindowDestroyedEv{}, func(e any) {
-		root := tree.GetRoot()
-		if root == nil {
-			bus.Emit(ui.LogEv{Log: "unable to get current tree node"})
-		}
-
-		node := FindNodeByID(root, e.(ui.WindowDestroyedEv).ID)
-		if node != nil {
-			root.RemoveChild(node)
-		}
-
-		// NODE: add a log here in case it fails so we know whats going on
-		bus.Emit(ui.ForceRedraw{})
-	})
-
-	bus.On(ui.ErrorCreateWindowEv{}, func(e any) {
-		go func() {
-			bus.Emit(ui.LogEv{
-				Log: fmt.Sprintf(
-					"Error performing action: %s\n", e.(ui.ErrorCreateWindowEv).Error.Error(),
-				)})
-		}()
-	})
-}
-
-func getCurNodeRef(tree *tview.TreeView) (*windowReference, error) {
-	curNode := tree.GetCurrentNode()
-
-	if curNode == nil {
-		return nil, fmt.Errorf("unable to get current tree node")
-	}
-
-	winRef := getWindowRefFromNode(curNode)
-	if winRef == nil {
-		return nil, fmt.Errorf("unable to get window reference from tree node")
-	}
-
-	return winRef, nil
-}
-
-func layoutToolTreeViewOnSelect(bus *events.Bus) func(node *tview.TreeNode) {
-	return func(node *tview.TreeNode) {
-		// Get the window reference which will have the ID for the form
-		bus.Emit(ui.LogEv{Log: "PRESSED ENTER\n"})
-
-		ref := node.GetReference()
-		if ref == nil {
-			bus.Emit(ui.LogEv{Log: "Couldn't find reference for node\n"})
-			return
-		}
-
-		nodeWinRef := ref.(*windowReference)
-		bus.Emit(ui.ChangeFocusEv{Target: nodeWinRef.Form.Self})
-	}
 }
 
 type LayoutTreeView struct {
@@ -266,5 +199,20 @@ func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
 }
 
 func (ltv *LayoutToolView) UpdateFormView(win *models.UIWindow) {
+	// Update the form view
 	ltv.FormQuickAccess[win.IDX].SetValues(win)
+
+	// Update the treeview with the new title
+	root := ltv.LayoutTree.Tree.GetRoot()
+	if root == nil {
+		// NOTE: excuse me!?
+		return
+	}
+
+	node := FindNodeByID(root, win.IDX)
+	if node == nil {
+		return
+	}
+
+	node.SetText(windowInfoPageTitle(win.IDX, win.Window.Title.String()))
 }
