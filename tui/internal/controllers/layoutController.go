@@ -50,14 +50,7 @@ func (lc *LayoutController) registerHooks() {
 				lc.newWindowAction()
 			case 'x':
 				lc.Messages <- "calling delete window\n"
-				// Delete selected window
-				// bus.Emit(ui.LogEv{Log: })
-				// wRef, err := getCurNodeRef(tree)
-				// if err != nil {
-				// 	bus.Emit(ui.LogEv{Log: " -> " + err.Error()})
-				// 	break
-				// }
-				// bus.Emit(ui.DestroyWindowEv{ID: wRef.ID})
+				lc.deleteWindow()
 			case 'm':
 				lc.Messages <- "calling window manipulation tool\n"
 				// Go into move mode
@@ -330,4 +323,28 @@ func (lc *LayoutController) saveLayout() {
 		lc.Messages <- "failed to save layout: " + err.Error()
 		return
 	}
+}
+
+// deleteWindow will delete the currently highlighted window in the layoutTree
+// - get the currently highlighted element
+// - tell the LayoutToolView too delete it
+func (lc *LayoutController) deleteWindow() {
+	// Delete the window first
+	// Get the selected node info
+	curNode := lc.LayoutToolView.LayoutTree.Tree.GetCurrentNode()
+	if curNode == nil {
+		lc.Messages <- "couldn't get a hold of currently selected node\n"
+		return
+	}
+	win := curNode.GetReference().(*models.UIWindow)
+
+	// Delete it
+	err := lc.DevService.DeleteWindow(win.WID)
+	if err != nil {
+		lc.Messages <- "failed to delete window: " + err.Error() + "\n"
+		return
+	}
+
+	// Reflect the deletion in the view
+	lc.LayoutToolView.DeleteWindowByNode(curNode)
 }

@@ -249,3 +249,18 @@ func (ltv *LayoutToolView) ShowWindowFormByID(idx int16) {
 		nil,
 	)
 }
+
+func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
+	root := ltv.LayoutTree.Tree.GetRoot()
+	if root == nil {
+		// We should do something I guess
+		return
+	}
+
+	root.RemoveChild(node)
+
+	// We have to delete it from the map
+	// This isn't very safe now is it?
+	delete(ltv.FormQuickAccess, node.GetReference().(*models.UIWindow).WID)
+	// Did we delete everything ???
+}

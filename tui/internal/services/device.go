@@ -60,3 +60,7 @@ func (cds *CDashService) SaveLayout(layoutPath string) error {
 func (cds *CDashService) UpdateWindow(idx int16, win *cdashdisplay.UIWindow) error {
 	return cds.CDash.UpdateWindow(idx, win)
 }
+
+func (cds *CDashService) DeleteWindow(idx int16) error {
+	return cds.CDash.DestroyWindow(idx)
+}
