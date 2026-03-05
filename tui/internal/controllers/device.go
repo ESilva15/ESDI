@@ -17,21 +17,17 @@ type DeviceController struct {
 	DevService    *serv.CDashService
 }
 
-func NewDeviceController(base *Controller, devService *serv.CDashService) *DeviceController {
+func NewDeviceController(
+	base *Controller,
+	devService *serv.CDashService,
+	telemService *serv.TelemetryService,
+) *DeviceController {
 	mc := &DeviceController{
 		Controller: base,
 		LayoutCtrl: NewLayoutController(base, devService),
 		DevService: devService,
-		StreamCtrl: NewStreamingCtrl(base, devService),
+		StreamCtrl: NewStreamingCtrl(base, devService, telemService),
 	}
-
-	// mc.Bus.On(ui.StartStreamingReqEv{}, func(e any) {
-	// 	mc.StreamStrl.Start(mc.Bus)
-	// })
-
-	// mc.Bus.On(ui.StopStreamingReqEv{}, func(e any) {
-	// 	mc.StreamStrl.Stop(mc.Bus)
-	// })
 
 	return mc
 }

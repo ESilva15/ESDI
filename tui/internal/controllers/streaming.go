@@ -16,12 +16,18 @@ type StreamingCtrl struct {
 	Run        bool
 	OnExit     func()
 	isRunning  bool
+	TelemServ  *services.TelemetryService
 }
 
-func NewStreamingCtrl(base *Controller, ser *services.CDashService) *StreamingCtrl {
+func NewStreamingCtrl(
+	base *Controller,
+	serCDash *services.CDashService,
+	serTelem *services.TelemetryService,
+) *StreamingCtrl {
 	ctrl := &StreamingCtrl{
 		Controller: base,
-		Service:    ser,
+		Service:    serCDash,
+		TelemServ:  serTelem,
 		Messages:   make(chan string, 10),
 		Internal:   make(chan string, 10),
 		Run:        false,
@@ -47,27 +53,18 @@ func (sc *StreamingCtrl) registerHooks() {
 			sc.Start()
 		case 'p':
 			// Pause
-			sc.Stop()
+			// sc.Stop()
 		}
 
 		return ev
 	})
 }
 
-func (sc *StreamingCtrl) Stop() {
-	sc.Service.StopStream()
-}
-
 func (sc *StreamingCtrl) Start() {
-	sc.Service.StartStream()
-	sc.Messages <- "started stream\n"
-
-	stream := sc.Service.GetStream()
-	sc.Messages <- "got stream\n"
+	stream := sc.TelemServ.StartStream()
 
 	go func() {
 		for msg := range stream {
-			sc.Messages <- "received message\n"
 			sc.App.QueueUpdateDraw(func() {
 				sc.StreamView.Update(msg)
 			})

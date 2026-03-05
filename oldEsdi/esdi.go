@@ -2,9 +2,7 @@
 package esdi
 
 import (
-	"esdi/sources/iracing"
 	"log"
-	"os"
 	"time"
 
 	"github.com/ESilva15/goirsdk"
@@ -67,26 +65,17 @@ func RunLiveTelemetry(port string, output string, session string) {
 }
 
 func RunOfflineTelemetry(port string, input string, output string, session string) {
-	esdi, err := ESDIInit(port, 115200)
-	if err != nil {
-		log.Fatalf("Failed to get Desktop Interface: %v", err)
-	}
-
-	file, err := os.Open(input)
-	if err != nil {
-		log.Fatalf("Failed to open IBT file: %v", err)
-	}
-
-	irsdk, err := iracing.Init(file, output, session)
-	if err != nil {
-		log.Fatalf("Failed to create iRacing interface: %v", err)
-	}
-	// irsdk, err := goirsdk.Init(file, outFile, sessionFile)
+	// esdi, err := ESDIInit(port, 115200)
 	// if err != nil {
-	// 	log.Fatalf("Failed to create irsdk instance: %v\n", err)
+	// 	log.Fatalf("Failed to get Desktop Interface: %v", err)
 	// }
-
-	esdi.irsdk = irsdk.SDK
-
-	esdi.telemetry()
+	//
+	// irsdk, err := iracing.Init(input, output, session)
+	// if err != nil {
+	// 	log.Fatalf("Failed to create iRacing interface: %v", err)
+	// }
+	//
+	// esdi.irsdk = irsdk.SDK
+	//
+	// esdi.telemetry()
 }

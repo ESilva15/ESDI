@@ -1,6 +1,12 @@
 package views
 
-import "github.com/rivo/tview"
+import (
+	"esdi/telemetry"
+	"fmt"
+	"strings"
+
+	"github.com/rivo/tview"
+)
 
 // Car data lengths
 const (
@@ -8,10 +14,6 @@ const (
 	GearLen      = 3
 	RpmLen       = 6
 	BrakeBiasLen = 6
-)
-
-const (
-	streamingBoxID = "streaming-box"
 )
 
 type StreamView struct {
@@ -27,6 +29,15 @@ func NewStreamView() *StreamView {
 	}
 }
 
-func (sv *StreamView) Update(str string) {
-	sv.TextView.SetText(str)
+func (sv *StreamView) Update(data telemetry.TelemetryData) {
+	sv.TextView.SetText(stringify(data))
+}
+
+func stringify(data telemetry.TelemetryData) string {
+	var buffer strings.Builder
+
+	buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
+		data.Values["Gear"], data.Values["RPM"], data.Values["Speed"]))
+
+	return buffer.String()
 }

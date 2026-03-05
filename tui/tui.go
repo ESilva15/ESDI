@@ -21,11 +21,15 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 		App:    tview.NewApplication(),
 	}
 
-	deviceService := services.NewCDashService(logger)
+	devService := services.NewCDashService(logger)
+	telemService := services.NewTelemetryService().SetProvider("iRacing")
+	if telemService == nil {
+		panic("failed to create the telemetry service")
+	}
 
 	return &ControlPanel{
 		Controller:       baseController,
-		DeviceController: controllers.NewDeviceController(baseController, deviceService),
+		DeviceController: controllers.NewDeviceController(baseController, devService, telemService),
 	}
 }
 
