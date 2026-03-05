@@ -23,7 +23,6 @@ func NewCDashService(logger *slog.Logger) *CDashService {
 		CDash:    nil,
 		DevClerk: peripheral.NewPeripheralDeviceClerk(),
 		Messages: sharedChannel,
-		// iRacingTelemetry: NewIRacingService(sharedChannel),
 	}
 }
 
@@ -93,35 +92,3 @@ func (cds *CDashService) MoveWindow(win *models.UIWindow, vec *helper.Vector) er
 
 	return nil
 }
-
-// func (cds *CDashService) StartStream() {
-// 	// We need to get a channel from the telemetry agent to listen to and
-// 	// propogate the data to the clients
-// 	dataStream := cds.iRacingTelemetry.StartStream()
-//
-// 	// Custom types to be able to actually send data to the device
-// 	type CDashDisplayUIWindowStreamData struct {
-// 		IDX  int16
-// 		Data [32]byte
-// 	}
-//
-// 	type CDashDisplayStreamData struct {
-// 		Data []CDashDisplayUIWindowStreamData
-// 	}
-//
-// 	// We will need a mechanism to kill this channel too I reckon
-// 	go func() {
-// 		for data := range dataStream {
-// 			// We have to send this data to the device
-// 			cds.Messages <- fmt.Sprintf("%d %d %d\n", data.Speed[:], data.Gear[:], data.RPM[:])
-// 		}
-// 	}()
-// }
-
-// func (cds *CDashService) GetStream() <-chan string {
-// 	return cds.iRacingTelemetry.GetStream()
-// }
-//
-// func (cds *CDashService) StopStream() {
-// 	cds.iRacingTelemetry.StopStream()
-// }
