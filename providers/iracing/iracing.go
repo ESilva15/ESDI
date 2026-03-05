@@ -26,7 +26,7 @@ type IRacing struct {
 	// Timing information
 	initialTime     time.Time
 	lastMessageTime time.Time
-	ticker          time.Ticker // ticker will keep polling intervals constant
+	ticker          *time.Ticker // ticker will keep polling intervals constant
 
 	// Stream
 	streamCh     chan telem.TelemetryData
@@ -55,7 +55,7 @@ func NewIRacingProvider(source string, telemOut string, yamlOut string) (*IRacin
 		SDK:      sdk,
 		data:     telem.NewTelemetryData(),
 		streamCh: make(chan telem.TelemetryData),
-		ticker:   *time.NewTicker(time.Second / 60),
+		ticker:   time.NewTicker(time.Second / 60),
 	}, nil
 }
 
