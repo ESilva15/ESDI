@@ -1,9 +1,9 @@
 package telemetry
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"math"
+	"strconv"
+	"time"
 )
 
 type DataType uint8
@@ -13,12 +13,21 @@ const (
 	DataTypeINT8   DataType = 1
 	DataTypeUINT16 DataType = 2
 	DataTypeINT16  DataType = 3
-	DataTypeSTRING DataType = 4
+	DataTypeUINT32 DataType = 4
+	DataTypeINT32  DataType = 5
+	DataTypeUINT64 DataType = 6
+	DataTypeINT64  DataType = 7
+	DataTypeSTRING DataType = 8
+	DataTypeCHAR   DataType = 9
 )
 
+// TelemetryField will be the basic unit to hold telemetry data values in our
+// application.
+// From my testing, using an uint64 bucket is around 50x faster than any
 type TelemetryField struct {
-	Type  DataType
-	Value any
+	Type DataType
+	Raw  uint64
+	Str  string // Only to be used with DataTypeSTRING
 }
 
 // Pack will pack this current TelemetryField into bytes to send over the wire
@@ -32,28 +41,72 @@ type TelemetryField struct {
 // 0x02 - str len max is 255 chars
 // [0x02] - str
 func (tf *TelemetryField) Pack() []byte {
-	buf := new(bytes.Buffer)
+	// NOTE: maybe we can have a pool of these so we don't have to create them here
+	// or whatever
+	buf := make([]byte, 0, 8)
 
-	buf.WriteByte(uint8(tf.Type))
+	buf = append(buf, uint8(tf.Type))
 
 	switch tf.Type {
-	case DataTypeINT8:
-		buf.WriteByte(uint8(tf.Value.(int8)))
-	case DataTypeUINT8:
-		buf.WriteByte(uint8(tf.Value.(uint8)))
+	case DataTypeINT8, DataTypeUINT8:
+		buf = append(buf, uint8(tf.Raw))
 	case DataTypeINT16, DataTypeUINT16:
-		binary.Write(buf, binary.LittleEndian, tf.Value)
+		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8))
+	case DataTypeINT32, DataTypeUINT32:
+		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16))
+	case DataTypeINT64, DataTypeUINT64:
+		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16), uint8(tf.Raw>>32))
 	case DataTypeSTRING:
-		str := tf.Value.(string)
-		buf.WriteByte(uint8(len(str)))
-		buf.WriteString(str)
+		l := min(len(tf.Str), math.MaxUint8)
+
+		buf = append(buf, uint8(l))
+		buf = append(buf, tf.Str[:l]...)
 	}
 
-	return buf.Bytes()
+	return buf
 }
 
 func (tf *TelemetryField) String() string {
-	return fmt.Sprintf("%v", tf.Value)
+	switch tf.Type {
+	case DataTypeSTRING:
+		return tf.Str
+	case DataTypeCHAR:
+		return string([]byte{byte(tf.Raw)})
+	case DataTypeUINT16, DataTypeUINT8:
+		return strconv.FormatUint(tf.Raw, 10)
+	case DataTypeINT8:
+		return strconv.FormatInt(int64(int16(tf.Raw)), 10)
+	case DataTypeINT16:
+		return strconv.FormatInt(int64(int(tf.Raw)), 10)
+	}
+
+	return "NaN"
+}
+
+type FieldID uint16
+
+const (
+	FirstTimeStamp FieldID = iota
+	PreviousTimeStamp
+	LastTimeStamp
+	Speed
+	RPM
+	Gear
+	MaxFields
+)
+
+var FieldNames = [MaxFields]string{
+	Speed: "Speed",
+	RPM:   "RPM",
+	Gear:  "Gear",
+}
+
+func GetFieldName(id FieldID) string {
+	if id >= MaxFields {
+		return "Uknown"
+	}
+
+	return FieldNames[id]
 }
 
 // NOTE: Replace values with a more appropriate custom field approach where
@@ -63,11 +116,12 @@ func (tf *TelemetryField) String() string {
 
 type TelemetryData struct {
 	// Values map[string]*TelemetryField
-	Values map[string][32]byte
+	Values              [MaxFields]TelemetryField
+	InitialTime         time.Time
+	PenultimateDataPoll time.Time
+	LastDataPoll        time.Time
 }
 
 func NewTelemetryData() *TelemetryData {
-	return &TelemetryData{
-		Values: make(map[string][32]byte),
-	}
+	return &TelemetryData{}
 }
