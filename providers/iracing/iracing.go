@@ -2,14 +2,12 @@ package iracing
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"sync"
 	"time"
 
 	conv "esdi/conversions"
-	helper "esdi/helpers"
 	telem "esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
@@ -24,9 +22,7 @@ type IRacing struct {
 	data *telem.TelemetryData
 
 	// Timing information
-	initialTime     time.Time
-	lastMessageTime time.Time
-	ticker          *time.Ticker // ticker will keep polling intervals constant
+	ticker *time.Ticker // ticker will keep polling intervals constant
 
 	// Stream
 	streamCh     chan telem.TelemetryData
@@ -34,7 +30,11 @@ type IRacing struct {
 	// isRunning bool
 }
 
-func NewIRacingProvider(source string, telemOut string, yamlOut string) (*IRacing, error) {
+func NewIRacingProvider(
+	source string,
+	telemOut string,
+	yamlOut string,
+) (*IRacing, error) {
 	var err error
 
 	// Open the input file if provided
@@ -60,7 +60,7 @@ func NewIRacingProvider(source string, telemOut string, yamlOut string) (*IRacin
 }
 
 func (i *IRacing) stream(ctx context.Context) {
-	i.initialTime = time.Now()
+	i.data.InitialTime = time.Now()
 
 	go func() {
 		for {
@@ -71,7 +71,11 @@ func (i *IRacing) stream(ctx context.Context) {
 				i.ReadData()
 
 				// Publish data
-				i.streamCh <- *i.data
+				select {
+				case i.streamCh <- *i.data:
+				default:
+					// skip this data, don't allow publishers to lag behind
+				}
 			}
 		}
 	}()
@@ -90,7 +94,8 @@ func (i *IRacing) ReadData() {
 
 	i.readVehicleData()
 
-	i.lastMessageTime = time.Now()
+	i.data.PenultimateDataPoll = i.data.LastDataPoll
+	i.data.LastDataPoll = time.Now()
 }
 
 func (i *IRacing) readVehicleData() {
@@ -98,21 +103,24 @@ func (i *IRacing) readVehicleData() {
 	curRPM := i.SDK.Vars.Vars["RPM"].Value
 	curSpeed := i.SDK.Vars.Vars["Speed"].Value
 
-	speed := fmt.Sprintf("%3d", int32(conv.MsToKph(curSpeed.(float32))))
-	gear := fmt.Sprintf("%2d", int32(curGear.(int)))
-	rpm := fmt.Sprintf("%3d", int32(curRPM.(float32)))
+	speed := conv.MsToKph(curSpeed.(float32))
+	gear := uint8(curGear.(int))
+	rpm := uint16(curRPM.(float32))
 
-	speedArray := i.data.Values["Speed"]
-	helper.CopyBytes(speedArray[:], speed)
-	i.data.Values["Speed"] = speedArray
+	i.data.Values[telem.Speed] = telem.TelemetryField{
+		Type: telem.DataTypeUINT16,
+		Raw:  uint64(speed),
+	}
 
-	gearArray := i.data.Values["Gear"]
-	helper.CopyBytes(gearArray[:], gear)
-	i.data.Values["Gear"] = gearArray
+	i.data.Values[telem.Gear] = telem.TelemetryField{
+		Type: telem.DataTypeUINT8,
+		Raw:  uint64(gear),
+	}
 
-	rpmArray := i.data.Values["RPM"]
-	helper.CopyBytes(rpmArray[:], rpm)
-	i.data.Values["RPM"] = rpmArray
+	i.data.Values[telem.RPM] = telem.TelemetryField{
+		Type: telem.DataTypeUINT16,
+		Raw:  uint64(rpm),
+	}
 }
 
 func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {

@@ -1,9 +1,10 @@
 package views
 
 import (
-	"esdi/telemetry"
+	telem "esdi/telemetry"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/rivo/tview"
 )
@@ -29,15 +30,22 @@ func NewStreamView() *StreamView {
 	}
 }
 
-func (sv *StreamView) Update(data telemetry.TelemetryData) {
+func (sv *StreamView) Update(data *telem.TelemetryData) {
 	sv.TextView.SetText(stringify(data))
 }
 
-func stringify(data telemetry.TelemetryData) string {
+func stringify(data *telem.TelemetryData) string {
 	var buffer strings.Builder
 
-	buffer.WriteString(fmt.Sprintf("Gear: %d, RPM: %d, Speed: %d\n\n",
-		data.Values["Gear"], data.Values["RPM"], data.Values["Speed"]))
+	delta := data.LastDataPoll.Sub(data.PenultimateDataPoll)
+	buffer.WriteString(fmt.Sprintf("[%s]\n", time.Now().Format("2006/01/02 15:04:05.000")))
+	buffer.WriteString(fmt.Sprintf("Delta: %d [%f]\n\n", delta.Milliseconds(), 1000.0/60.0))
+
+	buffer.WriteString(fmt.Sprintf("Gear: %s, RPM: %s, Speed: %s\n",
+		data.Values[telem.Gear].String(),
+		data.Values[telem.RPM].String(),
+		data.Values[telem.Speed].String(),
+	))
 
 	return buffer.String()
 }
