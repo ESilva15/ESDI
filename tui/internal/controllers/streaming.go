@@ -3,6 +3,7 @@ package controllers
 import (
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
+	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -63,10 +64,20 @@ func (sc *StreamingCtrl) registerHooks() {
 func (sc *StreamingCtrl) Start() {
 	stream := sc.TelemServ.StartStream()
 
+	var isDrawing atomic.Bool
+
 	go func() {
 		for msg := range stream {
+			if isDrawing.Load() {
+				continue
+			}
+
+			isDrawing.Store(true)
+
 			sc.App.QueueUpdateDraw(func() {
-				sc.StreamView.Update(msg)
+				sc.Messages <- "got data\n"
+				sc.StreamView.Update(&msg)
+				isDrawing.Store(false)
 			})
 		}
 	}()
