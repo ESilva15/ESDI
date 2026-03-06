@@ -2,7 +2,6 @@ package controllers
 
 import (
 	helper "esdi/helpers"
-	"esdi/tui/internal/models"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -43,53 +42,55 @@ func keyToVector(r rune) (helper.Vector, bool) {
 	return helper.Vector{}, false
 }
 
-func (lc *LayoutController) handleMovementCapture(win *models.UIWindow,
+func (lc *LayoutController) handleMovementCapture(idx int16,
 	ev *tcell.EventKey) *tcell.EventKey {
 	vec, ok := keyToVector(ev.Rune())
 	if !ok {
 		return nil
 	}
 
-	err := lc.DevService.MoveWindow(win, &vec)
+	err := lc.DevService.MoveWindow(idx, &vec)
 	if err != nil {
 		lc.Messages <- "failed to move window: " + err.Error() + "\n"
 		return nil
 	}
 
 	// Success - update the form
-	lc.LayoutToolView.UpdateFormView(win)
+	window := lc.DevService.CDash.State.Layout.Windows[idx]
+	lc.LayoutToolView.UpdateFormView(idx, window)
 
 	return nil
 }
 
-func (lc *LayoutController) handleResizeCapture(win *models.UIWindow,
+func (lc *LayoutController) handleResizeCapture(idx int16,
 	ev *tcell.EventKey) *tcell.EventKey {
 	vec, ok := keyToVector(ev.Rune())
 	if !ok {
 		return nil
 	}
 
-	err := lc.DevService.ResizeWindow(win, &vec)
+	err := lc.DevService.ResizeWindow(idx, &vec)
 	if err != nil {
 		lc.Messages <- "failed to resize window: " + err.Error() + "\n"
 		return nil
 	}
 
 	// Success - update the form
-	lc.LayoutToolView.UpdateFormView(win)
+	window := lc.DevService.CDash.State.Layout.Windows[idx]
+	lc.LayoutToolView.UpdateFormView(idx, window)
 
 	return nil
 }
 
-func (s *windowManipState) CurrentHandler(lc *LayoutController, w *models.UIWindow) modeHandler {
+func (s *windowManipState) CurrentHandler(lc *LayoutController, idx int16) modeHandler {
 	switch s.Mode {
 	case moveMode:
 		return func(ev *tcell.EventKey) *tcell.EventKey {
-			return lc.handleMovementCapture(w, ev)
+			return lc.handleMovementCapture(idx, ev)
 		}
 	case resizeMode:
 		return func(ev *tcell.EventKey) *tcell.EventKey {
-			return lc.handleResizeCapture(w, ev)
+			return lc.handleResizeCapture(idx, ev)
 		}
 	}
 

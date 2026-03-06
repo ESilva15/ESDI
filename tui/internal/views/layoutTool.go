@@ -1,7 +1,7 @@
 package views
 
 import (
-	"esdi/tui/internal/models"
+	"esdi/cdashdisplay"
 	"fmt"
 
 	"github.com/gdamore/tcell/v2"
@@ -20,8 +20,8 @@ func FindNodeByID(node *tview.TreeNode, id int16) *tview.TreeNode {
 		return nil
 	}
 
-	if ref, ok := node.GetReference().(*models.UIWindow); ok {
-		if ref.IDX == id {
+	if ref, ok := node.GetReference().(int16); ok {
+		if ref == id {
 			return node
 		}
 	}
@@ -59,7 +59,7 @@ func NewLayoutTreeView() *LayoutTreeView {
 	return view
 }
 
-func (lt *LayoutTreeView) AddWindow(win *models.UIWindow) error {
+func (lt *LayoutTreeView) AddWindow(idx int16, win *cdashdisplay.UIWindow) error {
 	root := lt.Tree.GetRoot()
 	if root == nil {
 		return fmt.Errorf("unable to get root of treeview")
@@ -67,8 +67,8 @@ func (lt *LayoutTreeView) AddWindow(win *models.UIWindow) error {
 
 	// Create this new node
 	newWindow := tview.NewTreeNode(
-		windowInfoPageTitle(win.IDX, win.Window.Title.String()),
-	).SetReference(win)
+		windowInfoPageTitle(idx, win.Title.String()),
+	).SetReference(idx)
 
 	root.AddChild(newWindow)
 
@@ -126,14 +126,14 @@ func NewLayoutToolView() *LayoutToolView {
 	return view
 }
 
-func (ltv *LayoutToolView) WindowCreatedSuccessfuly(win *models.UIWindow) error {
+func (ltv *LayoutToolView) WindowCreatedSuccessfuly(idx int16, win *cdashdisplay.UIWindow) error {
 	updateWindowForm := NewWindowFormView(win)
 
 	// Update the pages ID
 	ltv.LayoutActions.Pages.RemovePage(LayoutToolNewWindowID)
 	AddAndShowPage(
 		ltv.LayoutActions.Pages,
-		windowInfoPageID(win.IDX),
+		windowInfoPageID(idx),
 		updateWindowForm.Form.Form,
 	)
 
@@ -141,10 +141,10 @@ func (ltv *LayoutToolView) WindowCreatedSuccessfuly(win *models.UIWindow) error 
 	ltv.LayoutActions.CreateWindowView = nil
 
 	// Add this form thing to the quick access map
-	ltv.FormQuickAccess[win.IDX] = updateWindowForm
+	ltv.FormQuickAccess[idx] = updateWindowForm
 
 	// Add it to the tree view
-	return ltv.LayoutTree.AddWindow(win)
+	return ltv.LayoutTree.AddWindow(idx, win)
 }
 
 func (ltv *LayoutToolView) ShowCreateWindowForm() {
@@ -174,13 +174,13 @@ func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
 
 	// We have to delete it from the map
 	// This isn't very safe now is it?
-	delete(ltv.FormQuickAccess, node.GetReference().(*models.UIWindow).IDX)
+	delete(ltv.FormQuickAccess, node.GetReference().(int16))
 	// Did we delete everything ???
 }
 
-func (ltv *LayoutToolView) UpdateFormView(win *models.UIWindow) {
+func (ltv *LayoutToolView) UpdateFormView(idx int16, win *cdashdisplay.UIWindow) {
 	// Update the form view
-	ltv.FormQuickAccess[win.IDX].SetValues(win)
+	ltv.FormQuickAccess[idx].SetValues(win)
 
 	// Update the treeview with the new title
 	root := ltv.LayoutTree.Tree.GetRoot()
@@ -189,10 +189,10 @@ func (ltv *LayoutToolView) UpdateFormView(win *models.UIWindow) {
 		return
 	}
 
-	node := FindNodeByID(root, win.IDX)
+	node := FindNodeByID(root, idx)
 	if node == nil {
 		return
 	}
 
-	node.SetText(windowInfoPageTitle(win.IDX, win.Window.Title.String()))
+	node.SetText(windowInfoPageTitle(idx, win.Title.String()))
 }

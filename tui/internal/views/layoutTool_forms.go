@@ -3,7 +3,7 @@ package views
 import (
 	"fmt"
 
-	"esdi/tui/internal/models"
+	"esdi/cdashdisplay"
 
 	"github.com/rivo/tview"
 )
@@ -90,7 +90,7 @@ type WindowFormView struct {
 	UpdateBtn *tview.Button
 }
 
-func NewWindowFormView(win *models.UIWindow) *WindowFormView {
+func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
 	view := &WindowFormView{
 		Form: NewCDashDisplayWindowFormView(),
 	}
@@ -106,17 +106,17 @@ func NewWindowFormView(win *models.UIWindow) *WindowFormView {
 	return view
 }
 
-func (fv *WindowFormView) SetValues(win *models.UIWindow) {
-	fv.Form.X.SetText(fmt.Sprintf("%d", win.Window.Dims.X0))
-	fv.Form.Y.SetText(fmt.Sprintf("%d", win.Window.Dims.Y0))
-	fv.Form.Width.SetText(fmt.Sprintf("%d", win.Window.Dims.Width))
-	fv.Form.Height.SetText(fmt.Sprintf("%d", win.Window.Dims.Height))
-	fv.Form.Title.SetText(win.Window.Title.String())
-	fv.Form.PreviewValue.SetText(win.Window.Opts.PreviewValue.String())
-	fv.Form.ShowID.SetChecked(win.Window.Opts.ShowID == 1)
+func (fv *WindowFormView) SetValues(win *cdashdisplay.UIWindow) {
+	fv.Form.X.SetText(fmt.Sprintf("%d", win.Dims.X0))
+	fv.Form.Y.SetText(fmt.Sprintf("%d", win.Dims.Y0))
+	fv.Form.Width.SetText(fmt.Sprintf("%d", win.Dims.Width))
+	fv.Form.Height.SetText(fmt.Sprintf("%d", win.Dims.Height))
+	fv.Form.Title.SetText(win.Title.String())
+	fv.Form.PreviewValue.SetText(win.Opts.PreviewValue.String())
+	fv.Form.ShowID.SetChecked(win.Opts.ShowID == 1)
 	fv.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
-	fv.Form.TitleSize.SetCurrentOption(int(win.Window.Decor.TitleSize))
-	fv.Form.TextSize.SetCurrentOption(int(win.Window.Decor.TextSize))
+	fv.Form.TitleSize.SetCurrentOption(int(win.Decor.TitleSize))
+	fv.Form.TextSize.SetCurrentOption(int(win.Decor.TextSize))
 }
 
 func windowInfoPageID(idx int16) string {

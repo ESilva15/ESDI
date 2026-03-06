@@ -4,7 +4,6 @@ import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
 	"esdi/peripheral"
-	"esdi/tui/internal/models"
 	"log/slog"
 )
 
@@ -69,26 +68,20 @@ func (cds *CDashService) DeleteWindow(idx int16) error {
 	return cds.CDash.DestroyWindow(idx)
 }
 
-func (cds *CDashService) ResizeWindow(win *models.UIWindow, vec *helper.Vector) error {
-	err := cds.CDash.ResizeWindow(win.IDX, vec)
+func (cds *CDashService) ResizeWindow(idx int16, vec *helper.Vector) error {
+	err := cds.CDash.ResizeWindow(idx, vec)
 	if err != nil {
 		return err
 	}
-
-	// Update the UI window data
-	win.Window = *cds.CDash.State.Layout.Windows[win.IDX]
 
 	return nil
 }
 
-func (cds *CDashService) MoveWindow(win *models.UIWindow, vec *helper.Vector) error {
-	err := cds.CDash.MoveWindow(win.IDX, vec)
+func (cds *CDashService) MoveWindow(idx int16, vec *helper.Vector) error {
+	err := cds.CDash.MoveWindow(idx, vec)
 	if err != nil {
 		return err
 	}
-
-	// Update the UI window data
-	win.Window = *cds.CDash.State.Layout.Windows[win.IDX]
 
 	return nil
 }

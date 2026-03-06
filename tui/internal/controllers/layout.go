@@ -3,7 +3,6 @@ package controllers
 import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
-	"esdi/tui/internal/models"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
 	"fmt"
@@ -82,10 +81,10 @@ func (lc *LayoutController) registerHooks() {
 			return
 		}
 
-		nodeWinRef := nodeRef.(*models.UIWindow)
-		lc.Messages <- fmt.Sprintf("changing to -> %d\n", nodeWinRef.IDX)
+		nodeWinRef := nodeRef.(int16)
+		lc.Messages <- fmt.Sprintf("changing to -> %d\n", nodeWinRef)
 
-		lc.LayoutToolView.ShowWindowFormByID(nodeWinRef.IDX)
+		lc.LayoutToolView.ShowWindowFormByID(nodeWinRef)
 	})
 
 	lc.LayoutToolView.LayoutTree.Tree.SetSelectedFunc(func(node *tview.TreeNode) {
@@ -96,9 +95,9 @@ func (lc *LayoutController) registerHooks() {
 			return
 		}
 
-		nodeWinRef := nodeRef.(*models.UIWindow)
+		nodeWinRef := nodeRef.(int16)
 
-		lc.App.SetFocus(lc.LayoutToolView.FormQuickAccess[nodeWinRef.IDX].Form.Form)
+		lc.App.SetFocus(lc.LayoutToolView.FormQuickAccess[nodeWinRef].Form.Form)
 	})
 }
 
@@ -182,29 +181,23 @@ func (lc *LayoutController) createWindow() {
 		return
 	}
 
-	err = lc.updateFormView(
-		&models.UIWindow{
-			IDX:    wID,
-			Window: *window,
-		},
-	)
+	err = lc.updateFormView(wID, window)
 	if err != nil {
-
 		// NOTE: if we fail to append the window to the views we must delete it
 		// altogether given we won't be able to manipulate it any further
 		lc.Messages <- "failed to append window to views " + err.Error()
 	}
 }
 
-func (lc *LayoutController) updateFormView(win *models.UIWindow) error {
+func (lc *LayoutController) updateFormView(idx int16, win *cdashdisplay.UIWindow) error {
 	// OnSuccess we update our form to be an existing window form
-	err := lc.LayoutToolView.WindowCreatedSuccessfuly(win)
+	err := lc.LayoutToolView.WindowCreatedSuccessfuly(idx, win)
 	if err != nil {
 		return err
 	}
 
 	// Set the update window button behaviour
-	formView := lc.LayoutToolView.FormQuickAccess[win.IDX]
+	formView := lc.LayoutToolView.FormQuickAccess[idx]
 	err = SetFormButtonCallback(formView.Form.Form, "Update", func() {
 		lc.Messages <- "pressed update form button\n"
 		window, err := lc.parseWindowFormData(*formView.Form)
@@ -219,10 +212,11 @@ func (lc *LayoutController) updateFormView(win *models.UIWindow) error {
 			return
 		}
 
-		lc.updateWindowAction(&models.UIWindow{
-			IDX:    win.IDX,
-			Window: *window,
-		})
+		lc.updateWindowAction(idx, win)
+		// lc.updateWindowAction(&models.UIWindow{
+		// 	IDX:    win.IDX,
+		// 	Window: *window,
+		// })
 	})
 	if err != nil {
 		lc.Messages <- "failed to set callback for update button\n"
@@ -278,8 +272,8 @@ func (lc *LayoutController) newWindowAction() {
 	lc.App.SetFocus(newWindowForm.Form.Form)
 }
 
-func (lc *LayoutController) updateWindowAction(win *models.UIWindow) {
-	err := lc.DevService.UpdateWindow(win.IDX, &win.Window)
+func (lc *LayoutController) updateWindowAction(idx int16, win *cdashdisplay.UIWindow) {
+	err := lc.DevService.UpdateWindow(idx, win)
 
 	lc.Messages <- fmt.Sprintf("Window: %v\n", win)
 
@@ -291,25 +285,24 @@ func (lc *LayoutController) updateWindowAction(win *models.UIWindow) {
 
 func (lc *LayoutController) displayLoadedLayouts() {
 	for idx, w := range lc.DevService.CDash.State.Layout.Windows {
-
-		err := lc.updateFormView(&models.UIWindow{IDX: idx, Window: *w})
+		err := lc.updateFormView(idx, w)
 		if err != nil {
 			lc.Messages <- "failed to add window to list"
 		}
 	}
 }
 
-func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, *models.UIWindow, error) {
+func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, int16, error) {
 	// Grab the form for the currently selected window
 	node := lc.LayoutToolView.LayoutTree.Tree.GetCurrentNode()
 	if node == nil {
-		return nil, nil, fmt.Errorf("failed to grab current tree node")
+		return nil, -1, fmt.Errorf("failed to grab current tree node")
 	}
 
 	// From this node get its references
-	ref, ok := node.GetReference().(*models.UIWindow)
+	ref, ok := node.GetReference().(int16)
 	if !ok {
-		return nil, nil, fmt.Errorf("failed to get data on currently selected window")
+		return nil, -1, fmt.Errorf("failed to get data on currently selected window")
 	}
 
 	return node, ref, nil
@@ -345,10 +338,10 @@ func (lc *LayoutController) deleteWindow() {
 		lc.Messages <- "couldn't get a hold of currently selected node\n"
 		return
 	}
-	win := curNode.GetReference().(*models.UIWindow)
+	wID := curNode.GetReference().(int16)
 
 	// Delete it
-	err := lc.DevService.DeleteWindow(win.IDX)
+	err := lc.DevService.DeleteWindow(wID)
 	if err != nil {
 		lc.Messages <- "failed to delete window: " + err.Error() + "\n"
 		return
@@ -362,13 +355,13 @@ func (lc *LayoutController) deleteWindow() {
 func (lc *LayoutController) moveWindow() {
 	lc.Messages <- "Entering move mode (ESC to exit)\n"
 
-	_, win, err := lc.getCurrentTreeNodeModel()
+	_, idx, err := lc.getCurrentTreeNodeModel()
 	if err != nil {
 		lc.Messages <- "failed to enter move mode: " + err.Error() + "\n"
 		return
 	}
 
-	formView := lc.LayoutToolView.FormQuickAccess[win.IDX].Form
+	formView := lc.LayoutToolView.FormQuickAccess[idx].Form
 	oldCapture := formView.Form.GetInputCapture()
 
 	formView.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
@@ -392,7 +385,7 @@ func (lc *LayoutController) moveWindow() {
 		}
 
 		// Delegate the current handler input
-		handler := lc.MoveToolState.CurrentHandler(lc, win)
+		handler := lc.MoveToolState.CurrentHandler(lc, idx)
 		if handler != nil {
 			return handler(ev)
 		}
