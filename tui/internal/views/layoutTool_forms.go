@@ -51,7 +51,7 @@ func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
 	view.TextSize.SetCurrentOption(0)
 
 	view.TelemetryField = tview.NewDropDown().SetLabel("Telemetry Field")
-	for _, fieldName := range telemetry.FieldNames[3:] {
+	for _, fieldName := range telemetry.FieldNames[telemetry.FirstField:] {
 		view.TelemetryField.AddOption(fieldName, blankDropdownOptionCallback)
 	}
 	view.TelemetryField.SetCurrentOption(0)
@@ -135,7 +135,7 @@ func (fv *WindowFormView) SetValues(win *cdashdisplay.DesktopUIWindow) {
 	if !ok {
 		telemFieldID = 100
 	}
-	fv.Form.TelemetryField.SetCurrentOption(int(telemFieldID))
+	fv.Form.TelemetryField.SetCurrentOption(int(telemFieldID - telemetry.FirstField))
 }
 
 func windowInfoPageID(idx int16) string {

@@ -55,7 +55,10 @@ func (tf *TelemetryField) Pack() []byte {
 	case DataTypeINT32, DataTypeUINT32:
 		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16))
 	case DataTypeINT64, DataTypeUINT64:
-		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16), uint8(tf.Raw>>32))
+		buf = append(buf, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16),
+			uint8(tf.Raw>>24), uint8(tf.Raw>>32), uint8(tf.Raw>>40), uint8(tf.Raw>>48),
+			uint8(tf.Raw>>56),
+		)
 	case DataTypeSTRING:
 		l := min(len(tf.Str), math.MaxUint8)
 
@@ -123,9 +126,6 @@ func initFieldNamesMap() {
 
 func GetFieldID(name string) (FieldID, bool) {
 	id, ok := fieldNameToID[name]
-	if ok {
-		id = id - FirstField
-	}
 	return id, ok
 }
 
