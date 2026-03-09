@@ -94,6 +94,7 @@ const (
 	Gear
 	MaxFields
 )
+const FirstField = Speed
 
 var FieldNames = [MaxFields]string{
 	Speed: "Speed",
@@ -107,6 +108,20 @@ func GetFieldName(id FieldID) string {
 	}
 
 	return FieldNames[id]
+}
+
+var fieldNameToID map[string]FieldID
+
+func initFieldNamesMap() {
+	fieldNameToID = make(map[string]FieldID, MaxFields)
+	for id, name := range FieldNames {
+		fieldNameToID[name] = FieldID(id)
+	}
+}
+
+func GetFieldID(name string) (FieldID, bool) {
+	id, ok := fieldNameToID[name]
+	return id, ok
 }
 
 // NOTE: Replace values with a more appropriate custom field approach where

@@ -4,22 +4,24 @@ import (
 	"fmt"
 
 	"esdi/cdashdisplay"
+	"esdi/telemetry"
 
 	"github.com/rivo/tview"
 )
 
 type CDashDisplayWindowFormView struct {
-	Form         *tview.Form
-	X            *tview.InputField
-	Y            *tview.InputField
-	Width        *tview.InputField
-	Height       *tview.InputField
-	Title        *tview.InputField
-	PreviewValue *tview.InputField
-	ShowID       *tview.Checkbox
-	WinType      *tview.DropDown
-	TitleSize    *tview.DropDown
-	TextSize     *tview.DropDown
+	Form           *tview.Form
+	X              *tview.InputField
+	Y              *tview.InputField
+	Width          *tview.InputField
+	Height         *tview.InputField
+	Title          *tview.InputField
+	PreviewValue   *tview.InputField
+	ShowID         *tview.Checkbox
+	WinType        *tview.DropDown
+	TitleSize      *tview.DropDown
+	TextSize       *tview.DropDown
+	TelemetryField *tview.DropDown
 }
 
 func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
@@ -35,6 +37,7 @@ func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
 	view.WinType = tview.NewDropDown().SetLabel("type").
 		SetOptions([]string{"string", "bar"}, func(s string, id int) {}).
 		SetCurrentOption(0)
+
 	view.TitleSize = tview.NewDropDown().SetLabel("Title Size").SetCurrentOption(0)
 	for k := range 20 {
 		view.TitleSize.AddOption(fmt.Sprintf("%d", k+1), blankDropdownOptionCallback)
@@ -46,6 +49,12 @@ func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
 		view.TextSize.AddOption(fmt.Sprintf("%d", k+1), blankDropdownOptionCallback)
 	}
 	view.TextSize.SetCurrentOption(0)
+
+	view.TelemetryField = tview.NewDropDown().SetLabel("Telemetry Field")
+	for _, fieldName := range telemetry.FieldNames {
+		view.TelemetryField.AddOption(fieldName, blankDropdownOptionCallback)
+	}
+	view.TelemetryField.SetCurrentOption(0)
 
 	view.Form = tview.NewForm().
 		AddFormItem(view.X).
@@ -87,13 +96,16 @@ func NewCreateWindowFormView() *CreateWindowFormView {
 
 type WindowFormView struct {
 	Form      *CDashDisplayWindowFormView
+	WinID     int16
 	UpdateBtn *tview.Button
 }
 
-func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
+func NewWindowFormView(win *cdashdisplay.DesktopUIWindow) *WindowFormView {
 	view := &WindowFormView{
-		Form: NewCDashDisplayWindowFormView(),
+		Form:  NewCDashDisplayWindowFormView(),
+		WinID: win.UIData.IDX,
 	}
+	view.Form.Form.SetTitle(windowEditFormTitle(win.UIData.IDX, win.Title.String()))
 
 	view.UpdateBtn = tview.NewButton("Update")
 	// Need to inject the button functionality later
@@ -106,7 +118,7 @@ func NewWindowFormView(win *cdashdisplay.UIWindow) *WindowFormView {
 	return view
 }
 
-func (fv *WindowFormView) SetValues(win *cdashdisplay.UIWindow) {
+func (fv *WindowFormView) SetValues(win *cdashdisplay.DesktopUIWindow) {
 	fv.Form.X.SetText(fmt.Sprintf("%d", win.Dims.X0))
 	fv.Form.Y.SetText(fmt.Sprintf("%d", win.Dims.Y0))
 	fv.Form.Width.SetText(fmt.Sprintf("%d", win.Dims.Width))
@@ -117,6 +129,12 @@ func (fv *WindowFormView) SetValues(win *cdashdisplay.UIWindow) {
 	fv.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
 	fv.Form.TitleSize.SetCurrentOption(int(win.Decor.TitleSize))
 	fv.Form.TextSize.SetCurrentOption(int(win.Decor.TextSize))
+
+	telemFieldID, ok := telemetry.GetFieldID(win.UIData.TelemetryField)
+	if !ok {
+		telemFieldID = 0
+	}
+	fv.Form.TelemetryField.SetCurrentOption(int(telemFieldID))
 }
 
 func windowInfoPageID(idx int16) string {
@@ -125,4 +143,8 @@ func windowInfoPageID(idx int16) string {
 
 func windowInfoPageTitle(idx int16, title string) string {
 	return fmt.Sprintf("%s [%02d]", title, idx)
+}
+
+func windowEditFormTitle(idx int16, title string) string {
+	return fmt.Sprintf("[%2d] %s", idx, title)
 }

@@ -74,7 +74,7 @@ type ResizeWindowEv struct {
 
 type WindowCreatedEv struct {
 	ID  int16
-	Win cdashdisplay.UIWindow
+	Win cdashdisplay.CDashWin
 }
 
 type WindowMovedEv struct {

@@ -103,7 +103,7 @@ func (lc *LayoutController) registerHooks() {
 
 func (lc *LayoutController) parseWindowFormData(
 	form views.CDashDisplayWindowFormView,
-) (*cdashdisplay.UIWindow, error) {
+) (*cdashdisplay.DesktopUIWindow, error) {
 
 	xValue, err := strconv.ParseUint(form.X.GetText(), 10, 64)
 	if err != nil {
@@ -140,6 +140,11 @@ func (lc *LayoutController) parseWindowFormData(
 		return nil, err
 	}
 
+	telemFieldInputID, telemField := form.TelemetryField.GetCurrentOption()
+	if telemFieldInputID == -1 {
+		return nil, fmt.Errorf("no option selected for telemetry field")
+	}
+
 	showIDValue := cdashdisplay.ShowIDFalse
 	if form.ShowID.IsChecked() {
 		showIDValue = cdashdisplay.ShowIDTrue
@@ -149,7 +154,7 @@ func (lc *LayoutController) parseWindowFormData(
 	winDecor.TextSize = uint8(textSizeValue - 1)
 	winDecor.TitleSize = uint8(titleSizeValue - 1)
 
-	uiWindow := &cdashdisplay.UIWindow{
+	uiWindow := cdashdisplay.UIWindow{
 		Dims: cdashdisplay.UIDimensions{
 			X0:     uint16(xValue),
 			Y0:     uint16(yValue),
@@ -165,9 +170,20 @@ func (lc *LayoutController) parseWindowFormData(
 		Title: helper.B32(form.Title.GetText()),
 	}
 
-	return uiWindow, nil
+	uiData := cdashdisplay.DesktopUIData{
+		TelemetryField: telemField,
+	}
+
+	return &cdashdisplay.DesktopUIWindow{
+		UIWindow: uiWindow,
+		UIData:   uiData,
+	}, nil
 }
 
+// createWindow is the function the callback for the "Create" button on the new window
+// form
+// - parses the contents of the new window form
+// - sends that data to the correct device service
 func (lc *LayoutController) createWindow() {
 	window, err := lc.parseWindowFormData(*lc.LayoutToolView.LayoutActions.CreateWindowView.Form)
 	if err != nil {
@@ -175,13 +191,16 @@ func (lc *LayoutController) createWindow() {
 		return
 	}
 
-	wID, err := lc.DevService.CreateWindow(window)
+	lc.Messages <- fmt.Sprintf("pre  update w address: %p\n", window)
+	window, err = lc.DevService.CreateWindow(window)
 	if err != nil {
 		lc.Messages <- "failed to create window\n"
 		return
 	}
+	lc.Messages <- fmt.Sprintf("post update w address: %p\n", window)
+	lc.Messages <- fmt.Sprintf("%+v\n", window)
 
-	err = lc.updateFormView(wID, window)
+	err = lc.updateFormView(window)
 	if err != nil {
 		// NOTE: if we fail to append the window to the views we must delete it
 		// altogether given we won't be able to manipulate it any further
@@ -189,15 +208,19 @@ func (lc *LayoutController) createWindow() {
 	}
 }
 
-func (lc *LayoutController) updateFormView(idx int16, win *cdashdisplay.UIWindow) error {
+// updateFormView updates the new window form to be an existing window form and we change
+// the buttons for that purpuse
+func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) error {
 	// OnSuccess we update our form to be an existing window form
-	err := lc.LayoutToolView.WindowCreatedSuccessfuly(idx, win)
+	err := lc.LayoutToolView.WindowCreatedSuccessfuly(win)
 	if err != nil {
 		return err
 	}
 
 	// Set the update window button behaviour
-	formView := lc.LayoutToolView.FormQuickAccess[idx]
+	formView := lc.LayoutToolView.FormQuickAccess[win.UIData.IDX]
+	lc.Messages <- fmt.Sprintf("QA FORM: %+v\n", lc.LayoutToolView.FormQuickAccess)
+
 	err = SetFormButtonCallback(formView.Form.Form, "Update", func() {
 		lc.Messages <- "pressed update form button\n"
 		window, err := lc.parseWindowFormData(*formView.Form)
@@ -207,16 +230,9 @@ func (lc *LayoutController) updateFormView(idx int16, win *cdashdisplay.UIWindow
 		}
 		lc.Messages <- fmt.Sprintf("window data in form: %v\n", window)
 
-		if err != nil {
-			lc.Messages <- "failed to parse form: " + err.Error() + "\n"
-			return
-		}
+		window.UIData.IDX = formView.WinID
 
-		lc.updateWindowAction(idx, win)
-		// lc.updateWindowAction(&models.UIWindow{
-		// 	IDX:    win.IDX,
-		// 	Window: *window,
-		// })
+		lc.updateWindowAction(window)
 	})
 	if err != nil {
 		lc.Messages <- "failed to set callback for update button\n"
@@ -231,6 +247,8 @@ func (lc *LayoutController) updateFormView(idx int16, win *cdashdisplay.UIWindow
 
 		return ev
 	})
+
+	lc.App.SetFocus(formView.Form.Form)
 
 	return nil
 }
@@ -272,8 +290,8 @@ func (lc *LayoutController) newWindowAction() {
 	lc.App.SetFocus(newWindowForm.Form.Form)
 }
 
-func (lc *LayoutController) updateWindowAction(idx int16, win *cdashdisplay.UIWindow) {
-	err := lc.DevService.UpdateWindow(idx, win)
+func (lc *LayoutController) updateWindowAction(win *cdashdisplay.DesktopUIWindow) {
+	err := lc.DevService.UpdateWindow(win)
 
 	lc.Messages <- fmt.Sprintf("Window: %v\n", win)
 
@@ -284,8 +302,8 @@ func (lc *LayoutController) updateWindowAction(idx int16, win *cdashdisplay.UIWi
 }
 
 func (lc *LayoutController) displayLoadedLayouts() {
-	for idx, w := range lc.DevService.CDash.State.Layout.Windows {
-		err := lc.updateFormView(idx, w)
+	for _, w := range lc.DevService.CDash.State.Layout.Windows {
+		err := lc.updateFormView(w)
 		if err != nil {
 			lc.Messages <- "failed to add window to list"
 		}

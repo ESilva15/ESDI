@@ -130,30 +130,32 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 func (d *CDashDisplay) SendCommand() {
 }
 
-func (d *CDashDisplay) CreateWindow(win UIWindow) (int16, error) {
-	bytes, err := helper.StructToBytes(win)
+func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, error) {
+	bytes, err := helper.StructToBytes(win.UIWindow)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
 	// Send the command
 	var wID packets.NewWindowID
 	err = d.WT.SendCommand(newWindowCMDID, bytes, &wID)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
+
+	win.UIData.IDX = wID.ID
 
 	pLogger.Info(fmt.Sprintf("Recived ID message: %v", wID))
 
-	d.State.Layout.AddWindow(wID.ID, win)
+	d.State.Layout.AddWindow(win)
 
-	return wID.ID, nil
+	return win, nil
 }
 
-func (d *CDashDisplay) UpdateWindow(wID int16, win *UIWindow) error {
+func (d *CDashDisplay) UpdateWindow(win *DesktopUIWindow) error {
 	data := UIWindowUpdatePacket{
-		WinID:  wID,
-		Window: *win,
+		WinID:  win.UIData.IDX,
+		Window: win.UIWindow,
 	}
 
 	bytes, err := helper.StructToBytes(data)
@@ -172,7 +174,7 @@ func (d *CDashDisplay) UpdateWindow(wID int16, win *UIWindow) error {
 	// I send the pointer here
 	// -> it should be the same pointer then right?
 	pLogger.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
-	d.State.Layout.Windows[wID] = win
+	d.State.Layout.Windows[win.UIData.IDX] = win
 	pLogger.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
 	// Yeah, same address as suspected
 	// I can't think about it right now. I'll think about that tomorrow
@@ -245,7 +247,7 @@ func (d *CDashDisplay) MoveWindow(wID int16, delta *helper.Vector) error {
 		Dims: newDimensions,
 	}
 
-	err := d.updateWindowDimensions(window, packet)
+	err := d.updateWindowDimensions(&window.UIWindow, packet)
 	if err != nil {
 		return err
 	}
@@ -283,7 +285,7 @@ func (d *CDashDisplay) ResizeWindow(wID int16, delta *helper.Vector) error {
 		Dims: newDimensions,
 	}
 
-	err := d.updateWindowDimensions(window, packet)
+	err := d.updateWindowDimensions(&window.UIWindow, packet)
 	if err != nil {
 		return err
 	}
@@ -325,7 +327,7 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 	}
 
 	for _, w := range layout.Windows {
-		_, err = d.CreateWindow(*w)
+		_, err = d.CreateWindow(w)
 		if err != nil {
 			// NOTE: Add a way to handle multiple errors ?
 			return err

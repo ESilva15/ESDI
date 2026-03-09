@@ -59,7 +59,7 @@ func NewLayoutTreeView() *LayoutTreeView {
 	return view
 }
 
-func (lt *LayoutTreeView) AddWindow(idx int16, win *cdashdisplay.UIWindow) error {
+func (lt *LayoutTreeView) AddWindow(win *cdashdisplay.DesktopUIWindow) error {
 	root := lt.Tree.GetRoot()
 	if root == nil {
 		return fmt.Errorf("unable to get root of treeview")
@@ -67,8 +67,8 @@ func (lt *LayoutTreeView) AddWindow(idx int16, win *cdashdisplay.UIWindow) error
 
 	// Create this new node
 	newWindow := tview.NewTreeNode(
-		windowInfoPageTitle(idx, win.Title.String()),
-	).SetReference(idx)
+		windowInfoPageTitle(win.UIData.IDX, win.Title.String()),
+	).SetReference(win.UIData.IDX)
 
 	root.AddChild(newWindow)
 
@@ -126,14 +126,16 @@ func NewLayoutToolView() *LayoutToolView {
 	return view
 }
 
-func (ltv *LayoutToolView) WindowCreatedSuccessfuly(idx int16, win *cdashdisplay.UIWindow) error {
+func (ltv *LayoutToolView) WindowCreatedSuccessfuly(
+	win *cdashdisplay.DesktopUIWindow,
+) error {
 	updateWindowForm := NewWindowFormView(win)
 
 	// Update the pages ID
 	ltv.LayoutActions.Pages.RemovePage(LayoutToolNewWindowID)
 	AddAndShowPage(
 		ltv.LayoutActions.Pages,
-		windowInfoPageID(idx),
+		windowInfoPageID(win.UIData.IDX),
 		updateWindowForm.Form.Form,
 	)
 
@@ -141,10 +143,10 @@ func (ltv *LayoutToolView) WindowCreatedSuccessfuly(idx int16, win *cdashdisplay
 	ltv.LayoutActions.CreateWindowView = nil
 
 	// Add this form thing to the quick access map
-	ltv.FormQuickAccess[idx] = updateWindowForm
+	ltv.FormQuickAccess[win.UIData.IDX] = updateWindowForm
 
 	// Add it to the tree view
-	return ltv.LayoutTree.AddWindow(idx, win)
+	return ltv.LayoutTree.AddWindow(win)
 }
 
 func (ltv *LayoutToolView) ShowCreateWindowForm() {
@@ -178,7 +180,7 @@ func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
 	// Did we delete everything ???
 }
 
-func (ltv *LayoutToolView) UpdateFormView(idx int16, win *cdashdisplay.UIWindow) {
+func (ltv *LayoutToolView) UpdateFormView(idx int16, win *cdashdisplay.DesktopUIWindow) {
 	// Update the form view
 	ltv.FormQuickAccess[idx].SetValues(win)
 

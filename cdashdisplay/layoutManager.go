@@ -3,18 +3,18 @@ package cdashdisplay
 import "fmt"
 
 type LayoutTree struct {
-	Windows map[int16]*UIWindow `yaml:"Windows"`
+	Windows map[int16]*DesktopUIWindow `yaml:"Windows"`
 }
 
 func NewLayoutTree() *LayoutTree {
 	return &LayoutTree{
-		Windows: make(map[int16]*UIWindow),
+		Windows: make(map[int16]*DesktopUIWindow),
 	}
 }
 
-func (l *LayoutTree) AddWindow(idx int16, w UIWindow) {
-	pLogger.Debug(fmt.Sprintf("adding window '%d' - %v", idx, w))
-	l.Windows[idx] = &w
+func (l *LayoutTree) AddWindow(w *DesktopUIWindow) {
+	pLogger.Debug(fmt.Sprintf("adding window '%d' - %v", w.UIData.IDX))
+	l.Windows[w.UIData.IDX] = w
 	pLogger.Debug(fmt.Sprintf("new map - %v", l.Windows))
 }
 

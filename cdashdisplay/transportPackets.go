@@ -45,7 +45,21 @@ type UIWindow struct {
 	Title FString32     `yaml:"Title"`
 }
 
+type DesktopUIWindow struct {
+	UIWindow
+	UIData DesktopUIData
+}
+
+type DesktopUIData struct {
+	IDX            int16  `yaml:"WID"`
+	TelemetryField string `yaml:"TelemetryField"`
+}
+
 type UIWindowUpdatePacket struct {
 	WinID  int16
 	Window UIWindow
 }
+
+// func getUIWindowDTO(w *DesktopWindowData) *UIWindow {
+//
+// }

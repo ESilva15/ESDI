@@ -4,6 +4,7 @@ import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
 	"esdi/peripheral"
+	"fmt"
 	"log/slog"
 )
 
@@ -43,13 +44,15 @@ func (cds *CDashService) FindDevice() {
 	cds.Messages <- "found cdashdisplay on: " + display.WT.Cfg.Name + "\n"
 }
 
-func (cds *CDashService) CreateWindow(win *cdashdisplay.UIWindow) (int16, error) {
-	wID, err := cds.CDash.CreateWindow(*win)
+func (cds *CDashService) CreateWindow(
+	win *cdashdisplay.DesktopUIWindow,
+) (*cdashdisplay.DesktopUIWindow, error) {
+	updatedWindow, err := cds.CDash.CreateWindow(win)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
 
-	return wID, nil
+	return updatedWindow, nil
 }
 
 func (cds *CDashService) LoadLayout(layoutPath string) error {
@@ -60,8 +63,9 @@ func (cds *CDashService) SaveLayout(layoutPath string) error {
 	return cds.CDash.SaveLayout(layoutPath)
 }
 
-func (cds *CDashService) UpdateWindow(idx int16, win *cdashdisplay.UIWindow) error {
-	return cds.CDash.UpdateWindow(idx, win)
+func (cds *CDashService) UpdateWindow(win *cdashdisplay.DesktopUIWindow) error {
+	cds.Messages <- fmt.Sprintf("Updating a window:\n%+v\n", win)
+	return cds.CDash.UpdateWindow(win)
 }
 
 func (cds *CDashService) DeleteWindow(idx int16) error {
