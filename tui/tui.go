@@ -22,7 +22,7 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 	}
 
 	devService := services.NewCDashService(logger)
-	telemService := services.NewTelemetryService().SetProvider("iRacing")
+	telemService := services.NewTelemetryService(logger).SetProvider("iRacing")
 	if telemService == nil {
 		panic("failed to create the telemetry service")
 	}

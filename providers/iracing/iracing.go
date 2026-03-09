@@ -2,12 +2,15 @@ package iracing
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
 
 	conv "esdi/conversions"
+	"esdi/telemetry"
 	telem "esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
@@ -15,11 +18,13 @@ import (
 
 // IRacing is our iRacing telemetry data provider - its a TelemetryProvider interface
 type IRacing struct {
-	SDK *goirsdk.IBT
+	logger *slog.Logger
+	SDK    *goirsdk.IBT
 
 	// Data Handling
-	mut  sync.Mutex
-	data *telem.TelemetryData
+	mut            sync.Mutex
+	data           *telem.TelemetryData
+	activeBindings []boundField
 
 	// Timing information
 	ticker *time.Ticker // ticker will keep polling intervals constant
@@ -27,10 +32,10 @@ type IRacing struct {
 	// Stream
 	streamCh     chan telem.TelemetryData
 	streamCancel context.CancelFunc
-	// isRunning bool
 }
 
 func NewIRacingProvider(
+	logger *slog.Logger,
 	source string,
 	telemOut string,
 	yamlOut string,
@@ -52,6 +57,7 @@ func NewIRacingProvider(
 	}
 
 	return &IRacing{
+		logger:   logger,
 		SDK:      sdk,
 		data:     telem.NewTelemetryData(),
 		streamCh: make(chan telem.TelemetryData),
@@ -68,7 +74,13 @@ func (i *IRacing) stream(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-i.ticker.C:
-				i.ReadData()
+				i.readData()
+
+				// Create a snapshot
+				i.mut.Lock()
+				// snapshot := *i.data
+				i.logger.Debug(fmt.Sprintf("%v\n", i.data.Values))
+				i.mut.Unlock()
 
 				// Publish data
 				select {
@@ -81,7 +93,7 @@ func (i *IRacing) stream(ctx context.Context) {
 	}()
 }
 
-func (i *IRacing) ReadData() {
+func (i *IRacing) readData() {
 	i.mut.Lock()
 	defer i.mut.Unlock()
 
@@ -92,37 +104,21 @@ func (i *IRacing) ReadData() {
 		return
 	}
 
-	i.readVehicleData()
+	// Read binded data
+	for _, b := range i.activeBindings {
+		v := i.SDK.Vars.Vars[b.Key].Value
+		// NOTE: for the love of god, find a way of avoiding this shit
+		b.Transform(v, &i.data.Values[b.ID+telem.FirstField])
+	}
 
 	i.data.PenultimateDataPoll = i.data.LastDataPoll
 	i.data.LastDataPoll = time.Now()
 }
 
-func (i *IRacing) readVehicleData() {
-	curGear := i.SDK.Vars.Vars["Gear"].Value
-	curRPM := i.SDK.Vars.Vars["RPM"].Value
-	curSpeed := i.SDK.Vars.Vars["Speed"].Value
+// Telemetry Provider Interface
 
-	speed := conv.MsToKph(curSpeed.(float32))
-	gear := uint8(curGear.(int))
-	rpm := uint16(curRPM.(float32))
-
-	i.data.Values[telem.Speed] = telem.TelemetryField{
-		Type: telem.DataTypeUINT16,
-		Raw:  uint64(speed),
-	}
-
-	i.data.Values[telem.Gear] = telem.TelemetryField{
-		Type: telem.DataTypeUINT8,
-		Raw:  uint64(gear),
-	}
-
-	i.data.Values[telem.RPM] = telem.TelemetryField{
-		Type: telem.DataTypeUINT16,
-		Raw:  uint64(rpm),
-	}
-}
-
+// Stream returns a channel that we will use to funnel the telemetry data back to the
+// UI, which then should broadcast it to the devices
 func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 	var ctx context.Context
 	ctx, i.streamCancel = context.WithCancel(context.Background())
@@ -131,4 +127,47 @@ func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 	i.stream(ctx)
 
 	return i.streamCh, nil
+}
+
+func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
+	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
+
+	i.activeBindings = make([]boundField, 0, len(requestFields))
+
+	for _, id := range requestFields {
+		// Translate the UI FieldIDs to this provider's field names
+		sdkKey, ok := internalToSDKFieldNames[id+telem.FirstField]
+		if !ok {
+			i.logger.Debug("failed to get internal id")
+			// Need to find a way to pass a message saying something wasn't right
+			continue
+		}
+
+		binding := boundField{
+			Key: sdkKey,
+			ID:  id,
+		}
+
+		switch id {
+		case telem.Speed - telem.FirstField:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telemetry.DataTypeUINT16
+				out.Raw = uint64(conv.MsToKph(v.(float32)))
+			}
+		case telem.Gear - telem.FirstField:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telemetry.DataTypeUINT8
+				out.Raw = uint64(v.(int))
+			}
+		case telem.RPM - telem.FirstField:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telemetry.DataTypeUINT16
+				out.Raw = uint64(uint16(v.(float32)))
+			}
+		}
+
+		i.activeBindings = append(i.activeBindings, binding)
+	}
+
+	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.activeBindings))
 }

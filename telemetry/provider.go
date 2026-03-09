@@ -3,4 +3,5 @@ package telemetry
 
 type TelemetryProvider interface {
 	Stream() (<-chan TelemetryData, error)
+	Subscribe([]FieldID)
 }

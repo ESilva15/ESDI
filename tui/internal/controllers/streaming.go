@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"esdi/telemetry"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
@@ -75,10 +77,27 @@ func (sc *StreamingCtrl) Start() {
 			isDrawing.Store(true)
 
 			sc.App.QueueUpdateDraw(func() {
-				sc.Messages <- "got data\n"
+				sc.Messages <- fmt.Sprintf("got data: %+v\n", &msg)
 				sc.StreamView.Update(&msg)
 				isDrawing.Store(false)
 			})
 		}
 	}()
+}
+
+// SetInternalState is used to update the stuff in here, for example, the user
+// goes into the layout tool, sets up the data to transmit to his devices and
+// then comes here to stream that data. We call this to set the fields the user
+// has subscrived to in his tooling
+func (sc *StreamingCtrl) SetInternalState() {
+	// Get the subscribed fields
+	fields := make([]telemetry.FieldID, 0, len(sc.Service.CDash.State.Layout.Windows))
+	for _, w := range sc.Service.CDash.State.Layout.Windows {
+		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
+		fields = append(fields, fieldID-telemetry.FirstField)
+	}
+
+	sc.TelemServ.ActiveProvider.Subscribe(fields)
+
+	sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
 }

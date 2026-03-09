@@ -78,6 +78,9 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 				"streaming-tool",
 				mc.StreamCtrl.StreamView.TextView,
 			)
+
+			mc.StreamCtrl.SetInternalState()
+
 			mc.App.SetFocus(mc.StreamCtrl.StreamView.TextView)
 		})
 }
