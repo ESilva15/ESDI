@@ -3,6 +3,7 @@ package controllers
 import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
+	"esdi/telemetry"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
 	"fmt"
@@ -212,6 +213,16 @@ func (lc *LayoutController) createWindow() {
 // the buttons for that purpuse
 func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) error {
 	// OnSuccess we update our form to be an existing window form
+
+	lc.Messages <- fmt.Sprintf("Setting up window:\n%+v\n", win)
+
+	telemFieldID, ok := telemetry.GetFieldID(win.UIData.TelemetryField)
+	if !ok {
+		telemFieldID = 1000
+	}
+
+	lc.Messages <- fmt.Sprintf("field id for: %s is %d\n", win.UIData.TelemetryField, telemFieldID)
+
 	err := lc.LayoutToolView.WindowCreatedSuccessfuly(win)
 	if err != nil {
 		return err

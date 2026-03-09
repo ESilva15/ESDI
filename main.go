@@ -2,8 +2,12 @@ package main
 
 import (
 	"esdi/cmd"
+	"esdi/telemetry"
 	"log/slog"
+	"net/http"
 	"os"
+
+	"github.com/arl/statsviz"
 )
 
 func main() {
@@ -17,6 +21,17 @@ func main() {
 			Level: slog.LevelDebug,
 		}),
 	)
+
+	// Performance analysis
+	mux := http.NewServeMux()
+	statsviz.Register(mux)
+
+	go func() {
+		http.ListenAndServe("localhost:8001", mux)
+	}()
+
+	// Setting up some internal data structures
+	telemetry.Init()
 
 	// Launches the cobra package stuff
 	cmd.Execute(logger)

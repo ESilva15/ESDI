@@ -85,6 +85,8 @@ func (tf *TelemetryField) String() string {
 
 type FieldID uint16
 
+// We use FirstField to start the count on the fields the user can select
+// the first three will be for internal use
 const (
 	FirstTimeStamp FieldID = iota
 	PreviousTimeStamp
@@ -121,6 +123,9 @@ func initFieldNamesMap() {
 
 func GetFieldID(name string) (FieldID, bool) {
 	id, ok := fieldNameToID[name]
+	if ok {
+		id = id - FirstField
+	}
 	return id, ok
 }
 

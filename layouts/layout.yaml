@@ -2,30 +2,6 @@ Windows:
     1:
         uiwindow:
             Dims:
-                X0: 50
-                Y0: 46
-                Width: 117
-                Height: 70
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 6
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 0
-                PreviewValue: "234"
-            Title: SPEEDO
-        uidata:
-            WID: 1
-            TelemetryField: ""
-    2:
-        uiwindow:
-            Dims:
                 X0: 200
                 Y0: 45
                 Width: 151
@@ -45,5 +21,53 @@ Windows:
                 PreviewValue: "4356"
             Title: TACHO
         uidata:
+            WID: 1
+            TelemetryField: RPM
+    2:
+        uiwindow:
+            Dims:
+                X0: 50
+                Y0: 46
+                Width: 117
+                Height: 70
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 6
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 0
+                PreviewValue: "234"
+            Title: SPEEDO
+        uidata:
             WID: 2
-            TelemetryField: ""
+            TelemetryField: Speed
+    3:
+        uiwindow:
+            Dims:
+                X0: 390
+                Y0: 45
+                Width: 50
+                Height: 71
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 6
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 0
+                PreviewValue: R
+            Title: Box
+        uidata:
+            WID: 3
+            TelemetryField: Gear
