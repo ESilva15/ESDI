@@ -148,8 +148,28 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 			}
 		case telem.Gear:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeUINT8
-				out.Raw = uint64(v.(int))
+				out.Type = telem.DataTypeCHAR
+				// out.Raw = uint64(v.(int))
+
+				gear := 0
+				if val, ok := v.(int32); ok {
+					gear = int(val)
+				} else if val, ok := v.(int); ok {
+					gear = val
+				}
+
+				switch {
+				case gear == 0:
+					out.Raw = uint64('N') // ASCII 78
+				case gear < 0:
+					out.Raw = uint64('R') // ASCII 82
+				case gear > 0 && gear < 10:
+					// Quickest way to turn 1 into '1', 2 into '2', etc.
+					// ASCII '0' is 48, so 48 + 1 = 49 ('1')
+					out.Raw = uint64('0' + gear)
+				default:
+					out.Raw = uint64('?') // Fallback
+				}
 			}
 		case telem.RPM:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
