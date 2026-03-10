@@ -94,7 +94,7 @@ func (sc *StreamingCtrl) SetInternalState() {
 	fields := make([]telemetry.FieldID, 0, len(sc.Service.CDash.State.Layout.Windows))
 	for _, w := range sc.Service.CDash.State.Layout.Windows {
 		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
-		fields = append(fields, fieldID-telemetry.FirstField)
+		fields = append(fields, fieldID)
 	}
 
 	sc.TelemServ.ActiveProvider.Subscribe(fields)

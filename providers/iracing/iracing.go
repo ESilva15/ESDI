@@ -10,7 +10,6 @@ import (
 	"time"
 
 	conv "esdi/conversions"
-	"esdi/telemetry"
 	telem "esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
@@ -76,12 +75,6 @@ func (i *IRacing) stream(ctx context.Context) {
 			case <-i.ticker.C:
 				i.readData()
 
-				// Create a snapshot
-				i.mut.Lock()
-				// snapshot := *i.data
-				i.logger.Debug(fmt.Sprintf("%v\n", i.data.Values))
-				i.mut.Unlock()
-
 				// Publish data
 				select {
 				case i.streamCh <- *i.data:
@@ -108,7 +101,7 @@ func (i *IRacing) readData() {
 	for _, b := range i.activeBindings {
 		v := i.SDK.Vars.Vars[b.Key].Value
 		// NOTE: for the love of god, find a way of avoiding this shit
-		b.Transform(v, &i.data.Values[b.ID+telem.FirstField])
+		b.Transform(v, &i.data.Values[b.ID])
 	}
 
 	i.data.PenultimateDataPoll = i.data.LastDataPoll
@@ -136,7 +129,7 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 
 	for _, id := range requestFields {
 		// Translate the UI FieldIDs to this provider's field names
-		sdkKey, ok := internalToSDKFieldNames[id+telem.FirstField]
+		sdkKey, ok := internalToSDKFieldNames[id]
 		if !ok {
 			i.logger.Debug("failed to get internal id")
 			// Need to find a way to pass a message saying something wasn't right
@@ -149,19 +142,19 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 		}
 
 		switch id {
-		case telem.Speed - telem.FirstField:
+		case telem.Speed:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
+				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(conv.MsToKph(v.(float32)))
 			}
-		case telem.Gear - telem.FirstField:
+		case telem.Gear:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT8
+				out.Type = telem.DataTypeUINT8
 				out.Raw = uint64(v.(int))
 			}
-		case telem.RPM - telem.FirstField:
+		case telem.RPM:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
+				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
 			}
 		}
