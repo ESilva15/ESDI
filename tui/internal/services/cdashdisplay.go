@@ -4,8 +4,10 @@ import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
 	"esdi/peripheral"
+	"esdi/telemetry"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 )
 
 type CDashService struct {
@@ -88,4 +90,22 @@ func (cds *CDashService) MoveWindow(idx int16, vec *helper.Vector) error {
 	}
 
 	return nil
+}
+
+func (cds *CDashService) StreamData(stream <-chan telemetry.TelemetryData) {
+	var isSending atomic.Bool
+
+	go func() {
+
+		for msg := range stream {
+			if isSending.Load() {
+				continue
+			}
+
+			isSending.Store(true)
+
+			cds.CDash.SendData(&msg)
+			isSending.Store(false)
+		}
+	}()
 }

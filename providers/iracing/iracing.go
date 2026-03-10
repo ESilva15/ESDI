@@ -21,9 +21,8 @@ type IRacing struct {
 	SDK    *goirsdk.IBT
 
 	// Data Handling
-	mut            sync.Mutex
-	data           *telem.TelemetryData
-	activeBindings []boundField
+	mut  sync.Mutex
+	data *telem.TelemetryData
 
 	// Timing information
 	ticker *time.Ticker // ticker will keep polling intervals constant
@@ -98,7 +97,7 @@ func (i *IRacing) readData() {
 	}
 
 	// Read binded data
-	for _, b := range i.activeBindings {
+	for _, b := range i.data.ActiveBinds {
 		v := i.SDK.Vars.Vars[b.Key].Value
 		// NOTE: for the love of god, find a way of avoiding this shit
 		b.Transform(v, &i.data.Values[b.ID])
@@ -125,7 +124,7 @@ func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 
-	i.activeBindings = make([]boundField, 0, len(requestFields))
+	i.data.ActiveBinds = make([]telem.BoundField, 0, len(requestFields))
 
 	for _, id := range requestFields {
 		// Translate the UI FieldIDs to this provider's field names
@@ -136,7 +135,7 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 			continue
 		}
 
-		binding := boundField{
+		binding := telem.BoundField{
 			Key: sdkKey,
 			ID:  id,
 		}
@@ -159,8 +158,8 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 			}
 		}
 
-		i.activeBindings = append(i.activeBindings, binding)
+		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
 	}
 
-	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.activeBindings))
+	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))
 }

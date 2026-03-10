@@ -13,6 +13,7 @@ import (
 	"esdi/peripheral/communication"
 	"esdi/peripheral/communication/packets"
 	"esdi/peripheral/types"
+	"esdi/telemetry"
 
 	"gopkg.in/yaml.v3"
 )
@@ -33,7 +34,8 @@ const (
 	destroyWindowCMDID    types.Command = 4
 	updateWindowDimsCMDID types.Command = 5
 	updateWindowCMDID     types.Command = 6 // Change this to a move cmd instead
-	newLayoutCMDID        types.Command = 7
+	sendDataCMDID         types.Command = 7
+	newLayoutCMDID        types.Command = 8
 )
 
 const (
@@ -335,4 +337,32 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 	}
 
 	return nil
+}
+
+func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
+	packet := data.Pack()
+
+	bytes, err := helper.StructToBytes(packet)
+	if err != nil {
+		return
+	}
+
+	curStr := ""
+	byteCount := 0
+	for _, byte := range bytes {
+		byteCount++
+		curStr += fmt.Sprintf("%02x ", byte)
+
+		if byteCount == 8 {
+			pLogger.Debug(curStr)
+			curStr = ""
+			byteCount = 0
+		}
+	}
+
+	// var ack packets.AckPacket
+	err = d.WT.SendCommand(sendDataCMDID, bytes, nil)
+	if err != nil && err != io.EOF {
+		return
+	}
 }

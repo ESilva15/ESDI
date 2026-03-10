@@ -11,12 +11,14 @@ import (
 // It should hook to a data sink and handle it like iRacing, BeamNG, AC and so on
 type TelemetryService struct {
 	logger         *slog.Logger
+	cdash          *CDashService
 	ActiveProvider telemetry.TelemetryProvider
 }
 
-func NewTelemetryService(logger *slog.Logger) *TelemetryService {
+func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetryService {
 	return &TelemetryService{
 		logger: logger,
+		cdash:  cdash,
 	}
 }
 
@@ -45,5 +47,9 @@ func (t *TelemetryService) SetProvider(provider string) *TelemetryService {
 
 func (t *TelemetryService) StartStream() <-chan telemetry.TelemetryData {
 	stream, _ := t.ActiveProvider.Stream()
+
+	// Somewhere around here we have to tell the device service to also send data
+	t.cdash.StreamData(stream)
+
 	return stream
 }
