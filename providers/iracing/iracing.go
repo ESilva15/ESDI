@@ -121,12 +121,12 @@ func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 	return i.streamCh, nil
 }
 
-func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
+func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 
 	i.data.ActiveBinds = make([]telem.BoundField, 0, len(requestFields))
 
-	for _, id := range requestFields {
+	for winID, id := range requestFields {
 		// Translate the UI FieldIDs to this provider's field names
 		sdkKey, ok := internalToSDKFieldNames[id]
 		if !ok {
@@ -178,6 +178,7 @@ func (i *IRacing) Subscribe(requestFields []telem.FieldID) {
 			}
 		}
 
+		i.data.Values[id].ID = winID
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
 	}
 

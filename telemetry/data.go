@@ -47,6 +47,7 @@ const (
 // application.
 // From my testing, using an uint64 bucket is around 50x faster than any
 type TelemetryField struct {
+	ID   int16 // Identification: I have to learn how I will use this on other devices
 	Type DataType
 	Raw  uint64
 	Str  string // Only to be used with DataTypeSTRING
@@ -54,17 +55,20 @@ type TelemetryField struct {
 
 // Pack will pack this current TelemetryField into bytes to send over the wire
 // Format:
-// 0x00 - DataType
-// 0x01 - if its a (u)int8
+// 0x00 - Field ID
+// 0x00 |
+// 0x01 - DataType
+// 0x02 - if its a (u)int8
 // or
-// 0x01 - if its a (u)int16 - first byte
-// 0x01 - if its a (u)int16 - second byte
+// 0x02 - if its a (u)int16 - first byte
+// 0x02 - if its a (u)int16 - second byte
 // or
 // 0x02 - str len max is 255 chars
 // [0x02] - str
 func (tf *TelemetryField) Pack(dest []byte) []byte {
 	// NOTE: maybe we can have a pool of these so we don't have to create them here
 	// or whatever
+	dest = append(dest, uint8(tf.ID), uint8(tf.ID>>8))
 	dest = append(dest, uint8(tf.Type))
 
 	switch tf.Type {

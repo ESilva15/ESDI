@@ -17,51 +17,57 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_max_uint8",
 			tf: TelemetryField{
+				ID:   0x01,
 				Type: DataTypeUINT8,
 				Raw:  uint64(math.MaxUint8),
 			},
-			expect: []byte{0x00, 0xFF},
+			expect: []byte{0x01, 0x00, 0x00, 0xFF},
 		},
 		{
 			name: "test_max_int8",
 			tf: TelemetryField{
+				ID:   0x02,
 				Type: DataTypeINT8,
 				Raw:  uint64(math.MaxInt8),
 			},
-			expect: []byte{0x01, 0x7F},
+			expect: []byte{0x02, 0x00, 0x01, 0x7F},
 		},
 		{
 			name: "test_max_uint16",
 			tf: TelemetryField{
+				ID:   0x03,
 				Type: DataTypeUINT16,
 				Raw:  uint64(math.MaxUint16),
 			},
-			expect: []byte{0x02, 0xFF, 0xFF},
+			expect: []byte{0x03, 0x00, 0x02, 0xFF, 0xFF},
 		},
 		{
 			name: "test_max_int16",
 			tf: TelemetryField{
+				ID:   0x04,
 				Type: DataTypeINT16,
 				Raw:  uint64(math.MaxInt16),
 			},
-			expect: []byte{0x03, 0xFF, 0x7F},
+			expect: []byte{0x04, 0x00, 0x03, 0xFF, 0x7F},
 		},
 		{
 			name: "test_string",
 			tf: TelemetryField{
+				ID:   0x05,
 				Type: DataTypeSTRING,
 				Str:  "a cool string!",
 			},
-			expect: []byte{0x08, 0x0E, 0x61, 0x20, 0x63, 0x6F, 0x6F, 0x6C, 0x20, 0x73,
+			expect: []byte{0x05, 0x00, 0x08, 0x0E, 0x61, 0x20, 0x63, 0x6F, 0x6F, 0x6C, 0x20, 0x73,
 				0x74, 0x72, 0x69, 0x6E, 0x67, 0x21},
 		},
 		{
 			name: "test_char",
 			tf: TelemetryField{
+				ID:   0x06,
 				Type: DataTypeCHAR,
 				Raw:  uint64('R'),
 			},
-			expect: []byte{0x09, 0x52},
+			expect: []byte{0x06, 0x00, 0x09, 0x52},
 		},
 	}
 
@@ -92,16 +98,18 @@ func Test_TelemetryData(t *testing.T) {
 	}
 
 	data.Values[Speed] = TelemetryField{
+		ID:   0x01,
 		Type: DataTypeUINT16,
 		Raw:  uint64(254),
 	}
 
 	data.Values[Gear] = TelemetryField{
+		ID:   0x02,
 		Type: DataTypeCHAR,
 		Raw:  uint64('R'),
 	}
 
-	expect := []byte{0x02, 0xFE, 0x00, 0x09, 0x52}
+	expect := []byte{0x01, 0x00, 0x02, 0xFE, 0x00, 0x02, 0x00, 0x09, 0x52}
 
 	result := data.Pack()
 	if !bytes.Equal(result, expect) {

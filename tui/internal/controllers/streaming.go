@@ -89,12 +89,15 @@ func (sc *StreamingCtrl) Start() {
 // goes into the layout tool, sets up the data to transmit to his devices and
 // then comes here to stream that data. We call this to set the fields the user
 // has subscrived to in his tooling
+//
+// Performance reasoning: this is not used during the high frequency data transmission
+// so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
-	// Get the subscribed fields
-	fields := make([]telemetry.FieldID, 0, len(sc.Service.CDash.State.Layout.Windows))
+	fields := make(map[int16]telemetry.FieldID, len(sc.Service.CDash.State.Layout.Windows))
+
 	for _, w := range sc.Service.CDash.State.Layout.Windows {
 		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
-		fields = append(fields, fieldID)
+		fields[w.UIData.IDX] = fieldID
 	}
 
 	sc.TelemServ.ActiveProvider.Subscribe(fields)
