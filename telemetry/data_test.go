@@ -17,7 +17,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_max_uint8",
 			tf: TelemetryField{
-				ID:   0x01,
+				IDs:  []int16{0x01},
 				Type: DataTypeUINT8,
 				Raw:  uint64(math.MaxUint8),
 			},
@@ -26,7 +26,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_max_int8",
 			tf: TelemetryField{
-				ID:   0x02,
+				IDs:  []int16{0x02},
 				Type: DataTypeINT8,
 				Raw:  uint64(math.MaxInt8),
 			},
@@ -35,7 +35,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_max_uint16",
 			tf: TelemetryField{
-				ID:   0x03,
+				IDs:  []int16{0x03},
 				Type: DataTypeUINT16,
 				Raw:  uint64(math.MaxUint16),
 			},
@@ -44,7 +44,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_max_int16",
 			tf: TelemetryField{
-				ID:   0x04,
+				IDs:  []int16{0x04},
 				Type: DataTypeINT16,
 				Raw:  uint64(math.MaxInt16),
 			},
@@ -53,7 +53,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_string",
 			tf: TelemetryField{
-				ID:   0x05,
+				IDs:  []int16{0x05},
 				Type: DataTypeSTRING,
 				Str:  "a cool string!",
 			},
@@ -63,7 +63,7 @@ func Test_TelemetryField(t *testing.T) {
 		{
 			name: "test_char",
 			tf: TelemetryField{
-				ID:   0x06,
+				IDs:  []int16{0x06},
 				Type: DataTypeCHAR,
 				Raw:  uint64('R'),
 			},
@@ -94,22 +94,38 @@ func Test_TelemetryData(t *testing.T) {
 				Key: "Gear",
 				ID:  Gear,
 			},
+			{
+				Key: "Empty",
+				ID:  Empty,
+			},
 		},
 	}
 
 	data.Values[Speed] = TelemetryField{
-		ID:   0x01,
+		IDs:  []int16{0x01},
 		Type: DataTypeUINT16,
 		Raw:  uint64(254),
 	}
 
 	data.Values[Gear] = TelemetryField{
-		ID:   0x02,
+		IDs:  []int16{0x02},
 		Type: DataTypeCHAR,
 		Raw:  uint64('R'),
 	}
 
-	expect := []byte{0x01, 0x00, 0x02, 0xFE, 0x00, 0x02, 0x00, 0x09, 0x52}
+	data.Values[Empty] = TelemetryField{
+		IDs:  []int16{0x03, 0x04, 0x05},
+		Type: DataTypeCHAR,
+		Raw:  uint64('-'),
+	}
+
+	expect := []byte{
+		0x01, 0x00, 0x02, 0xFE, 0x00,
+		0x02, 0x00, 0x09, 0x52,
+		0x03, 0x00, 0x09, 0x2d,
+		0x04, 0x00, 0x09, 0x2d,
+		0x05, 0x00, 0x09, 0x2d,
+	}
 
 	result := data.Pack()
 	if !bytes.Equal(result, expect) {

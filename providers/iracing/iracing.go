@@ -189,7 +189,7 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			}
 		}
 
-		i.data.Values[id].ID = winID
+		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
 	}
 

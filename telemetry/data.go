@@ -45,9 +45,13 @@ const (
 
 // TelemetryField will be the basic unit to hold telemetry data values in our
 // application.
-// From my testing, using an uint64 bucket is around 50x faster than any
+// From my testing, using an uint64 bucket is around 50x faster than any/interface{}
+// The IDs member is a list so that we can have multiple items on the target device
+// consuming the same piece of data
+// NOTE: we can optimize this via a special command that says a given piece of data
+// is for multiple targets
 type TelemetryField struct {
-	ID   int16 // Identification: I have to learn how I will use this on other devices
+	IDs  []int16 // Identification for the serial device
 	Type DataType
 	Raw  uint64
 	Str  string // Only to be used with DataTypeSTRING
@@ -68,28 +72,28 @@ type TelemetryField struct {
 func (tf *TelemetryField) Pack(dest []byte) []byte {
 	// NOTE: maybe we can have a pool of these so we don't have to create them here
 	// or whatever
-	dest = append(dest, uint8(tf.ID), uint8(tf.ID>>8))
-	dest = append(dest, uint8(tf.Type))
+	for _, id := range tf.IDs {
+		dest = append(dest, uint8(id), uint8(id>>8))
+		dest = append(dest, uint8(tf.Type))
 
-	switch tf.Type {
-	case DataTypeINT8, DataTypeUINT8:
-		dest = append(dest, uint8(tf.Raw))
-	case DataTypeINT16, DataTypeUINT16:
-		dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8))
-	case DataTypeINT32, DataTypeUINT32:
-		dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16))
-	case DataTypeINT64, DataTypeUINT64:
-		dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16),
-			uint8(tf.Raw>>24), uint8(tf.Raw>>32), uint8(tf.Raw>>40), uint8(tf.Raw>>48),
-			uint8(tf.Raw>>56),
-		)
-	case DataTypeSTRING:
-		l := min(len(tf.Str), math.MaxUint8)
+		switch tf.Type {
+		case DataTypeINT8, DataTypeUINT8, DataTypeCHAR:
+			dest = append(dest, uint8(tf.Raw))
+		case DataTypeINT16, DataTypeUINT16:
+			dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8))
+		case DataTypeINT32, DataTypeUINT32:
+			dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16), uint8(tf.Raw>>24))
+		case DataTypeINT64, DataTypeUINT64:
+			dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16),
+				uint8(tf.Raw>>24), uint8(tf.Raw>>32), uint8(tf.Raw>>40), uint8(tf.Raw>>48),
+				uint8(tf.Raw>>56),
+			)
+		case DataTypeSTRING:
+			l := min(len(tf.Str), math.MaxUint8)
 
-		dest = append(dest, uint8(l))
-		dest = append(dest, tf.Str[:l]...)
-	case DataTypeCHAR:
-		dest = append(dest, uint8(tf.Raw))
+			dest = append(dest, uint8(l))
+			dest = append(dest, tf.Str[:l]...)
+		}
 	}
 
 	return dest
@@ -156,13 +160,9 @@ func GetFieldID(name string) (FieldID, bool) {
 	return id, ok
 }
 
-// NOTE: Replace values with a more appropriate custom field approach where
-// every custom field only takes as many bytes as required
-// NOTE: Add the timing fields here to count frames of data gathering and whatnot
-// remember to do the same to whoever is sending data
-
+// TelemetryData is
+// I need to find a way of having the values be per window or some other
 type TelemetryData struct {
-	// Values map[string]*TelemetryField
 	Values              [MaxFields]TelemetryField
 	ActiveBinds         []BoundField
 	InitialTime         time.Time
