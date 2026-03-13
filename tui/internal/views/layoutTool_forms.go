@@ -34,9 +34,9 @@ func NewCDashDisplayWindowFormView() *CDashDisplayWindowFormView {
 	view.Title = tview.NewInputField().SetLabel("title")
 	view.PreviewValue = tview.NewInputField().SetLabel("preview value")
 	view.ShowID = tview.NewCheckbox().SetLabel("show ID").SetChecked(true)
-	view.WinType = tview.NewDropDown().SetLabel("type").
-		SetOptions([]string{"string", "bar"}, func(s string, id int) {}).
-		SetCurrentOption(0)
+	view.WinType = tview.NewDropDown().SetLabel("Win Type").
+		SetOptions(cdashdisplay.WinTYPES, func(s string, id int) {}).
+		SetCurrentOption(int(cdashdisplay.WinTypeSTRING))
 
 	view.TitleSize = tview.NewDropDown().SetLabel("Title Size").SetCurrentOption(0)
 	for k := range 20 {
@@ -127,7 +127,7 @@ func (fv *WindowFormView) SetValues(win *cdashdisplay.DesktopUIWindow) {
 	fv.Form.Title.SetText(win.Title.String())
 	fv.Form.PreviewValue.SetText(win.Opts.PreviewValue.String())
 	fv.Form.ShowID.SetChecked(win.Opts.ShowID == 1)
-	fv.Form.WinType.SetCurrentOption(0) // NOTE: this needs to set the correct option
+	fv.Form.WinType.SetCurrentOption(int(win.Opts.WinType)) // NOTE: this needs to set the correct option
 	fv.Form.TitleSize.SetCurrentOption(int(win.Decor.TitleSize))
 	fv.Form.TextSize.SetCurrentOption(int(win.Decor.TextSize))
 

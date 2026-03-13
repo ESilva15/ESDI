@@ -3,7 +3,6 @@ package controllers
 import (
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
-	"esdi/telemetry"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
 	"fmt"
@@ -123,6 +122,11 @@ func (lc *LayoutController) parseWindowFormData(
 		return nil, err
 	}
 
+	winTypeInputID, _ := form.WinType.GetCurrentOption()
+	if winTypeInputID == -1 {
+		return nil, fmt.Errorf("no option selected for win type")
+	}
+
 	titleSizeInputID, titleSizeInput := form.TitleSize.GetCurrentOption()
 	if titleSizeInputID == -1 {
 		return nil, fmt.Errorf("no option selected for title size")
@@ -163,7 +167,7 @@ func (lc *LayoutController) parseWindowFormData(
 			Height: uint16(heightValue),
 		},
 		Opts: cdashdisplay.UIWindowOpts{
-			WinType:      cdashdisplay.WinTypeString, // NOTE: values aren't implemented yet
+			WinType:      uint8(winTypeInputID),
 			ShowID:       showIDValue,
 			PreviewValue: helper.B32(form.PreviewValue.GetText()),
 		},
@@ -192,14 +196,11 @@ func (lc *LayoutController) createWindow() {
 		return
 	}
 
-	lc.Messages <- fmt.Sprintf("pre  update w address: %p\n", window)
 	window, err = lc.DevService.CreateWindow(window)
 	if err != nil {
 		lc.Messages <- "failed to create window\n"
 		return
 	}
-	lc.Messages <- fmt.Sprintf("post update w address: %p\n", window)
-	lc.Messages <- fmt.Sprintf("%+v\n", window)
 
 	err = lc.updateFormView(window)
 	if err != nil {
@@ -213,15 +214,7 @@ func (lc *LayoutController) createWindow() {
 // the buttons for that purpuse
 func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) error {
 	// OnSuccess we update our form to be an existing window form
-
 	lc.Messages <- fmt.Sprintf("Setting up window:\n%+v\n", win)
-
-	telemFieldID, ok := telemetry.GetFieldID(win.UIData.TelemetryField)
-	if !ok {
-		telemFieldID = 1000
-	}
-
-	lc.Messages <- fmt.Sprintf("field id for: %s is %d\n", win.UIData.TelemetryField, telemFieldID)
 
 	err := lc.LayoutToolView.WindowCreatedSuccessfuly(win)
 	if err != nil {
@@ -230,16 +223,15 @@ func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) er
 
 	// Set the update window button behaviour
 	formView := lc.LayoutToolView.FormQuickAccess[win.UIData.IDX]
-	lc.Messages <- fmt.Sprintf("QA FORM: %+v\n", lc.LayoutToolView.FormQuickAccess)
 
 	err = SetFormButtonCallback(formView.Form.Form, "Update", func() {
 		lc.Messages <- "pressed update form button\n"
 		window, err := lc.parseWindowFormData(*formView.Form)
 		if err != nil {
-			lc.Messages <- "failed to parse window form data " + err.Error() + "\n"
+			// lc.Messages <- "failed to parse window form data " + err.Error() + "\n"
 			return
 		}
-		lc.Messages <- fmt.Sprintf("window data in form: %v\n", window)
+		// lc.Messages <- fmt.Sprintf("window data in form: %v\n", window)
 
 		window.UIData.IDX = formView.WinID
 
@@ -259,7 +251,7 @@ func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) er
 		return ev
 	})
 
-	lc.App.SetFocus(formView.Form.Form)
+	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
 
 	return nil
 }
@@ -313,12 +305,18 @@ func (lc *LayoutController) updateWindowAction(win *cdashdisplay.DesktopUIWindow
 }
 
 func (lc *LayoutController) displayLoadedLayouts() {
+	lc.Logger.Debug("We want to view our layout!")
+
 	for _, w := range lc.DevService.CDash.State.Layout.Windows {
+		lc.Logger.Debug(fmt.Sprintf("updatinf form view for a layout: %+v", w))
 		err := lc.updateFormView(w)
 		if err != nil {
+			lc.Logger.Debug("an error happened viewing our layout")
 			lc.Messages <- "failed to add window to list"
 		}
 	}
+
+	lc.Logger.Debug("If we don't get here it means we somehow hanged the program earlier")
 }
 
 func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, int16, error) {

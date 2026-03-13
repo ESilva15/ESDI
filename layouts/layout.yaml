@@ -2,23 +2,23 @@ Windows:
     1:
         uiwindow:
             Dims:
-                X0: 200
-                Y0: 45
-                Width: 151
-                Height: 70
+                X0: 142
+                Y0: 19
+                Width: 500
+                Height: 20
             Decor:
                 BGColour: 4161
                 FGColour: 65535
                 TitleColour: 65535
                 BorderColour: 63488
-                TitleSize: 2
-                TextSize: 6
+                TitleSize: 1
+                TextSize: 2
                 HasBorder: 1
                 Padding: 0
             Opts:
                 ShowID: 0
-                WinType: 0
-                PreviewValue: "4356"
+                WinType: 1
+                PreviewValue: "5678"
             Title: TACHO
         uidata:
             WID: 1
@@ -26,9 +26,9 @@ Windows:
     2:
         uiwindow:
             Dims:
-                X0: 50
-                Y0: 46
-                Width: 117
+                X0: 331
+                Y0: 190
+                Width: 116
                 Height: 70
             Decor:
                 BGColour: 4161
@@ -41,7 +41,7 @@ Windows:
                 Padding: 0
             Opts:
                 ShowID: 0
-                WinType: 0
+                WinType: 2
                 PreviewValue: "234"
             Title: SPEEDO
         uidata:
@@ -50,24 +50,96 @@ Windows:
     3:
         uiwindow:
             Dims:
-                X0: 390
-                Y0: 45
-                Width: 50
-                Height: 71
+                X0: 354
+                Y0: 71
+                Width: 74
+                Height: 111
             Decor:
                 BGColour: 4161
                 FGColour: 65535
                 TitleColour: 65535
                 BorderColour: 63488
                 TitleSize: 2
-                TextSize: 6
+                TextSize: 12
                 HasBorder: 1
                 Padding: 0
             Opts:
                 ShowID: 0
-                WinType: 0
+                WinType: 2
                 PreviewValue: R
             Title: Box
         uidata:
             WID: 3
             TelemetryField: Gear
+    4:
+        uiwindow:
+            Dims:
+                X0: 9
+                Y0: 413
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12"
+            Title: ABS
+        uidata:
+            WID: 4
+            TelemetryField: Emtpy
+    5:
+        uiwindow:
+            Dims:
+                X0: 74
+                Y0: 413
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12"
+            Title: TC
+        uidata:
+            WID: 5
+            TelemetryField: Emtpy
+    6:
+        uiwindow:
+            Dims:
+                X0: 140
+                Y0: 412
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "6"
+            Title: Thr
+        uidata:
+            WID: 6
+            TelemetryField: Emtpy

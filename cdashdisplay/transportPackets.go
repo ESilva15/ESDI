@@ -9,8 +9,13 @@ const (
 )
 
 const (
-	WinTypeString uint8 = 0
+	WinTypeBASE uint8 = iota
+	WinTypeBAR
+	WinTypeSTRING
+	WinTypeTABLE
 )
+
+var WinTYPES = []string{"BASE", "BAR", "STRING", "TABLE"}
 
 type UIDimensions struct {
 	X0     uint16 `yaml:"X0"`
