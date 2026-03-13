@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -175,6 +176,11 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			binding.Transform = func(v any, out *telem.TelemetryField) {
 				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
+			}
+		case telem.BrakeBias:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telem.DataTypeSTRING
+				out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
 			}
 		case telem.Empty:
 			binding.Transform = func(v any, out *telem.TelemetryField) {

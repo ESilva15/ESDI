@@ -1,29 +1,5 @@
 Windows:
-    1:
-        uiwindow:
-            Dims:
-                X0: 142
-                Y0: 19
-                Width: 500
-                Height: 20
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 1
-                TextSize: 2
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 1
-                PreviewValue: "5678"
-            Title: TACHO
-        uidata:
-            WID: 1
-            TelemetryField: RPM
-    2:
+    7:
         uiwindow:
             Dims:
                 X0: 331
@@ -45,9 +21,9 @@ Windows:
                 PreviewValue: "234"
             Title: SPEEDO
         uidata:
-            WID: 2
+            WID: 7
             TelemetryField: Speed
-    3:
+    8:
         uiwindow:
             Dims:
                 X0: 354
@@ -69,9 +45,9 @@ Windows:
                 PreviewValue: R
             Title: Box
         uidata:
-            WID: 3
+            WID: 8
             TelemetryField: Gear
-    4:
+    9:
         uiwindow:
             Dims:
                 X0: 9
@@ -93,9 +69,9 @@ Windows:
                 PreviewValue: "12"
             Title: ABS
         uidata:
-            WID: 4
+            WID: 9
             TelemetryField: Emtpy
-    5:
+    10:
         uiwindow:
             Dims:
                 X0: 74
@@ -117,9 +93,9 @@ Windows:
                 PreviewValue: "12"
             Title: TC
         uidata:
-            WID: 5
+            WID: 10
             TelemetryField: Emtpy
-    6:
+    11:
         uiwindow:
             Dims:
                 X0: 140
@@ -141,5 +117,53 @@ Windows:
                 PreviewValue: "6"
             Title: Thr
         uidata:
-            WID: 6
+            WID: 11
             TelemetryField: Emtpy
+    12:
+        uiwindow:
+            Dims:
+                X0: 142
+                Y0: 19
+                Width: 500
+                Height: 20
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 1
+                TextSize: 2
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 1
+                PreviewValue: "5678"
+            Title: TACHO
+        uidata:
+            WID: 12
+            TelemetryField: RPM
+    13:
+        uiwindow:
+            Dims:
+                X0: 207
+                Y0: 412
+                Width: 111
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "61.4"
+            Title: BBias
+        uidata:
+            WID: 13
+            TelemetryField: BrakeBias

@@ -120,16 +120,18 @@ const (
 	Speed FieldID = iota
 	RPM
 	Gear
+	BrakeBias
 	Empty
 	MaxFields
 )
 const FirstField = Speed
 
 var FieldNames = [MaxFields]string{
-	Speed: "Speed",
-	RPM:   "RPM",
-	Gear:  "Gear",
-	Empty: "Emtpy",
+	Speed:     "Speed",
+	RPM:       "RPM",
+	Gear:      "Gear",
+	BrakeBias: "BrakeBias",
+	Empty:     "Emtpy",
 }
 
 func GetFieldName(id FieldID) string {
