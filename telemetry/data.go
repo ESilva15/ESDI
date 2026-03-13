@@ -120,6 +120,7 @@ const (
 	Speed FieldID = iota
 	RPM
 	Gear
+	Empty
 	MaxFields
 )
 const FirstField = Speed
@@ -128,11 +129,12 @@ var FieldNames = [MaxFields]string{
 	Speed: "Speed",
 	RPM:   "RPM",
 	Gear:  "Gear",
+	Empty: "Emtpy",
 }
 
 func GetFieldName(id FieldID) string {
 	if id >= MaxFields {
-		return "Uknown"
+		return "Unknown"
 	}
 
 	return FieldNames[id]

@@ -99,7 +99,7 @@ func (i *IRacing) readData() {
 	// Read binded data
 	for _, b := range i.data.ActiveBinds {
 		v := i.SDK.Vars.Vars[b.Key].Value
-		// NOTE: for the love of god, find a way of avoiding this shit
+
 		b.Transform(v, &i.data.Values[b.ID])
 	}
 
@@ -175,6 +175,11 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			binding.Transform = func(v any, out *telem.TelemetryField) {
 				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
+			}
+		case telem.Empty:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telem.DataTypeCHAR
+				out.Raw = uint64('-')
 			}
 		}
 
