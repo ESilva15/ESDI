@@ -127,7 +127,16 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 
 	i.data.ActiveBinds = make([]telem.BoundField, 0, len(requestFields))
 
+	boundCheck := make(map[telem.FieldID]bool)
+
 	for winID, id := range requestFields {
+		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
+
+		// Check if we already bound this FieldID
+		if boundCheck[id] {
+			continue
+		}
+
 		// Translate the UI FieldIDs to this provider's field names
 		sdkKey, ok := internalToSDKFieldNames[id]
 		if !ok {
@@ -189,8 +198,8 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			}
 		}
 
-		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
+		boundCheck[id] = true
 	}
 
 	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))
