@@ -135,6 +135,9 @@ const (
 	ABSSetting
 	TCSetting
 	ThrottleSetting
+	// Lap Data
+	LapLastLapTime
+	LapNumber
 	// Tire Data
 	LFtempL
 	LFtempM
@@ -167,6 +170,9 @@ var FieldNames = [MaxFields]string{
 	ABSSetting:      "ABS Control",
 	TCSetting:       "TC Control",
 	ThrottleSetting: "Throttle Control",
+	// Lap Data
+	LapLastLapTime: "Last Lap Time",
+	LapNumber:      "Lap Number",
 	// Tire Data
 	LFtempL: "LF Surface Temp Left",
 	LFtempM: "LF Surface Temp Mid",

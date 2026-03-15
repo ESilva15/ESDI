@@ -17,6 +17,9 @@ var internalToSDKFieldNames = map[telemetry.FieldID]string{
 	telemetry.ABSSetting:      "dcABS",
 	telemetry.TCSetting:       "dcTractionControl",
 	telemetry.ThrottleSetting: "dcThrottleShape",
+	// Lap Data
+	telemetry.LapLastLapTime: "LapLastLapTime",
+	telemetry.LapNumber:      "Lap",
 	// Tire data
 	telemetry.LFtempL: "LFtempCL",
 	telemetry.LFtempM: "LFtempCM",

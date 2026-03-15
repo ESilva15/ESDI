@@ -216,10 +216,11 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
 			}
 		case telem.Empty:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeCHAR
-				out.Raw = uint64('-')
-			}
+			binding.Transform = EmptyTransform
+		case telem.LapLastLapTime:
+			binding.Transform = LapTimeTransform
+		case telem.LapNumber:
+			binding.Transform = UInt8Transform
 		}
 
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
