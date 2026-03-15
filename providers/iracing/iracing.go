@@ -1,3 +1,6 @@
+// Package iracing is in the providers and provides telemety to our desktop
+// application. It needs to establish a relationship between the desktop data
+// structure of our app and the data iRacing provides
 package iracing
 
 import (
@@ -187,7 +190,17 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
 			}
+		case telem.PitSpeedLimiter:
+			binding.Transform = PitSpeedLimiterTransform
 		case telem.BrakeBias:
+			binding.Transform = FloatToStringTransform
+		case telem.ABSSetting:
+			binding.Transform = FloatToUInt8Transform
+		case telem.TCSetting:
+			binding.Transform = FloatToUInt8Transform
+		case telem.ThrottleSetting:
+			binding.Transform = FloatToUInt8Transform
+		case telem.LFtempM:
 			binding.Transform = func(v any, out *telem.TelemetryField) {
 				out.Type = telem.DataTypeSTRING
 				out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)

@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// NOTE: allow the user to create custom data things. For example, iRacing provides
+// multiple surface temps, but I guess the user doesn't want all of them at once.
+// allow him to make something that allows some data transformation to occur.
+
 type FieldMapper struct {
 	SDKKey    string
 	DataType  DataType
@@ -124,7 +128,27 @@ const (
 	Speed FieldID = iota
 	RPM
 	Gear
+	// Engine Warnings
+	PitSpeedLimiter
+	// Adjustements
 	BrakeBias
+	ABSSetting
+	TCSetting
+	ThrottleSetting
+	// Tire Data
+	LFtempL
+	LFtempM
+	LFtempR
+	RFtempL
+	RFtempM
+	RFtempR
+	LRtempL
+	LRtempM
+	LRtempR
+	RRtempL
+	RRtempM
+	RRtempR
+	// Session Data
 	SessionTime
 	ReplaySessionTime
 	Empty
@@ -133,10 +157,30 @@ const (
 const FirstField = Speed
 
 var FieldNames = [MaxFields]string{
-	Speed:             "Speed",
-	RPM:               "RPM",
-	Gear:              "Gear",
-	BrakeBias:         "BrakeBias",
+	Speed: "Speed",
+	RPM:   "RPM",
+	Gear:  "Gear",
+	// Engine Warnings
+	PitSpeedLimiter: "Pit Speed Limiter",
+	// Ajustments
+	BrakeBias:       "BrakeBias",
+	ABSSetting:      "ABS Control",
+	TCSetting:       "TC Control",
+	ThrottleSetting: "Throttle Control",
+	// Tire Data
+	LFtempL: "LF Surface Temp Left",
+	LFtempM: "LF Surface Temp Mid",
+	LFtempR: "LF Surface Temp Right",
+	RFtempL: "RF Surface Temp Left",
+	RFtempM: "RF Surface Temp Mid",
+	RFtempR: "RF Surface Temp Right",
+	LRtempL: "LR Surface Temp Left",
+	LRtempM: "LR Surface Temp Mid",
+	LRtempR: "LR Surface Temp Right",
+	RRtempL: "RR Surface Temp Left",
+	RRtempM: "RR Surface Temp Mid",
+	RRtempR: "RR Surface Temp Right",
+	// Session Data
 	SessionTime:       "SessionTime",
 	ReplaySessionTime: "ReplaySessionTime",
 	Empty:             "Emtpy",

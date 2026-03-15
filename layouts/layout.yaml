@@ -2,33 +2,9 @@ Windows:
     1:
         uiwindow:
             Dims:
-                X0: 142
-                Y0: 19
-                Width: 500
-                Height: 20
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 1
-                TextSize: 2
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 1
-                PreviewValue: "5678"
-            Title: TACHO
-        uidata:
-            WID: 1
-            TelemetryField: RPM
-    2:
-        uiwindow:
-            Dims:
-                X0: 207
-                Y0: 412
-                Width: 111
+                X0: 710
+                Y0: 8
+                Width: 84
                 Height: 57
             Decor:
                 BGColour: 4161
@@ -42,12 +18,12 @@ Windows:
             Opts:
                 ShowID: 0
                 WinType: 2
-                PreviewValue: "61.4"
-            Title: BBias
+                PreviewValue: PIT
+            Title: Pit Sp
         uidata:
-            WID: 2
-            TelemetryField: BrakeBias
-    3:
+            WID: 1
+            TelemetryField: Pit Speed Limiter
+    2:
         uiwindow:
             Dims:
                 X0: 331
@@ -69,33 +45,9 @@ Windows:
                 PreviewValue: "234"
             Title: SPEEDO
         uidata:
-            WID: 3
+            WID: 2
             TelemetryField: Speed
-    4:
-        uiwindow:
-            Dims:
-                X0: 50
-                Y0: 102
-                Width: 143
-                Height: 40
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 2
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "12312.34"
-            Title: SessionTime
-        uidata:
-            WID: 4
-            TelemetryField: SessionTime
-    5:
+    3:
         uiwindow:
             Dims:
                 X0: 354
@@ -117,9 +69,9 @@ Windows:
                 PreviewValue: R
             Title: Box
         uidata:
-            WID: 5
+            WID: 3
             TelemetryField: Gear
-    6:
+    4:
         uiwindow:
             Dims:
                 X0: 9
@@ -141,9 +93,9 @@ Windows:
                 PreviewValue: "12"
             Title: ABS
         uidata:
-            WID: 6
-            TelemetryField: Emtpy
-    7:
+            WID: 4
+            TelemetryField: ABS Control
+    5:
         uiwindow:
             Dims:
                 X0: 74
@@ -165,9 +117,9 @@ Windows:
                 PreviewValue: "12"
             Title: TC
         uidata:
-            WID: 7
-            TelemetryField: Emtpy
-    8:
+            WID: 5
+            TelemetryField: TC Control
+    6:
         uiwindow:
             Dims:
                 X0: 140
@@ -189,5 +141,53 @@ Windows:
                 PreviewValue: "6"
             Title: Thr
         uidata:
+            WID: 6
+            TelemetryField: Throttle Control
+    7:
+        uiwindow:
+            Dims:
+                X0: 142
+                Y0: 19
+                Width: 500
+                Height: 20
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 1
+                TextSize: 2
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 1
+                PreviewValue: "5678"
+            Title: TACHO
+        uidata:
+            WID: 7
+            TelemetryField: RPM
+    8:
+        uiwindow:
+            Dims:
+                X0: 207
+                Y0: 412
+                Width: 111
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "61.4"
+            Title: BBias
+        uidata:
             WID: 8
-            TelemetryField: Emtpy
+            TelemetryField: BrakeBias
