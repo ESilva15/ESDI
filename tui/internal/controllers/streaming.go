@@ -77,7 +77,6 @@ func (sc *StreamingCtrl) Start() {
 			isDrawing.Store(true)
 
 			sc.App.QueueUpdateDraw(func() {
-				sc.Messages <- fmt.Sprintf("got data: %+v\n", &msg)
 				sc.StreamView.Update(&msg)
 				isDrawing.Store(false)
 			})

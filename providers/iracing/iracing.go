@@ -60,7 +60,8 @@ func NewIRacingProvider(
 		SDK:      sdk,
 		data:     telem.NewTelemetryData(),
 		streamCh: make(chan telem.TelemetryData),
-		ticker:   time.NewTicker(time.Second / 60),
+		// NOTE: This is because I stupidly recorded a test IBT file in 240
+		ticker: time.NewTicker(time.Second / 240),
 	}, nil
 }
 
@@ -92,7 +93,7 @@ func (i *IRacing) readData() {
 
 	var err error
 
-	_, err = i.SDK.Update(time.Millisecond * 100)
+	_, err = i.SDK.Update(time.Millisecond * 16)
 	if err != nil {
 		return
 	}
@@ -190,6 +191,16 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			binding.Transform = func(v any, out *telem.TelemetryField) {
 				out.Type = telem.DataTypeSTRING
 				out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
+			}
+		case telem.SessionTime:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telem.DataTypeSTRING
+				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
+			}
+		case telem.ReplaySessionTime:
+			binding.Transform = func(v any, out *telem.TelemetryField) {
+				out.Type = telem.DataTypeSTRING
+				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
 			}
 		case telem.Empty:
 			binding.Transform = func(v any, out *telem.TelemetryField) {

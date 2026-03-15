@@ -1,125 +1,5 @@
 Windows:
-    7:
-        uiwindow:
-            Dims:
-                X0: 331
-                Y0: 190
-                Width: 116
-                Height: 70
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 6
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "234"
-            Title: SPEEDO
-        uidata:
-            WID: 7
-            TelemetryField: Speed
-    8:
-        uiwindow:
-            Dims:
-                X0: 354
-                Y0: 71
-                Width: 74
-                Height: 111
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 12
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: R
-            Title: Box
-        uidata:
-            WID: 8
-            TelemetryField: Gear
-    9:
-        uiwindow:
-            Dims:
-                X0: 9
-                Y0: 413
-                Width: 57
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "12"
-            Title: ABS
-        uidata:
-            WID: 9
-            TelemetryField: Emtpy
-    10:
-        uiwindow:
-            Dims:
-                X0: 74
-                Y0: 413
-                Width: 57
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "12"
-            Title: TC
-        uidata:
-            WID: 10
-            TelemetryField: Emtpy
-    11:
-        uiwindow:
-            Dims:
-                X0: 140
-                Y0: 412
-                Width: 57
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "6"
-            Title: Thr
-        uidata:
-            WID: 11
-            TelemetryField: Emtpy
-    12:
+    1:
         uiwindow:
             Dims:
                 X0: 142
@@ -141,9 +21,9 @@ Windows:
                 PreviewValue: "5678"
             Title: TACHO
         uidata:
-            WID: 12
+            WID: 1
             TelemetryField: RPM
-    13:
+    2:
         uiwindow:
             Dims:
                 X0: 207
@@ -165,5 +45,149 @@ Windows:
                 PreviewValue: "61.4"
             Title: BBias
         uidata:
-            WID: 13
+            WID: 2
             TelemetryField: BrakeBias
+    3:
+        uiwindow:
+            Dims:
+                X0: 331
+                Y0: 190
+                Width: 116
+                Height: 70
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 6
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "234"
+            Title: SPEEDO
+        uidata:
+            WID: 3
+            TelemetryField: Speed
+    4:
+        uiwindow:
+            Dims:
+                X0: 50
+                Y0: 102
+                Width: 143
+                Height: 40
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 2
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12312.34"
+            Title: SessionTime
+        uidata:
+            WID: 4
+            TelemetryField: SessionTime
+    5:
+        uiwindow:
+            Dims:
+                X0: 354
+                Y0: 71
+                Width: 74
+                Height: 111
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 12
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: R
+            Title: Box
+        uidata:
+            WID: 5
+            TelemetryField: Gear
+    6:
+        uiwindow:
+            Dims:
+                X0: 9
+                Y0: 413
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12"
+            Title: ABS
+        uidata:
+            WID: 6
+            TelemetryField: Emtpy
+    7:
+        uiwindow:
+            Dims:
+                X0: 74
+                Y0: 413
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12"
+            Title: TC
+        uidata:
+            WID: 7
+            TelemetryField: Emtpy
+    8:
+        uiwindow:
+            Dims:
+                X0: 140
+                Y0: 412
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "6"
+            Title: Thr
+        uidata:
+            WID: 8
+            TelemetryField: Emtpy

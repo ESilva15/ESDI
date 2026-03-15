@@ -96,7 +96,6 @@ func (cds *CDashService) StreamData(stream <-chan telemetry.TelemetryData) {
 	var isSending atomic.Bool
 
 	go func() {
-
 		for msg := range stream {
 			if isSending.Load() {
 				continue

@@ -23,7 +23,7 @@ func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetrySer
 }
 
 func (t *TelemetryService) setIRacingProvider() {
-	path := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/supercars_indianapolis.ibt"
+	path := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"
 	provider, _ := providerir.NewIRacingProvider(t.logger, path, "", "")
 
 	t.ActiveProvider = provider

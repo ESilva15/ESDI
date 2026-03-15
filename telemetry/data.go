@@ -125,17 +125,21 @@ const (
 	RPM
 	Gear
 	BrakeBias
+	SessionTime
+	ReplaySessionTime
 	Empty
 	MaxFields
 )
 const FirstField = Speed
 
 var FieldNames = [MaxFields]string{
-	Speed:     "Speed",
-	RPM:       "RPM",
-	Gear:      "Gear",
-	BrakeBias: "BrakeBias",
-	Empty:     "Emtpy",
+	Speed:             "Speed",
+	RPM:               "RPM",
+	Gear:              "Gear",
+	BrakeBias:         "BrakeBias",
+	SessionTime:       "SessionTime",
+	ReplaySessionTime: "ReplaySessionTime",
+	Empty:             "Emtpy",
 }
 
 func GetFieldName(id FieldID) string {
