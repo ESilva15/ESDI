@@ -17,8 +17,14 @@ type FieldMapper struct {
 	Transform func(any) uint64
 }
 
+// VirtualField will define data that is acquired through middleware
+// So fuel per lap predictions and so on
+type VirtualField struct {
+}
+
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
 // I can bind that address and read directly from there on the transform
+
 type BoundField struct {
 	Key       string
 	ID        FieldID
@@ -219,6 +225,7 @@ func GetFieldID(name string) (FieldID, bool) {
 type TelemetryData struct {
 	Values              [MaxFields]TelemetryField
 	ActiveBinds         []BoundField
+	VirtualBinds        []VirtualField
 	InitialTime         time.Time
 	PenultimateDataPoll time.Time
 	LastDataPoll        time.Time
