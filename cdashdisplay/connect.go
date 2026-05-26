@@ -4,19 +4,19 @@ import (
 	"esdi/peripheral/communication"
 	"esdi/peripheral/communication/packets"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/tarm/serial"
+	portp "go.bug.st/serial"
 )
 
 func listPorts() ([]string, error) {
-	ttyUSBs, err := filepath.Glob("/dev/ttyUSB*")
+	ports, err := portp.GetPortsList()
 	if err != nil {
 		return []string{}, err
 	}
 
-	return ttyUSBs, nil
+	return ports, nil
 }
 
 func probe(WT *communication.WalkieTalkie) error {
