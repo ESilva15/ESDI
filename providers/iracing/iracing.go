@@ -6,9 +6,7 @@ package iracing
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -44,17 +42,21 @@ func NewIRacingProvider(
 ) (*IRacing, error) {
 	var err error
 
-	// Open the input file if provided
-	var file *os.File = nil
-	if source != "" {
-		file, err = os.Open(source)
-		if err != nil {
-			log.Fatalf("Failed to open IBT file: %v", err)
-		}
-	}
+	// Open the input file if provided - otherwise live telemetry was requested
+	// Maybe this can be changed so we don't have to run it with these ifs but by configuring our
+	// provider
+	// var file goirsdk.Reader = nil
+	// if source != "" {
+	// 	file, err = os.Open(source)
+	// 	if err != nil {
+	// 		return &IRacing{}, err
+	// 		// log.Fatalf("Failed to open IBT file: %v", err)
+	// 	}
+	// }
 
-	sdk, err := goirsdk.Init(file, telemOut, yamlOut)
+	sdk, err := goirsdk.Init(nil, telemOut, yamlOut)
 	if err != nil {
+		logger.Error("failed to open the IRSDK instance")
 		return &IRacing{}, err
 	}
 
@@ -68,11 +70,30 @@ func NewIRacingProvider(
 	}, nil
 }
 
+func (i *IRacing) isDataAvailable() bool {
+	// Its offline telemetry, data must be available
+	if i.SDK.File != nil {
+		return true
+	}
+
+	// Check if live telemetry is on
+	if i.SDK.IsConnected() {
+		return true
+	}
+
+	return false
+}
+
 func (i *IRacing) stream(ctx context.Context) {
 	i.data.InitialTime = time.Now()
 
 	go func() {
 		for {
+			// We start by checking if we do or do not have data available
+			if !i.isDataAvailable() {
+				continue
+			}
+
 			select {
 			case <-ctx.Done():
 				return
