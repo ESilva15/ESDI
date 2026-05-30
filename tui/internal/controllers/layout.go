@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"fmt"
+	"strconv"
+
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
-	"fmt"
-	"strconv"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -104,7 +105,6 @@ func (lc *LayoutController) registerHooks() {
 func (lc *LayoutController) parseWindowFormData(
 	form views.CDashDisplayWindowFormView,
 ) (*cdashdisplay.DesktopUIWindow, error) {
-
 	xValue, err := strconv.ParseUint(form.X.GetText(), 10, 64)
 	if err != nil {
 		return nil, err
@@ -214,34 +214,32 @@ func (lc *LayoutController) createWindow() {
 // the buttons for that purpuse
 func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) error {
 	// OnSuccess we update our form to be an existing window form
-	lc.Messages <- fmt.Sprintf("Setting up window:\n%+v\n", win)
-
-	err := lc.LayoutToolView.WindowCreatedSuccessfuly(win)
+	lc.Logger.Debug(fmt.Sprintf("updating form view for: %+v", win.Title))
+	err := lc.LayoutToolView.WindowCreatedSuccessfuly(lc.Logger, win)
 	if err != nil {
 		return err
 	}
 
 	// Set the update window button behaviour
+	lc.Logger.Debug(fmt.Sprintf("setting the update window behaviour: %+v", win.Title))
 	formView := lc.LayoutToolView.FormQuickAccess[win.UIData.IDX]
 
+	lc.Logger.Debug(fmt.Sprintf("setting form button callback: %+v", win.Title))
 	err = SetFormButtonCallback(formView.Form.Form, "Update", func() {
-		lc.Messages <- "pressed update form button\n"
 		window, err := lc.parseWindowFormData(*formView.Form)
 		if err != nil {
-			// lc.Messages <- "failed to parse window form data " + err.Error() + "\n"
 			return
 		}
-		// lc.Messages <- fmt.Sprintf("window data in form: %v\n", window)
 
 		window.UIData.IDX = formView.WinID
 
 		lc.updateWindowAction(window)
 	})
 	if err != nil {
-		lc.Messages <- "failed to set callback for update button\n"
 		return err
 	}
 
+	lc.Logger.Debug(fmt.Sprintf("setting input catpure: %+v", win.Title))
 	formView.Form.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
 		case tcell.KeyEscape:
@@ -251,6 +249,7 @@ func (lc *LayoutController) updateFormView(win *cdashdisplay.DesktopUIWindow) er
 		return ev
 	})
 
+	lc.Logger.Debug(fmt.Sprintf("giving focus to layouttree"))
 	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
 
 	return nil
@@ -308,8 +307,11 @@ func (lc *LayoutController) displayLoadedLayouts() {
 	lc.Logger.Debug("We want to view our layout!")
 
 	for _, w := range lc.DevService.CDash.State.Layout.Windows {
-		lc.Logger.Debug(fmt.Sprintf("updatinf form view for a layout: %+v", w))
+		lc.Logger.Debug("==========================================================================")
+		lc.Logger.Debug(fmt.Sprintf("updating form view for a layout: %+v", w.UIData.TelemetryField))
 		err := lc.updateFormView(w)
+
+		lc.Logger.Debug(fmt.Sprintf("form view updated: %+v", err))
 		if err != nil {
 			lc.Logger.Debug("an error happened viewing our layout")
 			lc.Messages <- "failed to add window to list"
@@ -392,7 +394,6 @@ func (lc *LayoutController) moveWindow() {
 	oldCapture := formView.Form.GetInputCapture()
 
 	formView.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		lc.Messages <- "Captured event??\n"
 		switch ev.Key() {
 		case tcell.KeyESC:
 			formView.Form.SetInputCapture(oldCapture)

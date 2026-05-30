@@ -1,11 +1,12 @@
 package main
 
 import (
-	"esdi/cmd"
-	"esdi/telemetry"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"esdi/cmd"
+	"esdi/telemetry"
 
 	"github.com/arl/statsviz"
 )

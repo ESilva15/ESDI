@@ -10,6 +10,10 @@ var internalToSDKFieldNames = map[telemetry.FieldID]string{
 	telemetry.Speed: "Speed",
 	telemetry.Gear:  "Gear",
 	telemetry.RPM:   "RPM",
+	// Engine Data
+	telemetry.OilPress:  "OilPress",
+	telemetry.OilTemp:   "OilTemp",
+	telemetry.WaterTemp: "WaterTemp",
 	// Engine Warnings
 	telemetry.PitSpeedLimiter: "irsdk_pitSpeedLimiter",
 	// Ajudstements

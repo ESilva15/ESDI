@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -45,16 +46,16 @@ func NewIRacingProvider(
 	// Open the input file if provided - otherwise live telemetry was requested
 	// Maybe this can be changed so we don't have to run it with these ifs but by configuring our
 	// provider
-	// var file goirsdk.Reader = nil
-	// if source != "" {
-	// 	file, err = os.Open(source)
-	// 	if err != nil {
-	// 		return &IRacing{}, err
-	// 		// log.Fatalf("Failed to open IBT file: %v", err)
-	// 	}
-	// }
+	var file goirsdk.Reader = nil
+	if source != "" {
+		file, err = os.Open(source)
+		if err != nil {
+			return &IRacing{}, err
+			// log.Fatalf("Failed to open IBT file: %v", err)
+		}
+	}
 
-	sdk, err := goirsdk.Init(nil, telemOut, yamlOut)
+	sdk, err := goirsdk.Init(file, telemOut, yamlOut)
 	if err != nil {
 		logger.Error("failed to open the IRSDK instance")
 		return &IRacing{}, err
@@ -211,8 +212,17 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
 			}
+		// Engine Data
+		case telem.OilPress:
+			binding.Transform = FloatToStringTransform
+		case telem.OilTemp:
+			binding.Transform = FloatToStringTransform
+		case telem.WaterTemp:
+			binding.Transform = FloatToStringTransform
+		// Something else
 		case telem.PitSpeedLimiter:
 			binding.Transform = PitSpeedLimiterTransform
+		// Adjustements
 		case telem.BrakeBias:
 			binding.Transform = FloatToStringTransform
 		case telem.ABSSetting:

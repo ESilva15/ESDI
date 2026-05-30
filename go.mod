@@ -11,6 +11,7 @@ require (
 	github.com/rivo/tview v0.42.0
 	github.com/spf13/cobra v1.8.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
+	go.bug.st/serial v1.7.1
 	golang.org/x/term v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -23,6 +24,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )

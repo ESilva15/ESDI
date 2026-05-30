@@ -1,8 +1,10 @@
 package views
 
 import (
-	"esdi/cdashdisplay"
 	"fmt"
+	"log/slog"
+
+	"esdi/cdashdisplay"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -127,12 +129,15 @@ func NewLayoutToolView() *LayoutToolView {
 }
 
 func (ltv *LayoutToolView) WindowCreatedSuccessfuly(
-	win *cdashdisplay.DesktopUIWindow,
+	lcLogger *slog.Logger, win *cdashdisplay.DesktopUIWindow,
 ) error {
+	lcLogger.Debug(fmt.Sprintf("creating window form view for: %+v", win.Title))
 	updateWindowForm := NewWindowFormView(win)
 
 	// Update the pages ID
+	lcLogger.Debug(fmt.Sprintf("removing page: %+v", LayoutToolNewWindowID))
 	ltv.LayoutActions.Pages.RemovePage(LayoutToolNewWindowID)
+	lcLogger.Debug(fmt.Sprintf("adding page: %+v", LayoutToolNewWindowID))
 	AddAndShowPage(
 		ltv.LayoutActions.Pages,
 		windowInfoPageID(win.UIData.IDX),
@@ -140,12 +145,15 @@ func (ltv *LayoutToolView) WindowCreatedSuccessfuly(
 	)
 
 	// Then set the CreateWindowView pointer to nil
+	lcLogger.Debug(fmt.Sprintf("setting create window pointer to nil: %+v", LayoutToolNewWindowID))
 	ltv.LayoutActions.CreateWindowView = nil
 
 	// Add this form thing to the quick access map
+	lcLogger.Debug(fmt.Sprintf("adding form to quick access map: %+v", LayoutToolNewWindowID))
 	ltv.FormQuickAccess[win.UIData.IDX] = updateWindowForm
 
 	// Add it to the tree view
+	lcLogger.Debug(fmt.Sprintf("adding it to tree view: %+v", LayoutToolNewWindowID))
 	return ltv.LayoutTree.AddWindow(win)
 }
 

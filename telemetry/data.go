@@ -19,8 +19,7 @@ type FieldMapper struct {
 
 // VirtualField will define data that is acquired through middleware
 // So fuel per lap predictions and so on
-type VirtualField struct {
-}
+type VirtualField struct{}
 
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
 // I can bind that address and read directly from there on the transform
@@ -134,6 +133,10 @@ const (
 	Speed FieldID = iota
 	RPM
 	Gear
+	// Engine Data
+	OilPress
+	OilTemp
+	WaterTemp
 	// Engine Warnings
 	PitSpeedLimiter
 	// Adjustements
@@ -169,6 +172,10 @@ var FieldNames = [MaxFields]string{
 	Speed: "Speed",
 	RPM:   "RPM",
 	Gear:  "Gear",
+	// Engine Data
+	OilPress:  "Oil Pressure",
+	OilTemp:   "Oil Temperature",
+	WaterTemp: "Water Temperature",
 	// Engine Warnings
 	PitSpeedLimiter: "Pit Speed Limiter",
 	// Ajustments
