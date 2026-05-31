@@ -161,11 +161,29 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 
 	i.data.ActiveBinds = make([]telem.BoundField, 0, len(requestFields))
 
-	boundCheck := make(map[telem.FieldID]bool)
+	// First we must add the virtual fields
+	// we will add their dependencies and the primitives to a slice
+	pendingBinds := make([]telem.FieldID, telem.MaxFields)
 
 	for winID, id := range requestFields {
 		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
 
+		switch id {
+		case telem.RPMStateColour:
+			i.data.VirtualBinds = append(i.data.VirtualBinds, telem.NewRPMLights())
+		case telem.FuelCurrentLap:
+			i.data.VirtualBinds = append(i.data.VirtualBinds,
+				telem.NewFuelCalculator(i.logger.WithGroup("FUEL CALC")))
+		default:
+			// primitive telemetry field
+			pendingBinds = append(pendingBinds, id)
+		}
+	}
+
+	boundCheck := make(map[telem.FieldID]bool)
+
+	// Now that we know all the fields we need to bind we follow the binding procedure
+	for _, id := range pendingBinds {
 		// Check if we already bound this FieldID
 		if boundCheck[id] {
 			continue
@@ -220,6 +238,8 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 				out.Type = telem.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
 			}
+		case telem.FuelLevel:
+			binding.Transform = FloatToStringTransform
 		// Engine Data
 		case telem.OilPress:
 			binding.Transform = FloatToStringTransform
@@ -264,21 +284,6 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
 		boundCheck[id] = true
-	}
-
-	// Subscribe to whatever we need of virtual binds I guess - we need to ensure
-	// the virtual binds fields are being read
-	needsRPMColour := false
-	for _, id := range requestFields {
-		if id == telem.RPMStateColour {
-			needsRPMColour = true
-		}
-	}
-
-	i.logger.Debug(fmt.Sprintf("Subscribing to virtual bind? %+v", needsRPMColour))
-	if needsRPMColour {
-		i.logger.Debug("Subscribing to virtual bind")
-		i.data.VirtualBinds = append(i.data.VirtualBinds, telem.NewRPMLights())
 	}
 
 	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))

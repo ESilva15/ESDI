@@ -24,3 +24,7 @@ func (rl *RPMLights) Process(td *TelemetryData) {
 		td.Values[RPMStateColour].Str = "WHITE"
 	}
 }
+
+func (rl *RPMLights) EnsureSubscribed() []FieldID {
+	return []FieldID{RPM}
+}

@@ -7,9 +7,10 @@ import (
 )
 
 var internalToSDKFieldNames = map[telemetry.FieldID]string{
-	telemetry.Speed: "Speed",
-	telemetry.Gear:  "Gear",
-	telemetry.RPM:   "RPM",
+	telemetry.Speed:     "Speed",
+	telemetry.Gear:      "Gear",
+	telemetry.RPM:       "RPM",
+	telemetry.FuelLevel: "FuelLevel",
 	// Engine Data
 	telemetry.OilPress:  "OilPress",
 	telemetry.OilTemp:   "OilTemp",

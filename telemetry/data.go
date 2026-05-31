@@ -21,6 +21,7 @@ type FieldMapper struct {
 // So fuel per lap predictions, compound gauge lights and so on
 type VirtualField interface {
 	Process(td *TelemetryData)
+	EnsureSubscribed() []FieldID
 }
 
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
@@ -135,6 +136,7 @@ const (
 	Speed FieldID = iota
 	RPM
 	Gear
+	FuelLevel
 	// Engine Data
 	OilPress
 	OilTemp
@@ -167,15 +169,20 @@ const (
 	ReplaySessionTime
 	Empty
 	// Virtual Fields -- fields derived from primitive fields
+	// RPM Dash Lights
 	RPMStateColour
+	// Fuel Calculator
+	FuelCurrentLap
+	FuelLastLap
 	MaxFields
 )
 const FirstField = Speed
 
 var FieldNames = [MaxFields]string{
-	Speed: "Speed",
-	RPM:   "RPM",
-	Gear:  "Gear",
+	Speed:     "Speed",
+	RPM:       "RPM",
+	Gear:      "Gear",
+	FuelLevel: "Fuel Level",
 	// Engine Data
 	OilPress:  "Oil Pressure",
 	OilTemp:   "Oil Temperature",
@@ -207,7 +214,11 @@ var FieldNames = [MaxFields]string{
 	SessionTime:       "SessionTime",
 	ReplaySessionTime: "ReplaySessionTime",
 	// Virtual Fields
+	// RPM Dash Lights
 	RPMStateColour: "RPM State Colour",
+	// Fuel Calculator
+	FuelCurrentLap: "Fuel Current Lap",
+	FuelLastLap:    "Fuel Last Lap",
 	Empty:          "Emtpy",
 }
 
