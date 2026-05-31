@@ -17,9 +17,11 @@ type FieldMapper struct {
 	Transform func(any) uint64
 }
 
-// VirtualField will define data that is acquired through middleware
-// So fuel per lap predictions and so on
-type VirtualField struct{}
+// VirtualField will derive data from telemetry primitives
+// So fuel per lap predictions, compound gauge lights and so on
+type VirtualField interface {
+	Process(td *TelemetryData)
+}
 
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
 // I can bind that address and read directly from there on the transform
@@ -164,6 +166,8 @@ const (
 	SessionTime
 	ReplaySessionTime
 	Empty
+	// Virtual Fields -- fields derived from primitive fields
+	RPMStateColour
 	MaxFields
 )
 const FirstField = Speed
@@ -202,7 +206,9 @@ var FieldNames = [MaxFields]string{
 	// Session Data
 	SessionTime:       "SessionTime",
 	ReplaySessionTime: "ReplaySessionTime",
-	Empty:             "Emtpy",
+	// Virtual Fields
+	RPMStateColour: "RPM State Colour",
+	Empty:          "Emtpy",
 }
 
 func GetFieldName(id FieldID) string {
@@ -246,8 +252,14 @@ func (td *TelemetryData) Pack() []byte {
 	bufPtr := bufferPool.Get().(*[]byte)
 	buf := (*bufPtr)[:0]
 
-	for _, bind := range td.ActiveBinds {
-		buf = td.Values[bind.ID].Pack(buf)
+	// for _, bind := range td.ActiveBinds {
+	// 	buf = td.Values[bind.ID].Pack(buf)
+	// }
+
+	for k := range td.Values {
+		if len(td.Values[k].IDs) > 0 {
+			buf = td.Values[k].Pack(buf)
+		}
 	}
 
 	// We have to copy here because we have to return the buffer

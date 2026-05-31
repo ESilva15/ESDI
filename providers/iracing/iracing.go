@@ -123,11 +123,19 @@ func (i *IRacing) readData() {
 		return
 	}
 
-	// Read binded data
+	// Read 1 to 1 data
 	for _, b := range i.data.ActiveBinds {
 		v := i.SDK.Vars.Vars[b.Key].Value
 
 		b.Transform(v, &i.data.Values[b.ID])
+	}
+
+	// Set up virtual binds
+	i.logger.Debug("Entering virtual binds loop")
+	for _, vBind := range i.data.VirtualBinds {
+		// NOTE: delete the logs here, they are really bad
+		i.logger.Debug("Processing virtual binds")
+		vBind.Process(i.data)
 	}
 
 	i.data.PenultimateDataPoll = i.data.LastDataPoll
@@ -256,6 +264,21 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
 		boundCheck[id] = true
+	}
+
+	// Subscribe to whatever we need of virtual binds I guess - we need to ensure
+	// the virtual binds fields are being read
+	needsRPMColour := false
+	for _, id := range requestFields {
+		if id == telem.RPMStateColour {
+			needsRPMColour = true
+		}
+	}
+
+	i.logger.Debug(fmt.Sprintf("Subscribing to virtual bind? %+v", needsRPMColour))
+	if needsRPMColour {
+		i.logger.Debug("Subscribing to virtual bind")
+		i.data.VirtualBinds = append(i.data.VirtualBinds, telem.NewRPMLights())
 	}
 
 	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))
