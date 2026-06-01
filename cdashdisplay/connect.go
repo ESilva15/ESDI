@@ -50,6 +50,8 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 
 	var wt *communication.WalkieTalkie
 	for _, port := range ports {
+		pLogger.Info(fmt.Sprintf("Trying port %s", port))
+
 		wt = &communication.WalkieTalkie{
 			Cfg: &serial.Config{
 				Name:        port,
@@ -58,8 +60,26 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 			},
 		}
 
-		err = probe(wt)
+		pLogger.Info(fmt.Sprintf("Started probing port %s", port))
+
+		probeResult := make(chan error, 1)
+
+		go func() {
+			probeResult <- probe(wt)
+		}()
+
+		select {
+		case err = <-probeResult:
+			// Probe completed normally (could be success or error)
+		case <-time.After(2 * time.Second):
+			// Hard timeout reached
+			err = fmt.Errorf("probe completely hung/timed out: %s", port)
+		}
+
+		pLogger.Info(fmt.Sprintf("Finished probing port %s", port))
+
 		if err == nil {
+			pLogger.Info(fmt.Sprintf("Success probing port %s: %+v", port, err))
 			break
 		}
 
