@@ -2,30 +2,6 @@ Windows:
     1:
         uiwindow:
             Dims:
-                X0: 359
-                Y0: 355
-                Width: 120
-                Height: 49
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: YELLOW
-            Title: RPMColour
-        uidata:
-            WID: 1
-            TelemetryField: RPM State Colour
-    2:
-        uiwindow:
-            Dims:
                 X0: 74
                 Y0: 413
                 Width: 57
@@ -45,177 +21,9 @@ Windows:
                 PreviewValue: "12"
             Title: TC
         uidata:
-            WID: 2
+            WID: 1
             TelemetryField: TC Control
-    3:
-        uiwindow:
-            Dims:
-                X0: 60
-                Y0: 91
-                Width: 85
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "123"
-            Title: Lap
-        uidata:
-            WID: 3
-            TelemetryField: Lap Number
-    4:
-        uiwindow:
-            Dims:
-                X0: 9
-                Y0: 413
-                Width: 57
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "12"
-            Title: ABS
-        uidata:
-            WID: 4
-            TelemetryField: ABS Control
-    5:
-        uiwindow:
-            Dims:
-                X0: 694
-                Y0: 367
-                Width: 100
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "101.4"
-            Title: Oil T
-        uidata:
-            WID: 5
-            TelemetryField: Oil Temperature
-    6:
-        uiwindow:
-            Dims:
-                X0: 60
-                Y0: 155
-                Width: 226
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "06:45.123"
-            Title: Last Lap
-        uidata:
-            WID: 6
-            TelemetryField: Last Lap Time
-    7:
-        uiwindow:
-            Dims:
-                X0: 590
-                Y0: 367
-                Width: 100
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "101.5"
-            Title: Water T
-        uidata:
-            WID: 7
-            TelemetryField: Water Temperature
-    8:
-        uiwindow:
-            Dims:
-                X0: 642
-                Y0: 188
-                Width: 150
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "2.7"
-            Title: Fuel Cur Lap
-        uidata:
-            WID: 8
-            TelemetryField: Fuel Current Lap
-    9:
-        uiwindow:
-            Dims:
-                X0: 470
-                Y0: 188
-                Width: 168
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: 12.3 L
-            Title: Fuel Last Lap
-        uidata:
-            WID: 9
-            TelemetryField: Fuel Last Lap
-    10:
+    2:
         uiwindow:
             Dims:
                 X0: 354
@@ -237,33 +45,9 @@ Windows:
                 PreviewValue: R
             Title: Box
         uidata:
-            WID: 10
+            WID: 2
             TelemetryField: Gear
-    11:
-        uiwindow:
-            Dims:
-                X0: 142
-                Y0: 19
-                Width: 500
-                Height: 20
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 1
-                TextSize: 2
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 1
-                PreviewValue: "5678"
-            Title: TACHO
-        uidata:
-            WID: 11
-            TelemetryField: RPM
-    12:
+    3:
         uiwindow:
             Dims:
                 X0: 140
@@ -285,9 +69,105 @@ Windows:
                 PreviewValue: "6"
             Title: Thr
         uidata:
-            WID: 12
+            WID: 3
             TelemetryField: Throttle Control
-    13:
+    4:
+        uiwindow:
+            Dims:
+                X0: 359
+                Y0: 355
+                Width: 120
+                Height: 49
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: YELLOW
+            Title: RPMColour
+        uidata:
+            WID: 4
+            TelemetryField: RPM State Colour
+    5:
+        uiwindow:
+            Dims:
+                X0: 60
+                Y0: 155
+                Width: 226
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "06:45.123"
+            Title: Last Lap
+        uidata:
+            WID: 5
+            TelemetryField: Last Lap Time
+    6:
+        uiwindow:
+            Dims:
+                X0: 470
+                Y0: 188
+                Width: 168
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: 12.3 L
+            Title: Fuel Last Lap
+        uidata:
+            WID: 6
+            TelemetryField: Fuel Last Lap
+    7:
+        uiwindow:
+            Dims:
+                X0: 142
+                Y0: 19
+                Width: 500
+                Height: 20
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 1
+                TextSize: 2
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 1
+                PreviewValue: "5678"
+            Title: TACHO
+        uidata:
+            WID: 7
+            TelemetryField: RPM
+    8:
         uiwindow:
             Dims:
                 X0: 694
@@ -309,57 +189,9 @@ Windows:
                 PreviewValue: "4.56"
             Title: Oil P
         uidata:
-            WID: 13
+            WID: 8
             TelemetryField: Oil Pressure
-    14:
-        uiwindow:
-            Dims:
-                X0: 436
-                Y0: 71
-                Width: 206
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "9999"
-            Title: Dig Tacho
-        uidata:
-            WID: 14
-            TelemetryField: RPM
-    15:
-        uiwindow:
-            Dims:
-                X0: 710
-                Y0: 8
-                Width: 84
-                Height: 57
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 4
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: PIT
-            Title: Pit Sp
-        uidata:
-            WID: 15
-            TelemetryField: Pit Speed Limiter
-    16:
+    9:
         uiwindow:
             Dims:
                 X0: 331
@@ -381,9 +213,129 @@ Windows:
                 PreviewValue: "234"
             Title: SPEEDO
         uidata:
-            WID: 16
+            WID: 9
             TelemetryField: Speed
-    17:
+    10:
+        uiwindow:
+            Dims:
+                X0: 694
+                Y0: 367
+                Width: 100
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "101.4"
+            Title: Oil T
+        uidata:
+            WID: 10
+            TelemetryField: Oil Temperature
+    11:
+        uiwindow:
+            Dims:
+                X0: 590
+                Y0: 367
+                Width: 100
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "101.5"
+            Title: Water T
+        uidata:
+            WID: 11
+            TelemetryField: Water Temperature
+    12:
+        uiwindow:
+            Dims:
+                X0: 642
+                Y0: 188
+                Width: 150
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "2.7"
+            Title: Fuel Cur Lap
+        uidata:
+            WID: 12
+            TelemetryField: Fuel Current Lap
+    13:
+        uiwindow:
+            Dims:
+                X0: 436
+                Y0: 71
+                Width: 206
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "9999"
+            Title: Dig Tacho
+        uidata:
+            WID: 13
+            TelemetryField: RPM
+    14:
+        uiwindow:
+            Dims:
+                X0: 710
+                Y0: 8
+                Width: 84
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: PIT
+            Title: Pit Sp
+        uidata:
+            WID: 14
+            TelemetryField: Pit Speed Limiter
+    15:
         uiwindow:
             Dims:
                 X0: 207
@@ -405,9 +357,9 @@ Windows:
                 PreviewValue: "61.4"
             Title: BBias
         uidata:
-            WID: 17
+            WID: 15
             TelemetryField: BrakeBias
-    18:
+    16:
         uiwindow:
             Dims:
                 X0: 470
@@ -429,5 +381,101 @@ Windows:
                 PreviewValue: "123.4"
             Title: Fuel Level
         uidata:
-            WID: 18
+            WID: 16
             TelemetryField: Fuel Level
+    17:
+        uiwindow:
+            Dims:
+                X0: 60
+                Y0: 91
+                Width: 85
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "123"
+            Title: Lap
+        uidata:
+            WID: 17
+            TelemetryField: Lap Number
+    18:
+        uiwindow:
+            Dims:
+                X0: 9
+                Y0: 413
+                Width: 57
+                Height: 57
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "12"
+            Title: ABS
+        uidata:
+            WID: 18
+            TelemetryField: ABS Control
+    19:
+        uiwindow:
+            Dims:
+                X0: 643
+                Y0: 132
+                Width: 149
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "10.54"
+            Title: Fuel Av.
+        uidata:
+            WID: 19
+            TelemetryField: Fuel Average Usage
+    20:
+        uiwindow:
+            Dims:
+                X0: 470
+                Y0: 242
+                Width: 322
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "41.2"
+            Title: Fuel Rem.
+        uidata:
+            WID: 20
+            TelemetryField: Fuel Expected Laps

@@ -171,7 +171,7 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 		switch id {
 		case telem.RPMStateColour:
 			i.data.VirtualBinds = append(i.data.VirtualBinds, telem.NewRPMLights())
-		case telem.FuelCurrentLap:
+		case telem.FCCurrentLap:
 			i.data.VirtualBinds = append(i.data.VirtualBinds,
 				telem.NewFuelCalculator(i.logger.WithGroup("FUEL CALC")))
 		default:

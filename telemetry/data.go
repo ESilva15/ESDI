@@ -172,8 +172,10 @@ const (
 	// RPM Dash Lights
 	RPMStateColour
 	// Fuel Calculator
-	FuelCurrentLap
-	FuelLastLap
+	FCCurrentLap
+	FCLastLap
+	FCAverage
+	FCExpectedLaps
 	MaxFields
 )
 const FirstField = Speed
@@ -217,8 +219,10 @@ var FieldNames = [MaxFields]string{
 	// RPM Dash Lights
 	RPMStateColour: "RPM State Colour",
 	// Fuel Calculator
-	FuelCurrentLap: "Fuel Current Lap",
-	FuelLastLap:    "Fuel Last Lap",
+	FCCurrentLap:   "Fuel Current Lap",
+	FCLastLap:      "Fuel Last Lap",
+	FCAverage:      "Fuel Average Usage",
+	FCExpectedLaps: "Fuel Expected Laps",
 	Empty:          "Emtpy",
 }
 
