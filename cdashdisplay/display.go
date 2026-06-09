@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"time"
 
 	helper "esdi/helpers"
 	"esdi/peripheral/communication"
@@ -298,7 +299,7 @@ func (d *CDashDisplay) ResizeWindow(wID int16, delta *helper.Vector) error {
 
 func (d *CDashDisplay) SaveLayout(outputPath string) error {
 	file, err := os.OpenFile(path.Join(layoutsDir, outputPath),
-		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 	if err != nil {
 		return err
 	}
@@ -334,6 +335,27 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 			// NOTE: Add a way to handle multiple errors ?
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (d *CDashDisplay) UnloadLayout() error {
+	var err error
+	for _, w := range d.State.Layout.Windows {
+		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+			w.UIData.IDX))
+
+		err = d.DestroyWindow(w.UIData.IDX)
+		time.Sleep(75 * time.Millisecond)
+		if err != nil {
+			pLogger.Error(fmt.Sprintf("failed to destroy window: %+v", err))
+			// NOTE: Add a way to handle multiple errors ?
+			return err
+		}
+
+		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+			w.UIData.IDX))
 	}
 
 	return nil

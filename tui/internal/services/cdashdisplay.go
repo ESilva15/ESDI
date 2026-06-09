@@ -1,13 +1,14 @@
 package services
 
 import (
+	"fmt"
+	"log/slog"
+	"sync/atomic"
+
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
 	"esdi/peripheral"
 	"esdi/telemetry"
-	"fmt"
-	"log/slog"
-	"sync/atomic"
 )
 
 type CDashService struct {
@@ -63,6 +64,10 @@ func (cds *CDashService) LoadLayout(layoutPath string) error {
 
 func (cds *CDashService) SaveLayout(layoutPath string) error {
 	return cds.CDash.SaveLayout(layoutPath)
+}
+
+func (cds *CDashService) UnloadLayout() error {
+	return cds.CDash.UnloadLayout()
 }
 
 func (cds *CDashService) UpdateWindow(win *cdashdisplay.DesktopUIWindow) error {

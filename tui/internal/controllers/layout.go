@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"esdi/cdashdisplay"
@@ -20,6 +21,7 @@ type LayoutController struct {
 	Messages       chan string
 	DevService     *services.CDashService
 	MoveToolState  *windowManipState
+	SelectedLayout string // NOTE: This should be a struct to handle its own things
 }
 
 func NewLayoutController(base *Controller, service *services.CDashService) *LayoutController {
@@ -29,6 +31,7 @@ func NewLayoutController(base *Controller, service *services.CDashService) *Layo
 		Messages:       make(chan string, 10),
 		DevService:     service,
 		MoveToolState:  &windowManipState{Mode: moveMode},
+		SelectedLayout: "layout.yaml",
 	}
 
 	lc.registerHooks()
@@ -56,6 +59,9 @@ func (lc *LayoutController) registerHooks() {
 			case 'm':
 				lc.Messages <- "calling window manipulation tool\n"
 				lc.moveWindow()
+			case 'c':
+				lc.Messages <- "calling change selected layout tool\n"
+				lc.changeSelectedLoadout()
 			case 's':
 				// Save the current layout
 				lc.Messages <- "calling save layout\n"
@@ -64,6 +70,10 @@ func (lc *LayoutController) registerHooks() {
 				// Load the layout
 				lc.Messages <- "calling load layout\n"
 				lc.loadLayout()
+			case 'u':
+				// Unload the layout
+				lc.Messages <- "calling unload layout\n"
+				lc.unloadLayout()
 			case 'g':
 				// Go -> launches the current set up source
 				// streamingWindow(bus, doc)
@@ -339,7 +349,7 @@ func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, int16, e
 
 func (lc *LayoutController) loadLayout() {
 	// We would get the layout path from somewhere but for nots its layout.yaml
-	err := lc.DevService.LoadLayout("layout.yaml")
+	err := lc.DevService.LoadLayout(lc.SelectedLayout)
 	if err != nil {
 		lc.Messages <- "failed to load layout: " + err.Error()
 		return
@@ -348,8 +358,16 @@ func (lc *LayoutController) loadLayout() {
 	lc.displayLoadedLayouts()
 }
 
+func (lc *LayoutController) unloadLayout() {
+	err := lc.DevService.UnloadLayout()
+	if err != nil {
+		lc.Logger.Error(fmt.Sprintf("Failed to unload layout: %+v", err))
+		return
+	}
+}
+
 func (lc *LayoutController) saveLayout() {
-	err := lc.DevService.SaveLayout("layout.yaml")
+	err := lc.DevService.SaveLayout(lc.SelectedLayout)
 	if err != nil {
 		lc.Messages <- "failed to save layout: " + err.Error()
 		return
@@ -422,4 +440,51 @@ func (lc *LayoutController) moveWindow() {
 	})
 
 	lc.App.SetFocus(formView.Form)
+}
+
+// changeSelectedLoadout is used to change the currently selected loadout
+// its a very bare bones utility to aid development
+// NOTE: FOR THE LOVE OF WHATS HOLY ACTUALLY MAKE THIS GOOD BEFORE ADDING MORE FEATURES
+func (lc *LayoutController) changeSelectedLoadout() {
+	// First we get the files in the layouts directory
+	entries, err := os.ReadDir("./layouts")
+	if err != nil {
+		lc.Logger.Error(fmt.Sprintf("Failed to read directory: %v", err))
+		return
+	}
+
+	// Then we open a modal and pass that list there
+	lc.Logger.Debug(fmt.Sprintf("Found layouts: %+v", entries))
+
+	layoutSelection := views.NewLayoutToolLayoutsList()
+	layoutSelection.AddEntries(entries)
+	layoutSelection.Tree.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		switch ev.Key() {
+		case tcell.KeyESC:
+			// We have to destroy this window, but first we tell the pages to show something else
+			// NOTE: will this be left hanging and then given to GC? Can we improve that?
+			lc.LayoutToolView.LayoutActions.LayoutSelection = nil
+			lc.LayoutToolView.DeleteLayoutList()
+			lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
+		}
+
+		return ev
+	})
+
+	layoutSelection.Tree.SetSelectedFunc(func(node *tview.TreeNode) {
+		ref := node.GetReference()
+		if ref == nil {
+			return
+		}
+
+		lc.Messages <- "User selected " + fmt.Sprintf("%+v", ref) + "\n"
+		lc.SelectedLayout = ref.(string)
+
+		lc.LayoutToolView.LayoutTree.Tree.SetTitle(fmt.Sprintf("%s [%s]",
+			views.LayoutToolTreeViewTitle, ref.(string)))
+	})
+
+	lc.LayoutToolView.LayoutActions.LayoutSelection = layoutSelection
+	lc.LayoutToolView.ShowLayoutList()
+	lc.App.SetFocus(lc.LayoutToolView.LayoutActions.LayoutSelection.Tree)
 }

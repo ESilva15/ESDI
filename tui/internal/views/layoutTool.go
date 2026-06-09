@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	LayoutToolTreeViewTitle = "Layout Tree"
 	LayoutToolFlexID        = "layout-tool-flex"
 	LayoutToolTreeID        = "layout-tool-tree"
 	LayoutToolActionPagesID = "layout-tool-action-pages"
@@ -30,7 +31,7 @@ func NewLayoutTreeView() *LayoutTreeView {
 
 	view.Tree = tview.NewTreeView()
 
-	view.Tree.SetBorder(true).SetTitle("Layout Tree")
+	view.Tree.SetBorder(true).SetTitle(LayoutToolTreeViewTitle)
 	view.Tree.SetInputCapture(view.InputCapture)
 	// Inject ChangedFunc
 	// Inject SelectedFunc
@@ -61,6 +62,7 @@ func (lt *LayoutTreeView) AddWindow(win *cdashdisplay.DesktopUIWindow) error {
 type LayoutToolActionView struct {
 	Pages            *tview.Pages
 	CreateWindowView *CreateWindowFormView
+	LayoutSelection  *LayoutToolLayoutsList
 }
 
 func NewLayoutToolActionView() *LayoutToolActionView {
@@ -152,6 +154,18 @@ func (ltv *LayoutToolView) ShowWindowFormByID(idx int16) {
 		windowInfoPageID(idx),
 		nil,
 	)
+}
+
+func (ltv *LayoutToolView) ShowLayoutList() {
+	AddAndShowPage(
+		ltv.LayoutActions.Pages,
+		"available-layouts-list",
+		ltv.LayoutActions.LayoutSelection.Tree,
+	)
+}
+
+func (ltv *LayoutToolView) DeleteLayoutList() {
+	ltv.LayoutActions.Pages.RemovePage("available-layouts-list")
 }
 
 func (ltv *LayoutToolView) DeleteWindowByNode(node *tview.TreeNode) {
