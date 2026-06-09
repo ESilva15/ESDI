@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"esdi/cdashdisplay"
+	tviewh "esdi/tui/internal/tview_helpers"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -16,26 +17,6 @@ const (
 	LayoutToolActionPagesID = "layout-tool-action-pages"
 	LayoutToolNewWindowID   = "new-window-action-form"
 )
-
-func FindNodeByID(node *tview.TreeNode, id int16) *tview.TreeNode {
-	if node == nil {
-		return nil
-	}
-
-	if ref, ok := node.GetReference().(int16); ok {
-		if ref == id {
-			return node
-		}
-	}
-
-	for _, child := range node.GetChildren() {
-		if found := FindNodeByID(child, id); found != nil {
-			return found
-		}
-	}
-
-	return nil
-}
 
 type LayoutTreeView struct {
 	Tree         *tview.TreeView
@@ -199,7 +180,7 @@ func (ltv *LayoutToolView) UpdateFormView(idx int16, win *cdashdisplay.DesktopUI
 		return
 	}
 
-	node := FindNodeByID(root, idx)
+	node := tviewh.FindNodeByID(root, idx)
 	if node == nil {
 		return
 	}
