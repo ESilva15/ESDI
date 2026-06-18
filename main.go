@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	output, err := os.OpenFile("./output.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	// NOTE: pass all these things to cobra
+	output, err := os.OpenFile("./output.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
 	if err != nil {
 		panic("failed to open logging file: " + err.Error())
 	}

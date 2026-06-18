@@ -31,6 +31,11 @@ func Execute(log *slog.Logger) {
 }
 
 func init() {
+	cobra.OnInitialize(initApplication)
+
 	rootCmd.Flags().StringP("out", "o", "", "output file")
 	rootCmd.Flags().StringP("session", "s", "", "output session info to file")
+}
+
+func initApplication() {
 }
