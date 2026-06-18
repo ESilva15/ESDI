@@ -18,6 +18,10 @@ import (
 	"github.com/ESilva15/goirsdk"
 )
 
+const (
+	NAME = "iRacing"
+)
+
 // IRacing is our iRacing telemetry data provider - its a TelemetryProvider interface
 type IRacing struct {
 	logger *slog.Logger
