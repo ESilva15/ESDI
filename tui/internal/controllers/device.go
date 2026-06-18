@@ -2,9 +2,10 @@
 package controllers
 
 import (
+	"fmt"
+
 	serv "esdi/tui/internal/services"
 	"esdi/tui/internal/views"
-	"fmt"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -76,12 +77,12 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 		AddItem("stream", "stream data to the display", func() {
 			views.AddAndShowPage(mc.DeviceAPIView.DevAPIToolView.Pages,
 				"streaming-tool",
-				mc.StreamCtrl.StreamView.TextView,
+				mc.StreamCtrl.StreamView.Flex,
 			)
 
 			mc.StreamCtrl.SetInternalState()
 
-			mc.App.SetFocus(mc.StreamCtrl.StreamView.TextView)
+			mc.App.SetFocus(mc.StreamCtrl.StreamView.Options.Form)
 		})
 }
 

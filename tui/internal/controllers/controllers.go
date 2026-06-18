@@ -24,6 +24,9 @@ func ListFormButtonLabels(form *tview.Form) []string {
 }
 
 func SetFormButtonCallback(form *tview.Form, btnLabel string, fn func()) error {
+	// NOTE: is there a better way to do this ???
+	// Find out
+
 	btnIndex := form.GetButtonIndex(btnLabel)
 	if btnIndex == -1 {
 		availableButtons := ListFormButtonLabels(form)

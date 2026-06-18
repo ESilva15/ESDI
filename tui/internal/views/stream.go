@@ -1,10 +1,12 @@
 package views
 
 import (
-	telem "esdi/telemetry"
 	"fmt"
 	"strings"
 	"time"
+
+	"esdi/providers"
+	telem "esdi/telemetry"
 
 	"github.com/rivo/tview"
 )
@@ -17,20 +19,51 @@ const (
 	BrakeBiasLen = 6
 )
 
-type StreamView struct {
+// Form to select the game and whatnot ↓↓↓↓
+
+// StreamOptionsView will be our view element to show the stream data
+type StreamOptionsView struct {
+	Form        *tview.Form
+	SimDropdown *tview.DropDown
+	UpdateBtn   *tview.Button
+}
+
+func NewStreamOptionsView() *StreamOptionsView {
+	sov := &StreamOptionsView{}
+
+	sov.Form = tview.NewForm()
+	sov.Form.SetTitle("Stream Options").SetBorder(true)
+
+	sov.SimDropdown = tview.NewDropDown().SetLabel("SIM").SetCurrentOption(0)
+	for _, prov := range providers.Providers {
+		sov.SimDropdown.AddOption(prov.Name, func() {})
+	}
+	sov.Form.AddFormItem(sov.SimDropdown)
+
+	// Inject callback on the controller
+	sov.Form.AddButton("Update", func() {})
+
+	return sov
+}
+
+// Form to select the game and whatnot ↑↑↑↑
+
+// Area to visualize what data is being passed to the game and whatnot ↓↓↓↓
+
+type StreamVisualizerView struct {
 	TextView *tview.TextView
 }
 
-func NewStreamView() *StreamView {
+func NewStreamVisualizerView() *StreamVisualizerView {
 	tv := tview.NewTextView()
-	tv.SetTitle("Streaming Tool").SetBorder(true)
+	tv.SetTitle("Streaming Visualizer").SetBorder(true)
 
-	return &StreamView{
+	return &StreamVisualizerView{
 		TextView: tv,
 	}
 }
 
-func (sv *StreamView) Update(data *telem.TelemetryData) {
+func (sv *StreamVisualizerView) Update(data *telem.TelemetryData) {
 	sv.TextView.SetText(stringify(data))
 }
 
@@ -49,3 +82,32 @@ func stringify(data *telem.TelemetryData) string {
 
 	return buffer.String()
 }
+
+// Area to visualize what data is being passed to the game and whatnot ↑↑↑↑
+
+// Stream Tool ↓↓↓↓
+
+type StreamToolView struct {
+	Flex       *tview.Flex
+	Options    *StreamOptionsView
+	Visualizer *StreamVisualizerView
+}
+
+func NewStreamToolView() *StreamToolView {
+	optionsView := NewStreamOptionsView()
+	visualizerView := NewStreamVisualizerView()
+	flex := tview.NewFlex().SetDirection(tview.FlexColumn)
+	flex.SetTitle("Streaming Tool")
+
+	flex.
+		AddItem(optionsView.Form, 0, 2, true).
+		AddItem(visualizerView.TextView, 0, 5, true)
+
+	return &StreamToolView{
+		Flex:       flex,
+		Options:    optionsView,
+		Visualizer: visualizerView,
+	}
+}
+
+// Stream Tool ↑↑↑↑

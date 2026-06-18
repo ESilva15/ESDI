@@ -87,6 +87,7 @@ func NewCreateWindowFormView() *CreateWindowFormView {
 		Form: NewCDashDisplayWindowFormView(),
 	}
 
+	// NOTE: is this variable actually used anywhere
 	view.CreateBtn = tview.NewButton("Create")
 	// Need to inject the button functionality later
 

@@ -1,11 +1,12 @@
 package controllers
 
 import (
+	"fmt"
+	"sync/atomic"
+
 	"esdi/telemetry"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
-	"fmt"
-	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
 )
@@ -13,7 +14,7 @@ import (
 type StreamingCtrl struct {
 	*Controller
 	Service    *services.CDashService
-	StreamView *views.StreamView
+	StreamView *views.StreamToolView
 	Messages   chan string
 	Internal   chan string
 	Run        bool
@@ -34,7 +35,7 @@ func NewStreamingCtrl(
 		Messages:   make(chan string, 10),
 		Internal:   make(chan string, 10),
 		Run:        false,
-		StreamView: views.NewStreamView(),
+		StreamView: views.NewStreamToolView(),
 		isRunning:  false,
 	}
 
@@ -44,7 +45,7 @@ func NewStreamingCtrl(
 }
 
 func (sc *StreamingCtrl) registerHooks() {
-	sc.StreamView.TextView.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+	sc.StreamView.Options.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
 		case tcell.KeyEsc:
 			sc.OnExit()
@@ -57,10 +58,22 @@ func (sc *StreamingCtrl) registerHooks() {
 		case 'p':
 			// Pause
 			// sc.Stop()
+		case 'u':
+			// Update
+			// NOTE: run the same routine for the form Update button here
 		}
 
 		return ev
 	})
+
+	// Set the options form callbacks
+	err := SetFormButtonCallback(sc.StreamView.Options.Form, "Update", func() {
+		sc.updateStream()
+	})
+	if err != nil {
+		// NOTE: what do we do here?
+		panic("Failed to set callback for streaming controller form update button")
+	}
 }
 
 func (sc *StreamingCtrl) Start() {
@@ -77,11 +90,16 @@ func (sc *StreamingCtrl) Start() {
 			isDrawing.Store(true)
 
 			sc.App.QueueUpdateDraw(func() {
-				sc.StreamView.Update(&msg)
+				sc.StreamView.Visualizer.Update(&msg)
 				isDrawing.Store(false)
 			})
 		}
 	}()
+}
+
+// updateStream will get the new options from the form and update the state accordingly
+func (sc *StreamingCtrl) updateStream() {
+	sc.Messages <- "Request to update stream received - parsing form"
 }
 
 // SetInternalState is used to update the stuff in here, for example, the user
