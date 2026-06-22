@@ -1,24 +1,23 @@
-// package config is responsible for the configuration of the application
+// Package config is responsible for the configuration of the application
 package config
 
 // NOTE: actually make a package out of this if possible - lets try
 
 import (
 	"os"
-	"sync"
 
 	"gopkg.in/yaml.v3"
 )
 
-var (
-	instance *ESDICfg
-	once     sync.Once
-)
+var instance *ESDICfg
 
-type ESDICfg struct{}
+type ESDICfg struct {
+	DefaultSim    string `yaml:"default_sim"`
+	DefaultLayout string `yaml:"default_layout"`
+}
 
-func (cfg *ESDICfg) loadConfiguration() error {
-	file, err := os.ReadFile("./cfg.yaml")
+func (cfg *ESDICfg) loadConfiguration(path string) error {
+	file, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -31,10 +30,10 @@ func (cfg *ESDICfg) loadConfiguration() error {
 	return nil
 }
 
-func Setup() error {
+func Setup(path string) error {
 	instance = &ESDICfg{}
 
-	err := instance.loadConfiguration()
+	err := instance.loadConfiguration(path)
 	if err != nil {
 		return err
 	}
