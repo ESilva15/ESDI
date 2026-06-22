@@ -2,8 +2,6 @@
 package cmd
 
 import (
-	"context"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -20,10 +18,7 @@ type loggerKey struct{}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(log *slog.Logger) {
-	ctx := context.WithValue(context.Background(), loggerKey{}, log)
-	rootCmd.SetContext(ctx)
-
+func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -31,11 +26,6 @@ func Execute(log *slog.Logger) {
 }
 
 func init() {
-	cobra.OnInitialize(initApplication)
-
 	rootCmd.Flags().StringP("out", "o", "", "output file")
 	rootCmd.Flags().StringP("session", "s", "", "output session info to file")
-}
-
-func initApplication() {
 }
