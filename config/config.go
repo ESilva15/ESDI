@@ -14,6 +14,7 @@ var instance *ESDICfg
 type ESDICfg struct {
 	DefaultSim    string `yaml:"default_sim"`
 	DefaultLayout string `yaml:"default_layout"`
+	MetricsServer bool   `yaml:"metrics_server"`
 }
 
 func (cfg *ESDICfg) loadConfiguration(path string) error {
