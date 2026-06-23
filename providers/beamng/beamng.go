@@ -3,7 +3,7 @@ package beamng
 import (
 	"fmt"
 
-	"github.com/ESilva15/gobngsdk"
+	bngsdk "github.com/ESilva15/gobngsdk"
 )
 
 // This will implement the GameSink interface from the main package
@@ -12,7 +12,7 @@ type BeamNG struct {
 }
 
 const (
-	NAME = "BeamNG.Drive"
+	NAME = "BeamNG.drive"
 )
 
 func Init(ip string, port int) (BeamNG, error) {
@@ -40,5 +40,5 @@ func (b *BeamNG) UpdateData() error {
 }
 
 func (b *BeamNG) GetSessionInfo() (interface{}, error) {
-  return nil, fmt.Errorf("Not implemented")
+	return nil, fmt.Errorf("Not implemented")
 }
