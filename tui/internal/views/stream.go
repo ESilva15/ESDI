@@ -28,16 +28,23 @@ type StreamOptionsView struct {
 	UpdateBtn   *tview.Button
 }
 
-func NewStreamOptionsView() *StreamOptionsView {
+func NewStreamOptionsView(providerList []providers.Provider, defaultProvider string,
+) *StreamOptionsView {
 	sov := &StreamOptionsView{}
 
 	sov.Form = tview.NewForm()
 	sov.Form.SetTitle("Stream Options").SetBorder(true)
 
+	defaultIdx := 0
 	sov.SimDropdown = tview.NewDropDown().SetLabel("SIM").SetCurrentOption(0)
-	for _, prov := range providers.Providers {
+	for k, prov := range providerList {
 		sov.SimDropdown.AddOption(prov.Name, func() {})
+
+		if prov.Name == defaultProvider {
+			defaultIdx = k
+		}
 	}
+	sov.SimDropdown.SetCurrentOption(defaultIdx)
 	sov.Form.AddFormItem(sov.SimDropdown)
 
 	// Inject callback on the controller
@@ -93,8 +100,8 @@ type StreamToolView struct {
 	Visualizer *StreamVisualizerView
 }
 
-func NewStreamToolView() *StreamToolView {
-	optionsView := NewStreamOptionsView()
+func NewStreamToolView(providerList []providers.Provider, defaultProvider string) *StreamToolView {
+	optionsView := NewStreamOptionsView(providerList, defaultProvider)
 	visualizerView := NewStreamVisualizerView()
 	flex := tview.NewFlex().SetDirection(tview.FlexColumn)
 	flex.SetTitle("Streaming Tool")

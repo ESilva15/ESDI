@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"esdi/config"
+	"esdi/providers"
 	"esdi/telemetry"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
@@ -28,6 +30,13 @@ func NewStreamingCtrl(
 	serCDash *services.CDashService,
 	serTelem *services.TelemetryService,
 ) *StreamingCtrl {
+	// NOTE: looks sus
+	providerList := []providers.Provider{}
+	for _, item := range providers.Providers {
+		providerList = append(providerList, item)
+	}
+	streamView := views.NewStreamToolView(providerList, config.GetCfg().DefaultSim)
+
 	ctrl := &StreamingCtrl{
 		Controller: base,
 		Service:    serCDash,
@@ -35,7 +44,7 @@ func NewStreamingCtrl(
 		Messages:   make(chan string, 10),
 		Internal:   make(chan string, 10),
 		Run:        false,
-		StreamView: views.NewStreamToolView(),
+		StreamView: streamView,
 		isRunning:  false,
 	}
 
