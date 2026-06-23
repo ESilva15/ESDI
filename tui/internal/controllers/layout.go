@@ -7,7 +7,7 @@ import (
 
 	"esdi/cdashdisplay"
 	helper "esdi/helpers"
-	"esdi/tui/internal/services"
+	"esdi/services"
 	"esdi/tui/internal/views"
 
 	"github.com/gdamore/tcell/v2"

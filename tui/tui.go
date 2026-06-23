@@ -2,9 +2,10 @@
 package tui
 
 import (
-	"esdi/tui/internal/controllers"
-	"esdi/tui/internal/services"
 	"log/slog"
+
+	"esdi/services"
+	"esdi/tui/internal/controllers"
 
 	"github.com/rivo/tview"
 )
@@ -16,6 +17,7 @@ type ControlPanel struct {
 }
 
 func NewControlPanel(logger *slog.Logger) *ControlPanel {
+	// NOTE: given the services should not be only for the TUI should this be here?
 	baseController := &controllers.Controller{
 		Logger: logger,
 		App:    tview.NewApplication(),

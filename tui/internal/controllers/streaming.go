@@ -7,9 +7,9 @@ import (
 
 	"esdi/config"
 	"esdi/providers"
+	"esdi/services"
 	"esdi/telemetry"
 	"esdi/tui/internal/models"
-	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
 
 	"github.com/gdamore/tcell/v2"

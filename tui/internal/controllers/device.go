@@ -4,7 +4,7 @@ package controllers
 import (
 	"fmt"
 
-	serv "esdi/tui/internal/services"
+	serv "esdi/services"
 	"esdi/tui/internal/views"
 
 	"github.com/gdamore/tcell/v2"
