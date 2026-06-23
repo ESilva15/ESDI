@@ -160,6 +160,10 @@ func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 	return i.streamCh, nil
 }
 
+func (i *IRacing) StopStream() {
+	i.streamCancel()
+}
+
 func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 

@@ -6,7 +6,6 @@ import (
 	bngsdk "github.com/ESilva15/gobngsdk"
 )
 
-// This will implement the GameSink interface from the main package
 type BeamNG struct {
 	SDK *bngsdk.BNGSDK
 }

@@ -1,8 +1,9 @@
 package services
 
 import (
-	providerir "esdi/providers/iracing"
 	"log/slog"
+
+	providerir "esdi/providers/iracing"
 
 	telemetry "esdi/telemetry"
 )
@@ -48,8 +49,13 @@ func (t *TelemetryService) SetProvider(provider string) *TelemetryService {
 func (t *TelemetryService) StartStream() <-chan telemetry.TelemetryData {
 	stream, _ := t.ActiveProvider.Stream()
 
-	// Somewhere around here we have to tell the device service to also send data
+	// NOTE: we don't want to just send data to the cdashdisplay. We want to support
+	// multiple devices at the same time
 	t.cdash.StreamData(stream)
 
 	return stream
+}
+
+func (t *TelemetryService) StopStream() {
+	t.ActiveProvider.StopStream()
 }

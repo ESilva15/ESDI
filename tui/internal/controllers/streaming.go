@@ -21,8 +21,10 @@ type StreamingCtrl struct {
 	Internal   chan string
 	Run        bool
 	OnExit     func()
-	isRunning  bool
 	TelemServ  *services.TelemetryService
+
+	// Stream State
+	isRunning bool
 }
 
 func NewStreamingCtrl(
@@ -62,11 +64,8 @@ func (sc *StreamingCtrl) registerHooks() {
 
 		switch ev.Rune() {
 		case 's':
-			// Start
-			sc.Start()
-		case 'p':
-			// Pause
-			// sc.Stop()
+			// Start - stop
+			sc.StartStop()
 		case 'u':
 			// Update
 			// NOTE: run the same routine for the form Update button here
@@ -85,8 +84,15 @@ func (sc *StreamingCtrl) registerHooks() {
 	}
 }
 
-func (sc *StreamingCtrl) Start() {
+func (sc *StreamingCtrl) StartStop() {
+	if sc.isRunning {
+		sc.TelemServ.StopStream()
+		sc.isRunning = false
+		return
+	}
+
 	stream := sc.TelemServ.StartStream()
+	sc.isRunning = true
 
 	var isDrawing atomic.Bool
 
