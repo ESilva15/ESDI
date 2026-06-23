@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	"log/slog"
 	"sync/atomic"
 
 	"esdi/config"
 	"esdi/providers"
 	"esdi/telemetry"
+	"esdi/tui/internal/models"
 	"esdi/tui/internal/services"
 	"esdi/tui/internal/views"
 
@@ -68,7 +70,7 @@ func (sc *StreamingCtrl) registerHooks() {
 			sc.StartStop()
 		case 'u':
 			// Update
-			// NOTE: run the same routine for the form Update button here
+			sc.updateStream()
 		}
 
 		return ev
@@ -112,9 +114,28 @@ func (sc *StreamingCtrl) StartStop() {
 	}()
 }
 
+func (sc *StreamingCtrl) parseStreamUpdateForm(form *views.StreamOptionsView) (*models.StreamOptions, error) {
+	_, sim := form.SimDropdown.GetCurrentOption()
+
+	return &models.StreamOptions{
+		Sim: sim,
+	}, nil
+}
+
 // updateStream will get the new options from the form and update the state accordingly
 func (sc *StreamingCtrl) updateStream() {
 	sc.Messages <- "Request to update stream received - parsing form"
+
+	formData, err := sc.parseStreamUpdateForm(sc.StreamView.Options)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to parse form data: %+v", err))
+		return
+	}
+
+	// NOTE: find a way to hold state so we can compare this new state to the old
+	// state. Need a streamctrl state that holds the form model, for example
+
+	slog.Debug(fmt.Sprintf("Parsed form data: %+v", formData))
 }
 
 // SetInternalState is used to update the stuff in here, for example, the user
