@@ -53,6 +53,11 @@ normally until it hangs.
 - Go back to Terminal2 to and do a `Ctrl+c` to capture the state and then check
 what went wrong by looking at the `goroutines` for example.
 
+pprof:
+- `go tool pprof http://localhost:8001/debug/pprof/mutex`
+  - type `top` to view the summary
+  - type `web` to view a graph version
+
 
 ### Shameless begging
 Hey, doesn't hurt to try, its free either way:

@@ -69,7 +69,7 @@ func NewIRacingProvider(
 		logger:   logger,
 		SDK:      sdk,
 		data:     telem.NewTelemetryData(),
-		streamCh: make(chan telem.TelemetryData),
+		streamCh: make(chan telem.TelemetryData, 1),
 		// NOTE: This is because I stupidly recorded a test IBT file in 240
 		ticker: time.NewTicker(time.Second / 240),
 	}, nil

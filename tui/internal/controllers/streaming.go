@@ -48,7 +48,7 @@ func NewStreamingCtrl(
 		TelemServ:   serTelem,
 		Messages:    make(chan string, 10),
 		Internal:    make(chan string, 10),
-		TelemetryCh: make(chan telemetry.TelemetryData, 100),
+		TelemetryCh: make(chan telemetry.TelemetryData, 1),
 		Run:         false,
 		StreamView:  streamView,
 		isRunning:   false,
@@ -62,7 +62,7 @@ func NewStreamingCtrl(
 }
 
 func (sc *StreamingCtrl) subscribeListeners() {
-	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 50)
+	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
 }
 
 func (sc *StreamingCtrl) registerHooks() {
@@ -109,7 +109,7 @@ func (sc *StreamingCtrl) StartStop() {
 	// NOTE:
 	// Subscribe the only existing device - needs to be discovered by now
 	slog.Debug("setting the data stream for cdash")
-	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("cdash", 50))
+	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("cdash", 1))
 
 	slog.Debug("starting to stream data again")
 	sc.Service.StartStream()

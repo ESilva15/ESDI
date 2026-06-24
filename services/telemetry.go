@@ -27,7 +27,7 @@ func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetrySer
 	newService := &TelemetryService{
 		logger:    logger,
 		cdash:     cdash,
-		uiOutCh:   make(chan telem.TelemetryData, 100),
+		uiOutCh:   make(chan telem.TelemetryData, 5),
 		listeners: make(map[string]chan telem.TelemetryData),
 	}
 
@@ -78,12 +78,6 @@ func (t *TelemetryService) multiplexData(ctx context.Context, dataCh <-chan tele
 				}
 			}
 			t.mut.RUnlock()
-
-			select {
-			case t.uiOutCh <- data:
-			default:
-				// Control latency
-			}
 		}
 	}
 }
