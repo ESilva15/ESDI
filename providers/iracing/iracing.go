@@ -94,6 +94,13 @@ func (i *IRacing) stream(ctx context.Context) {
 
 	go func() {
 		for {
+			// Explicitly intercpt cancellation
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
 			// We start by checking if we do or do not have data available
 			if !i.isDataAvailable() {
 				continue
@@ -161,7 +168,12 @@ func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
 }
 
 func (i *IRacing) StopStream() {
+	if i.streamCancel == nil {
+		return
+	}
+
 	i.streamCancel()
+	i.streamCancel = nil
 }
 
 func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync/atomic"
@@ -12,11 +13,13 @@ import (
 )
 
 type CDashService struct {
-	Logger *slog.Logger
-	CDash  *cdashdisplay.CDashDisplay
-	// iRacingTelemetry *IRacingService
+	Logger   *slog.Logger
+	CDash    *cdashdisplay.CDashDisplay
 	DevClerk *peripheral.PeripheralDeviceClerk
 	Messages chan string
+	// Telemetry Channel
+	streamCancel context.CancelFunc
+	TelemCh      <-chan telemetry.TelemetryData
 }
 
 func NewCDashService(logger *slog.Logger) *CDashService {
@@ -97,19 +100,49 @@ func (cds *CDashService) MoveWindow(idx int16, vec *helper.Vector) error {
 	return nil
 }
 
-func (cds *CDashService) StreamData(stream <-chan telemetry.TelemetryData) {
+func (cds *CDashService) SetTelemetryChannel(ch <-chan telemetry.TelemetryData) {
+	cds.TelemCh = ch
+}
+
+func (cds *CDashService) StartStream() {
+	// NOTE: i'm using this pattern a whole lot. Maybe I can create a struct to handle this
+	var ctx context.Context
+	ctx, cds.streamCancel = context.WithCancel(context.Background())
+
+	go cds.transmit(ctx)
+}
+
+func (cds *CDashService) StopStream() {
+	if cds.streamCancel == nil {
+		return
+	}
+
+	cds.streamCancel()
+	cds.streamCancel = nil
+}
+
+// INTERNAL
+
+func (cds *CDashService) transmit(ctx context.Context) {
 	var isSending atomic.Bool
 
-	go func() {
-		for msg := range stream {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case data, ok := <-cds.TelemCh:
+			if !ok {
+				return
+			}
+
 			if isSending.Load() {
 				continue
 			}
 
 			isSending.Store(true)
 
-			cds.CDash.SendData(&msg)
+			cds.CDash.SendData(&data)
 			isSending.Store(false)
 		}
-	}()
+	}
 }

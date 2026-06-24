@@ -17,13 +17,14 @@ import (
 
 type StreamingCtrl struct {
 	*Controller
-	Service    *services.CDashService
-	StreamView *views.StreamToolView
-	Messages   chan string
-	Internal   chan string
-	Run        bool
-	OnExit     func()
-	TelemServ  *services.TelemetryService
+	Service     *services.CDashService
+	StreamView  *views.StreamToolView
+	Messages    chan string
+	Internal    chan string
+	TelemetryCh <-chan telemetry.TelemetryData
+	Run         bool
+	OnExit      func()
+	TelemServ   *services.TelemetryService
 
 	// Stream State
 	isRunning bool
@@ -42,19 +43,26 @@ func NewStreamingCtrl(
 	streamView := views.NewStreamToolView(providerList, config.GetCfg().DefaultSim)
 
 	ctrl := &StreamingCtrl{
-		Controller: base,
-		Service:    serCDash,
-		TelemServ:  serTelem,
-		Messages:   make(chan string, 10),
-		Internal:   make(chan string, 10),
-		Run:        false,
-		StreamView: streamView,
-		isRunning:  false,
+		Controller:  base,
+		Service:     serCDash,
+		TelemServ:   serTelem,
+		Messages:    make(chan string, 10),
+		Internal:    make(chan string, 10),
+		TelemetryCh: make(chan telemetry.TelemetryData, 100),
+		Run:         false,
+		StreamView:  streamView,
+		isRunning:   false,
 	}
 
 	ctrl.registerHooks()
+	ctrl.subscribeListeners()
+	go ctrl.listenToUIStream()
 
 	return ctrl
+}
+
+func (sc *StreamingCtrl) subscribeListeners() {
+	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 50)
 }
 
 func (sc *StreamingCtrl) registerHooks() {
@@ -88,30 +96,31 @@ func (sc *StreamingCtrl) registerHooks() {
 
 func (sc *StreamingCtrl) StartStop() {
 	if sc.isRunning {
+		slog.Info("stopping stream")
+
 		sc.TelemServ.StopStream()
+		sc.Service.StopStream()
+
 		sc.isRunning = false
 		return
 	}
 
-	stream := sc.TelemServ.StartStream()
+	// stream is not running, we have to start it now
+	// NOTE:
+	// Subscribe the only existing device - needs to be discovered by now
+	slog.Debug("setting the data stream for cdash")
+	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("cdash", 50))
+
+	slog.Debug("starting to stream data again")
+	sc.Service.StartStream()
+
+	slog.Debug("starting the stream")
+	sc.TelemServ.StartStream()
+
+	slog.Debug("setting local control variables")
 	sc.isRunning = true
 
-	var isDrawing atomic.Bool
-
-	go func() {
-		for msg := range stream {
-			if isDrawing.Load() {
-				continue
-			}
-
-			isDrawing.Store(true)
-
-			sc.App.QueueUpdateDraw(func() {
-				sc.StreamView.Visualizer.Update(&msg)
-				isDrawing.Store(false)
-			})
-		}
-	}()
+	slog.Debug("starting stream")
 }
 
 func (sc *StreamingCtrl) parseStreamUpdateForm(form *views.StreamOptionsView) (*models.StreamOptions, error) {
@@ -153,7 +162,23 @@ func (sc *StreamingCtrl) SetInternalState() {
 		fields[w.UIData.IDX] = fieldID
 	}
 
-	sc.TelemServ.ActiveProvider.Subscribe(fields)
+	sc.TelemServ.SubscribeToFields(fields)
 
 	sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
+}
+
+func (sc *StreamingCtrl) listenToUIStream() {
+	var isDrawing atomic.Bool
+
+	for msg := range sc.TelemetryCh {
+		if isDrawing.Load() {
+			continue
+		}
+		isDrawing.Store(true)
+
+		sc.App.QueueUpdateDraw(func() {
+			sc.StreamView.Visualizer.Update(&msg)
+			isDrawing.Store(false)
+		})
+	}
 }

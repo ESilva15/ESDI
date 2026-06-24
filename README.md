@@ -42,6 +42,19 @@ other drivers, track conditions and so on so forth
 - [ ] Telemetry analysis tool
 - [ ] Better user interface
 
+
+## Debugging
+### Freezes:
+Using delve:
+- Launch Terminal1 with `dlv debug . --headless --listen=:2345 -- tui`
+- Launch Terminal2 and connect to with with `dlv connect :2345`
+- Type `continue` onto Terminal2 and go to Terminal1 to use the application
+normally until it hangs.
+- Go back to Terminal2 to and do a `Ctrl+c` to capture the state and then check
+what went wrong by looking at the `goroutines` for example.
+
+
 ### Shameless begging
 Hey, doesn't hurt to try, its free either way:
 [Buy me a coffee!](buymeacoffee.com/ESilva_15)
+

@@ -65,7 +65,10 @@ func runStatviz() error {
 	}
 
 	go func() {
-		http.ListenAndServe("localhost:8001", mux)
+		err := http.ListenAndServe("localhost:8001", mux)
+		if err != nil {
+			slog.Error("Failed to set up server for statsviz", "err", err)
+		}
 	}()
 
 	return nil
