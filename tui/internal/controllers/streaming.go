@@ -35,7 +35,7 @@ func NewStreamingCtrl(
 	serCDash *services.CDashService,
 	serTelem *services.TelemetryService,
 ) *StreamingCtrl {
-	// NOTE: looks sus
+	// NOTE: looks sus, put this somewhere also. Not very good in here
 	providerList := []providers.Provider{}
 	for _, item := range providers.Providers {
 		providerList = append(providerList, item)

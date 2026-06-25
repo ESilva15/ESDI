@@ -29,22 +29,46 @@ Games to be implemented:
 
 
 ## Roadmap
-- [ ] Implement the interface for a data source
+- [X] Implement the interface for a data source
 - [ ] Finish implementing BeamNG
 - [ ] Configuration of the peripherals via ESDI
 - [ ] Detection of the display
-- [ ] Fuel Calculator
+- [X] Fuel Calculator
 - [ ] LapTime Calculator
 - [ ] A very long list useful stuff like flags, position, more info about
 other drivers, track conditions and so on so forth
-- [ ] Dynamic data packets
+- [X] Dynamic data packets
 - [ ] More roadmap entries
 - [ ] Telemetry analysis tool
 - [ ] Better user interface
 
 
-## Debugging
-### Freezes:
+## Todos
+- [ ] Remove all the `slog.logger` passing and struct members and just configure
+`slog.Logger` once and use the default. Or think of something better
+- [ ] Do all the `NOTE`s and `BUG`s
+- [ ] Whats common among the providers? Should abstract whats common
+- [ ] Whats common with all the "streams" I have? Should abstract whats common
+
+
+## Development
+### Mockservers
+To mock [BeamNG.drive](https://www.beamng.com/game/), I built 
+[BeaMNGMockOg](https://github.com/ESilva15/BeamNGMockOg) (should have though longer
+about the name).
+You create a recording by launching the BeamNG and then launching the mockserver with:
+`BeamNGMockOg record -a 127.0.0.1 -p 4443 -o output.bin`.
+
+To replay the recording: 
+`BeamNGMockOg replay [--loop] -a 127.0.0.1 -p 4443 -i input.bin`
+
+### Troubleshooting
+#### Can't see BeamNG data coming through
+Use, for example, `tcpdump -i any udp port <port> -X` to check if any data is available.
+
+
+### Debugging
+#### Freezes:
 Using delve:
 - Launch Terminal1 with `dlv debug . --headless --listen=:2345 -- tui`
 - Launch Terminal2 and connect to with with `dlv connect :2345`
@@ -59,7 +83,7 @@ pprof:
   - type `web` to view a graph version
 
 
-### Shameless begging
+## Shameless begging
 Hey, doesn't hurt to try, its free either way:
 [Buy me a coffee!](buymeacoffee.com/ESilva_15)
 

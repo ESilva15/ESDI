@@ -19,7 +19,6 @@ type TelemetryService struct {
 	ativeProvider telem.TelemetryProvider
 	// Channel for the UI
 	listeners     map[string]chan telem.TelemetryData
-	uiOutCh       chan telem.TelemetryData
 	cancelForward context.CancelFunc
 }
 
@@ -27,21 +26,18 @@ func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetrySer
 	newService := &TelemetryService{
 		logger:    logger,
 		cdash:     cdash,
-		uiOutCh:   make(chan telem.TelemetryData, 5),
 		listeners: make(map[string]chan telem.TelemetryData),
 	}
 
 	// Need to instantiate a default provider here
-	source := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"
-	firstProvider := providers.NewIRacingProvider(slog.Default(), source, "", "")
+	// source := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"
+	// firstProvider := providers.NewIRacingProvider(slog.Default(), source, "", "")
+	firstProvider := providers.NewBeamNGProvider("127.0.0.1", 4443)
+
 	newService.SwitchProvider(firstProvider)
 
 	return newService
 }
-
-// func (t *TelemetryService) GetUIStream() <-chan telem.TelemetryData {
-// 	return t.uiOutCh
-// }
 
 func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) error {
 	t.mut.Lock()

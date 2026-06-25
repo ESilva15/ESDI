@@ -13,7 +13,7 @@ import (
 	"time"
 
 	conv "esdi/conversions"
-	telem "esdi/telemetry"
+	"esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
 )
@@ -29,13 +29,13 @@ type IRacing struct {
 
 	// Data Handling
 	mut  sync.Mutex
-	data *telem.TelemetryData
+	data *telemetry.TelemetryData
 
 	// Timing information
 	ticker *time.Ticker // ticker will keep polling intervals constant
 
 	// Stream
-	streamCh     chan telem.TelemetryData
+	streamCh     chan telemetry.TelemetryData
 	streamCancel context.CancelFunc
 }
 
@@ -68,8 +68,8 @@ func NewIRacingProvider(
 	return &IRacing{
 		logger:   logger,
 		SDK:      sdk,
-		data:     telem.NewTelemetryData(),
-		streamCh: make(chan telem.TelemetryData, 1),
+		data:     telemetry.NewTelemetryData(),
+		streamCh: make(chan telemetry.TelemetryData, 1),
 		// NOTE: This is because I stupidly recorded a test IBT file in 240
 		ticker: time.NewTicker(time.Second / 240),
 	}, nil
@@ -157,7 +157,7 @@ func (i *IRacing) readData() {
 
 // Stream returns a channel that we will use to funnel the telemetry data back to the
 // UI, which then should broadcast it to the devices
-func (i *IRacing) Stream() (<-chan telem.TelemetryData, error) {
+func (i *IRacing) Stream() (<-chan telemetry.TelemetryData, error) {
 	var ctx context.Context
 	ctx, i.streamCancel = context.WithCancel(context.Background())
 
@@ -176,31 +176,31 @@ func (i *IRacing) StopStream() {
 	i.streamCancel = nil
 }
 
-func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
+func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 
-	i.data.ActiveBinds = make([]telem.BoundField, 0, len(requestFields))
+	i.data.ActiveBinds = make([]telemetry.BoundField, 0, len(requestFields))
 
 	// First we must add the virtual fields
 	// we will add their dependencies and the primitives to a slice
-	pendingBinds := make([]telem.FieldID, telem.MaxFields)
+	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
 
 	for winID, id := range requestFields {
 		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
 
 		switch id {
-		case telem.RPMStateColour:
-			i.data.VirtualBinds = append(i.data.VirtualBinds, telem.NewRPMLights())
-		case telem.FCCurrentLap:
+		case telemetry.RPMStateColour:
+			i.data.VirtualBinds = append(i.data.VirtualBinds, telemetry.NewRPMLights())
+		case telemetry.FCCurrentLap:
 			i.data.VirtualBinds = append(i.data.VirtualBinds,
-				telem.NewFuelCalculator(i.logger.WithGroup("FUEL CALC")))
+				telemetry.NewFuelCalculator(i.logger.WithGroup("FUEL CALC")))
 		default:
 			// primitive telemetry field
 			pendingBinds = append(pendingBinds, id)
 		}
 	}
 
-	boundCheck := make(map[telem.FieldID]bool)
+	boundCheck := make(map[telemetry.FieldID]bool)
 
 	// Now that we know all the fields we need to bind we follow the binding procedure
 	for _, id := range pendingBinds {
@@ -217,20 +217,20 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 			continue
 		}
 
-		binding := telem.BoundField{
+		binding := telemetry.BoundField{
 			Key: sdkKey,
 			ID:  id,
 		}
 
 		switch id {
-		case telem.Speed:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeUINT16
+		case telemetry.Speed:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeUINT16
 				out.Raw = uint64(conv.MsToKph(v.(float32)))
 			}
-		case telem.Gear:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeCHAR
+		case telemetry.Gear:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeCHAR
 				// out.Raw = uint64(v.(int))
 
 				gear := 0
@@ -253,53 +253,53 @@ func (i *IRacing) Subscribe(requestFields map[int16]telem.FieldID) {
 					out.Raw = uint64('?') // Fallback
 				}
 			}
-		case telem.RPM:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeUINT16
+		case telemetry.RPM:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeUINT16
 				out.Raw = uint64(uint16(v.(float32)))
 			}
-		case telem.FuelLevel:
-			binding.Transform = FloatToStringTransform
+		case telemetry.FuelLevel:
+			binding.Transform = telemetry.FloatToStringTransform
 		// Engine Data
-		case telem.OilPress:
-			binding.Transform = FloatToStringTransform
-		case telem.OilTemp:
-			binding.Transform = FloatToStringTransform
-		case telem.WaterTemp:
-			binding.Transform = FloatToStringTransform
+		case telemetry.OilPress:
+			binding.Transform = telemetry.FloatToStringTransform
+		case telemetry.OilTemp:
+			binding.Transform = telemetry.FloatToStringTransform
+		case telemetry.WaterTemp:
+			binding.Transform = telemetry.FloatToStringTransform
 		// Something else
-		case telem.PitSpeedLimiter:
+		case telemetry.PitSpeedLimiter:
 			binding.Transform = PitSpeedLimiterTransform
 		// Adjustements
-		case telem.BrakeBias:
-			binding.Transform = FloatToStringTransform
-		case telem.ABSSetting:
-			binding.Transform = FloatToUInt8Transform
-		case telem.TCSetting:
-			binding.Transform = FloatToUInt8Transform
-		case telem.ThrottleSetting:
-			binding.Transform = FloatToUInt8Transform
-		case telem.LFtempM:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeSTRING
+		case telemetry.BrakeBias:
+			binding.Transform = telemetry.FloatToStringTransform
+		case telemetry.ABSSetting:
+			binding.Transform = telemetry.FloatToUInt8Transform
+		case telemetry.TCSetting:
+			binding.Transform = telemetry.FloatToUInt8Transform
+		case telemetry.ThrottleSetting:
+			binding.Transform = telemetry.FloatToUInt8Transform
+		case telemetry.LFtempM:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeSTRING
 				out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
 			}
-		case telem.SessionTime:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeSTRING
+		case telemetry.SessionTime:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeSTRING
 				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
 			}
-		case telem.ReplaySessionTime:
-			binding.Transform = func(v any, out *telem.TelemetryField) {
-				out.Type = telem.DataTypeSTRING
+		case telemetry.ReplaySessionTime:
+			binding.Transform = func(v any, out *telemetry.TelemetryField) {
+				out.Type = telemetry.DataTypeSTRING
 				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
 			}
-		case telem.Empty:
-			binding.Transform = EmptyTransform
-		case telem.LapLastLapTime:
+		case telemetry.Empty:
+			binding.Transform = telemetry.EmptyTransform
+		case telemetry.LapLastLapTime:
 			binding.Transform = LapTimeTransform
-		case telem.LapNumber:
-			binding.Transform = UInt8Transform
+		case telemetry.LapNumber:
+			binding.Transform = telemetry.UInt8Transform
 		}
 
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)

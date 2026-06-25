@@ -32,3 +32,8 @@ func NewIRacingProvider(logger *slog.Logger, source string,
 
 	return provider
 }
+
+func NewBeamNGProvider(ip string, port int) telemetry.TelemetryProvider {
+	provider, _ := beamng.NewBeamNGProvider(ip, port)
+	return provider
+}

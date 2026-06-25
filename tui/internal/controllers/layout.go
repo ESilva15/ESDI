@@ -31,7 +31,7 @@ func NewLayoutController(base *Controller, service *services.CDashService) *Layo
 		Messages:       make(chan string, 10),
 		DevService:     service,
 		MoveToolState:  &windowManipState{Mode: moveMode},
-		SelectedLayout: "layout.yaml",
+		SelectedLayout: "beamng.yaml",
 	}
 
 	lc.registerHooks()
