@@ -44,6 +44,8 @@ other drivers, track conditions and so on so forth
 
 
 ## Todos
+- [ ] Add a way to check the unit of a given variable
+Expand on this concept by creating conversions for those units
 - [ ] Remove all the `slog.logger` passing and struct members and just configure
 `slog.Logger` once and use the default. Or think of something better
 - [ ] Do all the `NOTE`s and `BUG`s
