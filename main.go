@@ -16,6 +16,8 @@ import (
 )
 
 func initApplication() {
+	fmt.Fprint(os.Stdout, "\x1b]0;ESDI\x07")
+
 	// 1. This is the first initialization setup we do so we can log
 	err := setupLogger()
 	if err != nil {
