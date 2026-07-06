@@ -44,6 +44,7 @@ other drivers, track conditions and so on so forth
 
 
 ## Todos
+- [ ] Make the program report what its doing as the window title `\x1b]0;TITLE\x7`
 - [ ] Add a way to check the unit of a given variable
 Expand on this concept by creating conversions for those units
 - [ ] Remove all the `slog.logger` passing and struct members and just configure
