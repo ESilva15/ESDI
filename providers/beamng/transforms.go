@@ -1,6 +1,7 @@
 package beamng
 
 import (
+	"strconv"
 	"time"
 
 	"esdi/telemetry"
@@ -37,8 +38,9 @@ func PitSpeedLimiterTransform(v any, out *telemetry.TelemetryField) {
 }
 
 func GearTransform(v any, out *telemetry.TelemetryField) {
-	out.Type = telemetry.DataTypeCHAR
+	out.Type = telemetry.DataTypeSTRING
 
+	// NOTE: relook at this. Just copied it here but smells bad
 	gear := 0
 	if val, ok := v.(int32); ok {
 		gear = int(val)
@@ -46,16 +48,6 @@ func GearTransform(v any, out *telemetry.TelemetryField) {
 		gear = val
 	}
 
-	switch {
-	case gear == 0:
-		out.Raw = uint64('N') // ASCII 78
-	case gear < 0:
-		out.Raw = uint64('R') // ASCII 82
-	case gear > 0 && gear < 10:
-		// Quickest way to turn 1 into '1', 2 into '2', etc.
-		// ASCII '0' is 48, so 48 + 1 = 49 ('1')
-		out.Raw = uint64('0' + gear)
-	default:
-		out.Raw = uint64('?') // Fallback
-	}
+	// NOTE: stupid idea but we can cache these values
+	out.Str = strconv.Itoa(gear)
 }
