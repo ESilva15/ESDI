@@ -27,9 +27,14 @@ type VirtualField interface {
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
 // I can bind that address and read directly from there on the transform
 
+// BoundField is the data structure we use to bind the telemetry provider's data
+// to our internal telemetry fields
+// NOTE: we must deprecate the `Key` member. We used it to map the internal
+// telemetry fields to the providers name. But we shouldn't be using `string` keys.
 type BoundField struct {
 	Key       string
 	ID        FieldID
+	Fetch     func() any
 	Transform func(any, *TelemetryField)
 }
 
@@ -143,6 +148,14 @@ const (
 	WaterTemp
 	// Engine Warnings
 	PitSpeedLimiter
+	// Electrics (dash lights and so on)
+	LeftIndicator
+	RightIndicator
+	Hazards
+	ABSWarningLight
+	ParkingBrakeLight
+	TCLight
+	BatteryLight
 	// Adjustements
 	BrakeBias
 	ABSSetting
@@ -191,6 +204,14 @@ var FieldNames = [MaxFields]string{
 	WaterTemp: "Water Temperature",
 	// Engine Warnings
 	PitSpeedLimiter: "Pit Speed Limiter",
+	// Electrics (dash lights and so on)
+	LeftIndicator:     "Left Indicator",
+	RightIndicator:    "Right Indicator",
+	Hazards:           "Hazards",
+	ABSWarningLight:   "ABS Dash Light",
+	ParkingBrakeLight: "Parking Brake Dash Light",
+	TCLight:           "Traction Control Light",
+	BatteryLight:      "Battery Light",
 	// Ajustments
 	BrakeBias:       "BrakeBias",
 	ABSSetting:      "ABS Control",

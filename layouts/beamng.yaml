@@ -1,5 +1,53 @@
 Windows:
+    1:
+        uiwindow:
+            Dims:
+                X0: 170
+                Y0: 136
+                Width: 40
+                Height: 55
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: '>'
+            Title: ->
+        uidata:
+            WID: 1
+            TelemetryField: Right Indicator
     2:
+        uiwindow:
+            Dims:
+                X0: 341
+                Y0: 417
+                Width: 40
+                Height: 55
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: A
+            Title: ABS
+        uidata:
+            WID: 2
+            TelemetryField: ABS Dash Light
+    3:
         uiwindow:
             Dims:
                 X0: 470
@@ -21,81 +69,9 @@ Windows:
                 PreviewValue: "9999"
             Title: Dig Tacho
         uidata:
-            WID: 2
+            WID: 3
             TelemetryField: RPM
     4:
-        uiwindow:
-            Dims:
-                X0: 321
-                Y0: 195
-                Width: 134
-                Height: 80
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 7
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "234"
-            Title: SPEEDO
-        uidata:
-            WID: 4
-            TelemetryField: Speed
-    5:
-        uiwindow:
-            Dims:
-                X0: 590
-                Y0: 367
-                Width: 100
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "101.5"
-            Title: Water T
-        uidata:
-            WID: 5
-            TelemetryField: Water Temperature
-    10:
-        uiwindow:
-            Dims:
-                X0: 470
-                Y0: 132
-                Width: 169
-                Height: 50
-            Decor:
-                BGColour: 4161
-                FGColour: 65535
-                TitleColour: 65535
-                BorderColour: 63488
-                TitleSize: 2
-                TextSize: 3
-                HasBorder: 1
-                Padding: 0
-            Opts:
-                ShowID: 0
-                WinType: 2
-                PreviewValue: "123.4"
-            Title: Fuel Level
-        uidata:
-            WID: 10
-            TelemetryField: Fuel Level
-    11:
         uiwindow:
             Dims:
                 X0: 321
@@ -117,33 +93,33 @@ Windows:
                 PreviewValue: R
             Title: Box
         uidata:
-            WID: 11
+            WID: 4
             TelemetryField: Gear
-    16:
+    5:
         uiwindow:
             Dims:
-                X0: 694
-                Y0: 423
-                Width: 100
-                Height: 50
+                X0: 80
+                Y0: 136
+                Width: 40
+                Height: 55
             Decor:
                 BGColour: 4161
                 FGColour: 65535
                 TitleColour: 65535
                 BorderColour: 63488
                 TitleSize: 2
-                TextSize: 3
+                TextSize: 4
                 HasBorder: 1
                 Padding: 0
             Opts:
                 ShowID: 0
                 WinType: 2
-                PreviewValue: "4.56"
-            Title: Oil P
+                PreviewValue: <
+            Title: <-
         uidata:
-            WID: 16
-            TelemetryField: Oil Pressure
-    17:
+            WID: 5
+            TelemetryField: Left Indicator
+    6:
         uiwindow:
             Dims:
                 X0: 694
@@ -165,9 +141,177 @@ Windows:
                 PreviewValue: "101.4"
             Title: Oil T
         uidata:
-            WID: 17
+            WID: 6
             TelemetryField: Oil Temperature
-    20:
+    7:
+        uiwindow:
+            Dims:
+                X0: 386
+                Y0: 417
+                Width: 40
+                Height: 55
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: T
+            Title: TC
+        uidata:
+            WID: 7
+            TelemetryField: Traction Control Light
+    8:
+        uiwindow:
+            Dims:
+                X0: 431
+                Y0: 417
+                Width: 40
+                Height: 55
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: B
+            Title: Bat
+        uidata:
+            WID: 8
+            TelemetryField: Battery Light
+    9:
+        uiwindow:
+            Dims:
+                X0: 321
+                Y0: 195
+                Width: 134
+                Height: 80
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 7
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "234"
+            Title: SPEEDO
+        uidata:
+            WID: 9
+            TelemetryField: Speed
+    10:
+        uiwindow:
+            Dims:
+                X0: 590
+                Y0: 367
+                Width: 100
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "101.5"
+            Title: Water T
+        uidata:
+            WID: 10
+            TelemetryField: Water Temperature
+    11:
+        uiwindow:
+            Dims:
+                X0: 470
+                Y0: 132
+                Width: 169
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "123.4"
+            Title: Fuel Level
+        uidata:
+            WID: 11
+            TelemetryField: Fuel Level
+    12:
+        uiwindow:
+            Dims:
+                X0: 694
+                Y0: 423
+                Width: 100
+                Height: 50
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 3
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: "4.56"
+            Title: Oil P
+        uidata:
+            WID: 12
+            TelemetryField: Oil Pressure
+    13:
+        uiwindow:
+            Dims:
+                X0: 296
+                Y0: 417
+                Width: 40
+                Height: 55
+            Decor:
+                BGColour: 4161
+                FGColour: 65535
+                TitleColour: 65535
+                BorderColour: 63488
+                TitleSize: 2
+                TextSize: 4
+                HasBorder: 1
+                Padding: 0
+            Opts:
+                ShowID: 0
+                WinType: 2
+                PreviewValue: P
+            Title: HB
+        uidata:
+            WID: 13
+            TelemetryField: Parking Brake Dash Light
+    14:
         uiwindow:
             Dims:
                 X0: 142
@@ -189,5 +333,5 @@ Windows:
                 PreviewValue: "5678"
             Title: TACHO
         uidata:
-            WID: 20
+            WID: 14
             TelemetryField: RPM
