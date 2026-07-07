@@ -2,7 +2,8 @@ package beamng
 
 import (
 	"strconv"
-	"time"
+
+	conv "esdi/conversions"
 
 	"esdi/telemetry"
 )
@@ -11,43 +12,102 @@ const (
 	LapTimeFormatStr = "04:05.000"
 )
 
-// NOTE: this is a copy from iracing provider. Change it however necessary
-func LapTimeTransform(v any, out *telemetry.TelemetryField) {
-	lapTimeInSeconds := v.(float32)
-
-	if lapTimeInSeconds < 0 {
-		lapTimeInSeconds = 0
-	}
-
-	wholeSeconds := int64(lapTimeInSeconds)
-	lapTime := time.Unix(wholeSeconds, int64((lapTimeInSeconds-float32(wholeSeconds))*1e9))
-
-	out.Type = telemetry.DataTypeSTRING
-	out.Str = lapTime.Format(LapTimeFormatStr)
+func (b *BeamNG) unused(out *telemetry.TelemetryField) {
+	out.Unused()
 }
 
-// NOTE: this is a copy from iracing provider. Change this however necessary in the future
-// for beamng.
-func PitSpeedLimiterTransform(v any, out *telemetry.TelemetryField) {
-	out.Type = telemetry.DataTypeSTRING
-	if v.(bool) {
-		out.Str = "PIT"
-	} else {
-		out.Str = "   "
-	}
+func (b *BeamNG) updateSpeed(out *telemetry.TelemetryField) {
+	out.Type = telemetry.DataTypeUINT16
+	out.Raw = uint64(conv.MsToKph(b.SDK.Data.Speed))
 }
 
-func GearTransform(v any, out *telemetry.TelemetryField) {
+func (b *BeamNG) updateGear(out *telemetry.TelemetryField) {
 	out.Type = telemetry.DataTypeSTRING
-
-	// NOTE: relook at this. Just copied it here but smells bad
-	gear := 0
-	if val, ok := v.(int32); ok {
-		gear = int(val)
-	} else if val, ok := v.(int); ok {
-		gear = val
-	}
-
 	// NOTE: stupid idea but we can cache these values
-	out.Str = strconv.Itoa(gear)
+	out.Str = strconv.Itoa(int(b.SDK.Data.Gear))
+}
+
+func (b *BeamNG) updateRPM(out *telemetry.TelemetryField) {
+	out.Type = telemetry.DataTypeUINT16
+	out.Raw = uint64(uint16(b.SDK.Data.RPM))
+}
+
+func (b *BeamNG) fuelLevel(out *telemetry.TelemetryField) {
+	telemetry.FloatToStringTransform(b.SDK.Data.Fuel, out)
+}
+
+func (b *BeamNG) oilPressure(out *telemetry.TelemetryField) {
+	telemetry.FloatToStringTransform(b.SDK.Data.OilPressure, out)
+}
+
+func (b *BeamNG) oilTemp(out *telemetry.TelemetryField) {
+	telemetry.FloatToStringTransform(b.SDK.Data.OilTemp, out)
+}
+
+func (b *BeamNG) engTemp(out *telemetry.TelemetryField) {
+	telemetry.FloatToStringTransform(b.SDK.Data.EngTemp, out)
+}
+
+// NOTE: find how to empty this
+func (b *BeamNG) pitSpeedLimiter(out *telemetry.TelemetryField) {
+}
+
+func (b *BeamNG) leftIndicator(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.LeftIndicator() {
+		chr = '<'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
+}
+
+func (b *BeamNG) rightIndicator(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.RightIndicator() {
+		chr = '>'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
+}
+
+func (b *BeamNG) absLight(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.ABS() {
+		chr = 'A'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
+}
+
+func (b *BeamNG) handbrakeLight(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.Handbrake() {
+		chr = 'P'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
+}
+
+func (b *BeamNG) tcLight(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.TractionControl() {
+		chr = 'T'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
+}
+
+func (b *BeamNG) batteryLight(out *telemetry.TelemetryField) {
+	chr := ' '
+	if b.SDK.BatteryLight() {
+		chr = 'B'
+	}
+
+	out.Type = telemetry.DataTypeCHAR
+	out.Raw = uint64(chr)
 }

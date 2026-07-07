@@ -32,10 +32,11 @@ type VirtualField interface {
 // NOTE: we must deprecate the `Key` member. We used it to map the internal
 // telemetry fields to the providers name. But we shouldn't be using `string` keys.
 type BoundField struct {
-	Key       string
+	Key       string // to be deprecated
 	ID        FieldID
-	Fetch     func() any
-	Transform func(any, *TelemetryField)
+	Fetch     func() any                 // to be deprecated
+	Transform func(any, *TelemetryField) // to be deprecated
+	Update    func(out *TelemetryField)
 }
 
 var bufferPool = sync.Pool{
@@ -72,6 +73,11 @@ type TelemetryField struct {
 	Type DataType
 	Raw  uint64
 	Str  string // Only to be used with DataTypeSTRING
+}
+
+func (tf *TelemetryField) Unused() {
+	tf.Type = DataTypeCHAR
+	tf.Raw = uint64('-')
 }
 
 // Pack will pack this current TelemetryField into bytes to send over the wire

@@ -18,7 +18,12 @@ func UInt8Transform(v any, out *TelemetryField) {
 	out.Raw = uint64(v.(int))
 }
 
-func FloatToStringTransform(v any, out *TelemetryField) {
+func FloatToStringTransform(v float32, out *TelemetryField) {
+	out.Type = DataTypeSTRING
+	out.Str = strconv.FormatFloat(float64(v), 'f', 1, 32)
+}
+
+func FloatToStringTransformDEPRECATE(v any, out *TelemetryField) {
 	out.Type = DataTypeSTRING
 
 	if v == nil {
@@ -29,7 +34,7 @@ func FloatToStringTransform(v any, out *TelemetryField) {
 	out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
 }
 
-func FloatToUInt8Transform(v any, out *TelemetryField) {
+func FloatToUInt8TransformDEPRECATE(v any, out *TelemetryField) {
 	out.Type = DataTypeUINT8
 
 	if v == nil {

@@ -259,26 +259,26 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 				out.Raw = uint64(uint16(v.(float32)))
 			}
 		case telemetry.FuelLevel:
-			binding.Transform = telemetry.FloatToStringTransform
+			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
 		// Engine Data
 		case telemetry.OilPress:
-			binding.Transform = telemetry.FloatToStringTransform
+			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
 		case telemetry.OilTemp:
-			binding.Transform = telemetry.FloatToStringTransform
+			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
 		case telemetry.WaterTemp:
-			binding.Transform = telemetry.FloatToStringTransform
+			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
 		// Something else
 		case telemetry.PitSpeedLimiter:
 			binding.Transform = PitSpeedLimiterTransform
 		// Adjustements
 		case telemetry.BrakeBias:
-			binding.Transform = telemetry.FloatToStringTransform
+			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
 		case telemetry.ABSSetting:
-			binding.Transform = telemetry.FloatToUInt8Transform
+			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
 		case telemetry.TCSetting:
-			binding.Transform = telemetry.FloatToUInt8Transform
+			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
 		case telemetry.ThrottleSetting:
-			binding.Transform = telemetry.FloatToUInt8Transform
+			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
 		case telemetry.LFtempM:
 			binding.Transform = func(v any, out *telemetry.TelemetryField) {
 				out.Type = telemetry.DataTypeSTRING

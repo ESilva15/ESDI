@@ -8,18 +8,19 @@ import (
 	"sync"
 	"time"
 
-	conv "esdi/conversions"
 	"esdi/telemetry"
 
 	bngsdk "github.com/ESilva15/gobngsdk"
 )
 
+// NOTE: document this please. What is a TelemetryData????
 type BeamNG struct {
 	SDK *bngsdk.BeamNGSDK
 
 	// data handling
-	mut  sync.Mutex
-	data *telemetry.TelemetryData
+	mut      sync.Mutex
+	data     *telemetry.TelemetryData
+	updaters [telemetry.MaxFields]func(*telemetry.TelemetryField)
 
 	// stream control
 	streamCh     chan telemetry.TelemetryData
@@ -39,12 +40,66 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 		return &BeamNG{}, err
 	}
 
-	return &BeamNG{
+	provider := &BeamNG{
 		streamCh: make(chan telemetry.TelemetryData, 1),
 		data:     telemetry.NewTelemetryData(),
 		SDK:      &beam,
 		ticker:   time.NewTicker(time.Second / 60),
-	}, nil
+	}
+
+	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
+		telemetry.Speed:     provider.updateSpeed,
+		telemetry.Gear:      provider.updateGear,
+		telemetry.RPM:       provider.updateRPM,
+		telemetry.FuelLevel: provider.fuelLevel,
+		// Engine Data
+		telemetry.OilPress:  provider.oilPressure,
+		telemetry.OilTemp:   provider.oilTemp,
+		telemetry.WaterTemp: provider.engTemp,
+		// Electrics (dash lights and so on)
+		telemetry.PitSpeedLimiter:   provider.pitSpeedLimiter,
+		telemetry.LeftIndicator:     provider.leftIndicator,
+		telemetry.RightIndicator:    provider.rightIndicator,
+		telemetry.ABSWarningLight:   provider.absLight,
+		telemetry.ParkingBrakeLight: provider.handbrakeLight,
+		telemetry.TCLight:           provider.tcLight,
+		telemetry.BatteryLight:      provider.batteryLight,
+		// Adjustements
+		telemetry.BrakeBias:       provider.unused,
+		telemetry.ABSSetting:      provider.unused,
+		telemetry.TCSetting:       provider.unused,
+		telemetry.ThrottleSetting: provider.unused,
+		// Lap Data
+		telemetry.LapLastLapTime: provider.unused,
+		telemetry.LapNumber:      provider.unused,
+		// Tire Data
+		telemetry.LFtempL: provider.unused,
+		telemetry.LFtempM: provider.unused,
+		telemetry.LFtempR: provider.unused,
+		telemetry.RFtempL: provider.unused,
+		telemetry.RFtempM: provider.unused,
+		telemetry.RFtempR: provider.unused,
+		telemetry.LRtempL: provider.unused,
+		telemetry.LRtempM: provider.unused,
+		telemetry.LRtempR: provider.unused,
+		telemetry.RRtempL: provider.unused,
+		telemetry.RRtempM: provider.unused,
+		telemetry.RRtempR: provider.unused,
+		// Session Data
+		telemetry.SessionTime:       provider.unused,
+		telemetry.ReplaySessionTime: provider.unused,
+		telemetry.Empty:             provider.unused,
+		// Virtual Fields -- fields derived from primitive fields
+		// RPM Dash Lights
+		telemetry.RPMStateColour: provider.unused,
+		// Fuel Calculator
+		telemetry.FCCurrentLap:   provider.unused,
+		telemetry.FCLastLap:      provider.unused,
+		telemetry.FCAverage:      provider.unused,
+		telemetry.FCExpectedLaps: provider.unused,
+	}
+
+	return provider, nil
 }
 
 func (b *BeamNG) StopStream() {
@@ -103,185 +158,6 @@ func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
 			ID: id,
 		}
 
-		switch id {
-		case telemetry.Speed:
-			binding.Fetch = func() any {
-				return b.SDK.Data.Speed
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
-				out.Raw = uint64(conv.MsToKph(v.(float32)))
-			}
-		case telemetry.Gear:
-			binding.Fetch = func() any {
-				return b.SDK.Data.Gear
-			}
-			binding.Transform = GearTransform
-		case telemetry.RPM:
-			binding.Fetch = func() any {
-				return b.SDK.Data.RPM
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
-				out.Raw = uint64(uint16(v.(float32)))
-			}
-		case telemetry.FuelLevel:
-			binding.Fetch = func() any {
-				return b.SDK.Data.Fuel
-			}
-			binding.Transform = telemetry.FloatToStringTransform
-		// Engine Data
-		case telemetry.OilPress:
-			binding.Fetch = func() any {
-				return b.SDK.Data.OilPressure
-			}
-			binding.Transform = telemetry.FloatToStringTransform
-		case telemetry.OilTemp:
-			binding.Fetch = func() any {
-				return b.SDK.Data.OilTemp
-			}
-			binding.Transform = telemetry.FloatToStringTransform
-		case telemetry.WaterTemp:
-			binding.Fetch = func() any {
-				return b.SDK.Data.EngTemp
-			}
-			binding.Transform = telemetry.FloatToStringTransform
-		// Something else
-		case telemetry.PitSpeedLimiter:
-			binding.Fetch = func() any {
-				return b.SDK.Pitspeed()
-			}
-			binding.Transform = PitSpeedLimiterTransform
-		// Electrics (dash lights and so on)
-		case telemetry.LeftIndicator:
-			binding.Fetch = func() any {
-				return b.SDK.LeftIndicator()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = '<'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		case telemetry.RightIndicator:
-			binding.Fetch = func() any {
-				return b.SDK.RightIndicator()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = '>'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		case telemetry.ABSWarningLight:
-			binding.Fetch = func() any {
-				return b.SDK.ABS()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = 'A'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		case telemetry.ParkingBrakeLight:
-			binding.Fetch = func() any {
-				return b.SDK.Handbrake()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = 'P'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		case telemetry.TCLight:
-			binding.Fetch = func() any {
-				return b.SDK.TractionControl()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = 'T'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		case telemetry.BatteryLight:
-			binding.Fetch = func() any {
-				return b.SDK.BatteryLight()
-			}
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-
-				chr := ' '
-				if r, ok := v.(bool); ok {
-					if r {
-						chr = 'B'
-					}
-				}
-
-				out.Raw = uint64(chr)
-			}
-		// Adjustements
-		// case telemetry.BrakeBias:
-		// 	binding.Transform = telemetry.FloatToStringTransform
-		// case telemetry.ABSSetting:
-		// 	binding.Transform = telemetry.FloatToUInt8Transform
-		// case telemetry.TCSetting:
-		// 	binding.Transform = telemetry.FloatToUInt8Transform
-		// case telemetry.ThrottleSetting:
-		// 	binding.Transform = telemetry.FloatToUInt8Transform
-		// case telemetry.LFtempM:
-		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
-		// 		out.Type = telemetry.DataTypeSTRING
-		// 		out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
-		// 	}
-		// case telemetry.SessionTime:
-		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
-		// 		out.Type = telemetry.DataTypeSTRING
-		// 		out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
-		// 	}
-		// case telemetry.ReplaySessionTime:
-		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
-		// 		out.Type = telemetry.DataTypeSTRING
-		// 		out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
-		// 	}
-		case telemetry.Empty:
-			binding.Transform = telemetry.EmptyTransform
-			// case telemetry.LapLastLapTime:
-			// 	binding.Transform = LapTimeTransform
-			// case telemetry.LapNumber:
-			// 	binding.Transform = telemetry.UInt8Transform
-		}
-
 		b.data.ActiveBinds = append(b.data.ActiveBinds, binding)
 		boundCheck[id] = true
 	}
@@ -307,7 +183,8 @@ func (b *BeamNG) readData() {
 	// Read 1 to 1 data
 	slog.Debug("Reading normal data binds")
 	for _, bind := range b.data.ActiveBinds {
-		bind.Transform(bind.Fetch(), &b.data.Values[bind.ID])
+		slog.Debug("Current bind: ", "id", bind.ID)
+		b.updaters[bind.ID](&b.data.Values[bind.ID])
 	}
 
 	// Set up virtual binds
@@ -334,10 +211,7 @@ func (b *BeamNG) stream(ctx context.Context) {
 			default:
 			}
 
-			// We start by checking if we do or do not have data available
-			// if !b.isDataAvailable() {
-			// 	continue
-			// }
+			// NOTE: add a method to check if there's data available, or make this happen
 
 			select {
 			case <-ctx.Done():
