@@ -13,6 +13,8 @@ import (
 	bngsdk "github.com/ESilva15/gobngsdk"
 )
 
+// BeamNG is the concrete implementation of the TelemetryProvider interface
+// for BeamNG.drive
 // NOTE: document this please. What is a TelemetryData????
 type BeamNG struct {
 	SDK *bngsdk.BeamNGSDK
@@ -60,6 +62,7 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 		telemetry.PitSpeedLimiter:   provider.pitSpeedLimiter,
 		telemetry.LeftIndicator:     provider.leftIndicator,
 		telemetry.RightIndicator:    provider.rightIndicator,
+		telemetry.Hazards:           provider.unused,
 		telemetry.ABSWarningLight:   provider.absLight,
 		telemetry.ParkingBrakeLight: provider.handbrakeLight,
 		telemetry.TCLight:           provider.tcLight,
@@ -97,6 +100,15 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 		telemetry.FCLastLap:      provider.unused,
 		telemetry.FCAverage:      provider.unused,
 		telemetry.FCExpectedLaps: provider.unused,
+	}
+
+	for k := range int(telemetry.MaxFields) {
+		// One by one so you won't forget it next time
+		if provider.updaters[k] == nil {
+			msg := fmt.Sprintf("BeamNG updaters aren't all assigned. Currently unassgined: %s",
+				telemetry.FieldNames[k])
+			panic(msg)
+		}
 	}
 
 	return provider, nil
