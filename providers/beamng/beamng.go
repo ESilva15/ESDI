@@ -67,47 +67,12 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 		telemetry.ParkingBrakeLight: provider.handbrakeLight,
 		telemetry.TCLight:           provider.tcLight,
 		telemetry.BatteryLight:      provider.batteryLight,
-		// Adjustements
-		telemetry.BrakeBias:       provider.unused,
-		telemetry.ABSSetting:      provider.unused,
-		telemetry.TCSetting:       provider.unused,
-		telemetry.ThrottleSetting: provider.unused,
-		// Lap Data
-		telemetry.LapLastLapTime: provider.unused,
-		telemetry.LapNumber:      provider.unused,
-		// Tire Data
-		telemetry.LFtempL: provider.unused,
-		telemetry.LFtempM: provider.unused,
-		telemetry.LFtempR: provider.unused,
-		telemetry.RFtempL: provider.unused,
-		telemetry.RFtempM: provider.unused,
-		telemetry.RFtempR: provider.unused,
-		telemetry.LRtempL: provider.unused,
-		telemetry.LRtempM: provider.unused,
-		telemetry.LRtempR: provider.unused,
-		telemetry.RRtempL: provider.unused,
-		telemetry.RRtempM: provider.unused,
-		telemetry.RRtempR: provider.unused,
-		// Session Data
-		telemetry.SessionTime:       provider.unused,
-		telemetry.ReplaySessionTime: provider.unused,
-		telemetry.Empty:             provider.unused,
-		// Virtual Fields -- fields derived from primitive fields
-		// RPM Dash Lights
-		telemetry.RPMStateColour: provider.unused,
-		// Fuel Calculator
-		telemetry.FCCurrentLap:   provider.unused,
-		telemetry.FCLastLap:      provider.unused,
-		telemetry.FCAverage:      provider.unused,
-		telemetry.FCExpectedLaps: provider.unused,
 	}
 
+	// Set the unset telemetry fields on the updaters as unused fields
 	for k := range int(telemetry.MaxFields) {
-		// One by one so you won't forget it next time
 		if provider.updaters[k] == nil {
-			msg := fmt.Sprintf("BeamNG updaters aren't all assigned. Currently unassgined: %s",
-				telemetry.FieldNames[k])
-			panic(msg)
+			provider.updaters[k] = provider.unused
 		}
 	}
 

@@ -29,13 +29,11 @@ type VirtualField interface {
 
 // BoundField is the data structure we use to bind the telemetry provider's data
 // to our internal telemetry fields
-// NOTE: we must deprecate the `Key` member. We used it to map the internal
-// telemetry fields to the providers name. But we shouldn't be using `string` keys.
 type BoundField struct {
-	Key       string // to be deprecated
+	Key       string // NOTE: to be deprecated
 	ID        FieldID
-	Fetch     func() any                 // to be deprecated
-	Transform func(any, *TelemetryField) // to be deprecated
+	Fetch     func() any                 // NOTE: to be deprecated
+	Transform func(any, *TelemetryField) // NOTE: to be deprecated
 	Update    func(out *TelemetryField)
 }
 
