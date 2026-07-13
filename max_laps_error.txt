@@ -1,0 +1,16 @@
+panic: runtime error: index out of range [256] with length 256
+
+goroutine 83 [running]:
+esdi/telemetry.(*FuelCalculator).newLapData(...)
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/telemetry/fuel_calculator.go:115
+esdi/telemetry.(*FuelCalculator).startFinishLineCrossed(0x5d5d5d96008, 0x5d5d596a808, 0x1e4, 0x404e400000000000)
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/telemetry/fuel_calculator.go:193 +0x27f
+esdi/telemetry.(*FuelCalculator).Process(0x5d5d5d96008, 0x5d5d596a808)
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/telemetry/fuel_calculator.go:250 +0x227
+esdi/providers/iracing.(*IRacing).readData(0x5d5d585a600)
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/providers/iracing/iracing.go:141 +0x25c
+esdi/providers/iracing.(*IRacing).stream.func1()
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/providers/iracing/iracing.go:105 +0xba
+created by esdi/providers/iracing.(*IRacing).stream in goroutine 1
+	C:/Users/ESilva/Desktop/ESilvaLabs/esdi/providers/iracing/iracing.go:94 +0xb7
+exit status 2

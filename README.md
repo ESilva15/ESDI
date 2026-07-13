@@ -54,6 +54,11 @@ Expand on this concept by creating conversions for those units
 - [ ] Whats common among the providers? Should abstract whats common
 - [ ] Whats common with all the "streams" I have? Should abstract whats common
 
+### BUGS
+- [ ] Fuel calculator hard coded max laps of 256 value results in out of range for
+**gasp** sessions longer than 256 laps... Use the file `max_laps_error.txt` as
+reference
+
 
 ## Development
 ### Mockservers
