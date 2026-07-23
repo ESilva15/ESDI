@@ -21,11 +21,11 @@ or to view the live data:
 Games implemented so far:
 - [iRacing](https://www.iracing.com/) using the [goirsdk](https://github.com/ESilva15/goirsdk)
 
-Games being implemented:
-- [BeamNG.drive](https://www.beamng.com/game/) using the [gobngsdk](https://github.com/ESilva15/gobngsdk)
-
-Games to be implemented:
-- [Assetto Corsa](https://assettocorsa.gg/)
+<!-- Games being implemented: -->
+<!-- - [BeamNG.drive](https://www.beamng.com/game/) using the [gobngsdk](https://github.com/ESilva15/gobngsdk) -->
+<!---->
+<!-- Games to be implemented: -->
+<!-- - [Assetto Corsa](https://assettocorsa.gg/) -->
 
 
 ## Roadmap
