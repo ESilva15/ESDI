@@ -30,29 +30,13 @@ Games to be implemented:
 
 ## Roadmap
 - [X] Implement the interface for a data source
-- [ ] Finish implementing BeamNG
 - [ ] Configuration of the peripherals via ESDI
 - [ ] Detection of the display
-- [X] Fuel Calculator
 - [ ] LapTime Calculator
 - [ ] A very long list useful stuff like flags, position, more info about
 other drivers, track conditions and so on so forth
-- [X] Dynamic data packets
-- [ ] More roadmap entries
 - [ ] Telemetry analysis tool
 - [ ] Better user interface
-
-
-## Todos
-- [X] Make the program report what its doing as the window title `\x1b]0;TITLE\x07`
-  Quicker than I thought. Just have to maintain it
-- [ ] Add a way to check the unit of a given variable
-Expand on this concept by creating conversions for those units
-- [ ] Remove all the `slog.logger` passing and struct members and just configure
-`slog.Logger` once and use the default. Or think of something better
-- [ ] Do all the `NOTE`s and `BUG`s
-- [ ] Whats common among the providers? Should abstract whats common
-- [ ] Whats common with all the "streams" I have? Should abstract whats common
 
 
 ## Development
