@@ -15,6 +15,9 @@ import (
 	"github.com/arl/statsviz"
 )
 
+// NOTE: in go we have the init() function. Its a function that runs before
+// everything else in a package. Make use of that
+
 func initApplication() {
 	fmt.Fprint(os.Stdout, "\x1b]0;ESDI\x07")
 

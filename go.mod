@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/ESilva15/ESgoRepl v0.1.0
 	github.com/ESilva15/gobngsdk v1.1.3
-	github.com/ESilva15/goirsdk v0.2.11
+	github.com/ESilva15/goirsdk v0.3.0
 	github.com/arl/statsviz v0.8.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/rivo/tview v0.42.0

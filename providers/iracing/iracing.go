@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -28,8 +27,9 @@ type IRacing struct {
 	SDK    *goirsdk.IBT
 
 	// Data Handling
-	mut  sync.Mutex
-	data *telemetry.TelemetryData
+	mut      sync.Mutex
+	data     *telemetry.TelemetryData
+	updaters [telemetry.MaxFields]func(*telemetry.TelemetryField)
 
 	// Timing information
 	ticker *time.Ticker // ticker will keep polling intervals constant
@@ -41,38 +41,28 @@ type IRacing struct {
 
 func NewIRacingProvider(
 	logger *slog.Logger,
-	source string,
-	telemOut string,
-	yamlOut string,
+	opts goirsdk.Options,
 ) (*IRacing, error) {
 	var err error
 
-	// Open the input file if provided - otherwise live telemetry was requested
-	// Maybe this can be changed so we don't have to run it with these ifs but by configuring our
-	// provider
-	var file goirsdk.Reader = nil
-	if source != "" {
-		file, err = os.Open(source)
-		if err != nil {
-			return &IRacing{}, err
-			// log.Fatalf("Failed to open IBT file: %v", err)
-		}
-	}
-
-	sdk, err := goirsdk.Init(file, telemOut, yamlOut)
+	sdk, err := goirsdk.Init(opts)
 	if err != nil {
 		logger.Error("failed to open the IRSDK instance")
 		return &IRacing{}, err
 	}
 
-	return &IRacing{
+	provider := &IRacing{
 		logger:   logger,
 		SDK:      sdk,
 		data:     telemetry.NewTelemetryData(),
 		streamCh: make(chan telemetry.TelemetryData, 1),
 		// NOTE: This is because I stupidly recorded a test IBT file in 240
 		ticker: time.NewTicker(time.Second / 240),
-	}, nil
+	}
+
+	// provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){}
+
+	return provider, nil
 }
 
 func (i *IRacing) isDataAvailable() bool {

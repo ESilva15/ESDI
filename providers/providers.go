@@ -7,6 +7,8 @@ import (
 	"esdi/providers/beamng"
 	"esdi/providers/iracing"
 	"esdi/telemetry"
+
+	"github.com/ESilva15/goirsdk"
 )
 
 // Make this be some kind of struct where we can access a function that returns
@@ -25,10 +27,9 @@ var Providers = map[string]Provider{
 	},
 }
 
-func NewIRacingProvider(logger *slog.Logger, source string,
-	telemOut string, yamlOut string,
+func NewIRacingProvider(logger *slog.Logger, opts goirsdk.Options,
 ) telemetry.TelemetryProvider {
-	provider, _ := iracing.NewIRacingProvider(logger, source, "", "")
+	provider, _ := iracing.NewIRacingProvider(logger, opts)
 
 	return provider
 }

@@ -7,6 +7,8 @@ import (
 
 	"esdi/providers"
 	telem "esdi/telemetry"
+
+	"github.com/ESilva15/goirsdk"
 )
 
 // TelemetryService will be our base struct to handle telemetry data
@@ -31,8 +33,10 @@ func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetrySer
 
 	// Need to instantiate a default provider here
 	// source := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"
-	// firstProvider := providers.NewIRacingProvider(slog.Default(), source, "", "")
-	firstProvider := providers.NewBeamNGProvider("127.0.0.1", 4443)
+	firstProvider := providers.NewIRacingProvider(slog.Default(), goirsdk.Options{
+		SourceType: goirsdk.SharedMemoryFile,
+	})
+	// firstProvider := providers.NewBeamNGProvider("127.0.0.1", 4443)
 
 	newService.SwitchProvider(firstProvider)
 

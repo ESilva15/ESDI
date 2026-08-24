@@ -54,7 +54,7 @@ func RunLiveTelemetry(port string, output string, session string) {
 	// 	log.Fatalf("Failed to create iRacing interface: %v", err)
 	// }
 
-	irsdk, err := goirsdk.Init(nil, output, session)
+	irsdk, err := goirsdk.Init(goirsdk.Options{})
 	if err != nil {
 		log.Fatalf("Failed to create irsdk instance: %v\n", err)
 	}
