@@ -31,6 +31,8 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 		panic("failed to create the telemetry service")
 	}
 
+	go telemService.FindProvider(telemService.CtxMonitor, telemService.OnFindProvider)
+
 	return &ControlPanel{
 		Controller:       baseController,
 		DeviceController: controllers.NewDeviceController(baseController, devService, telemService),
