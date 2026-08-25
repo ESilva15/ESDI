@@ -116,7 +116,8 @@ type CDashDisplay struct {
 	State *CDashState
 }
 
-func NewCDashDisplay() (*CDashDisplay, error) {
+// Connect will try to find and connect to the CDashDisplay
+func Discover() (*CDashDisplay, error) {
 	// Look for the port
 	p, err := findDisplayPort()
 	if err != nil {

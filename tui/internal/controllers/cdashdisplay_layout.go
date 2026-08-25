@@ -5,10 +5,11 @@ import (
 	"os"
 	"strconv"
 
-	"esdi/cdashdisplay"
-	helper "esdi/helpers"
+	"esdi/devices/cdashdisplay"
 	"esdi/services"
 	"esdi/tui/internal/views"
+
+	helper "esdi/helpers"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -19,12 +20,14 @@ type LayoutController struct {
 	OnExit         func()
 	LayoutToolView *views.LayoutToolView
 	Messages       chan string
-	DevService     *services.CDashService
+	DevService     *services.DeviceService
 	MoveToolState  *windowManipState
 	SelectedLayout string // NOTE: This should be a struct to handle its own things
+	// TODO: create a filter to select the layout
+	// filter telemetry provider, then filter vehicle in use and so on
 }
 
-func NewLayoutController(base *Controller, service *services.CDashService) *LayoutController {
+func NewLayoutController(base *Controller, service *services.DeviceService) *LayoutController {
 	lc := &LayoutController{
 		Controller:     base,
 		LayoutToolView: views.NewLayoutToolView(),
@@ -207,7 +210,20 @@ func (lc *LayoutController) createWindow() {
 		return
 	}
 
-	window, err = lc.DevService.CreateWindow(window)
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
+	window, err = display.CreateWindow(window)
 	if err != nil {
 		lc.Messages <- "failed to create window\n"
 		return
@@ -304,7 +320,20 @@ func (lc *LayoutController) newWindowAction() {
 }
 
 func (lc *LayoutController) updateWindowAction(win *cdashdisplay.DesktopUIWindow) {
-	err := lc.DevService.UpdateWindow(win)
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
+	err = display.UpdateWindow(win)
 
 	lc.Messages <- fmt.Sprintf("Window: %v\n", win)
 
@@ -317,7 +346,20 @@ func (lc *LayoutController) updateWindowAction(win *cdashdisplay.DesktopUIWindow
 func (lc *LayoutController) displayLoadedLayouts() {
 	lc.Logger.Debug("We want to view our layout!")
 
-	for _, w := range lc.DevService.CDash.State.Layout.Windows {
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
+	for _, w := range display.State.Layout.Windows {
 		lc.Logger.Debug("==========================================================================")
 		lc.Logger.Debug(fmt.Sprintf("updating form view for a layout: %+v", w.UIData.TelemetryField))
 		err := lc.updateFormView(w)
@@ -349,8 +391,21 @@ func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, int16, e
 }
 
 func (lc *LayoutController) loadLayout() {
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
 	// We would get the layout path from somewhere but for nots its layout.yaml
-	err := lc.DevService.LoadLayout(lc.SelectedLayout)
+	err = display.LoadLayout(lc.SelectedLayout)
 	if err != nil {
 		lc.Messages <- "failed to load layout: " + err.Error()
 		return
@@ -360,7 +415,20 @@ func (lc *LayoutController) loadLayout() {
 }
 
 func (lc *LayoutController) unloadLayout() {
-	err := lc.DevService.UnloadLayout()
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
+	err = display.UnloadLayout()
 	if err != nil {
 		lc.Logger.Error(fmt.Sprintf("Failed to unload layout: %+v", err))
 		return
@@ -368,7 +436,20 @@ func (lc *LayoutController) unloadLayout() {
 }
 
 func (lc *LayoutController) saveLayout() {
-	err := lc.DevService.SaveLayout(lc.SelectedLayout)
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
+	err = display.SaveLayout(lc.SelectedLayout)
 	if err != nil {
 		lc.Messages <- "failed to save layout: " + err.Error()
 		return
@@ -388,8 +469,21 @@ func (lc *LayoutController) deleteWindow() {
 	}
 	wID := curNode.GetReference().(int16)
 
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
+
 	// Delete it
-	err := lc.DevService.DeleteWindow(wID)
+	err = display.DestroyWindow(wID)
 	if err != nil {
 		lc.Messages <- "failed to delete window: " + err.Error() + "\n"
 		return

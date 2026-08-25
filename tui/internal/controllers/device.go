@@ -15,12 +15,12 @@ type DeviceController struct {
 	DeviceAPIView *views.DeviceAPIView
 	LayoutCtrl    *LayoutController
 	StreamCtrl    *StreamingCtrl
-	DevService    *serv.CDashService
+	DevService    *serv.DeviceService
 }
 
 func NewDeviceController(
 	base *Controller,
-	devService *serv.CDashService,
+	devService *serv.DeviceService,
 	telemService *serv.TelemetryService,
 ) *DeviceController {
 	mc := &DeviceController{
@@ -56,7 +56,7 @@ func (mc *DeviceController) setDeviceAPIViewEvents() {
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Rune() {
 			case 'r':
-				go mc.DevService.FindDevice()
+				go mc.DevService.FindDevices()
 			}
 			return ev
 		})
@@ -75,7 +75,8 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 		})
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("stream", "stream data to the display", func() {
-			views.AddAndShowPage(mc.DeviceAPIView.DevAPIToolView.Pages,
+			views.AddAndShowPage(
+				mc.DeviceAPIView.DevAPIToolView.Pages,
 				"streaming-tool",
 				mc.StreamCtrl.StreamView.Flex,
 			)
