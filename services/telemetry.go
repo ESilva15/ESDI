@@ -4,11 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	"esdi/providers"
 	telem "esdi/telemetry"
-
-	"github.com/ESilva15/goirsdk"
 )
 
 // TelemetryService will be our base struct to handle telemetry data
@@ -19,31 +18,59 @@ type TelemetryService struct {
 	// Concurrency protection
 	mut           sync.RWMutex
 	ativeProvider telem.TelemetryProvider
+	isConnected   bool
 	// Channel for the UI
 	listeners     map[string]chan telem.TelemetryData
 	cancelForward context.CancelFunc
+	// Output window
+	Messages chan string
+	// Cancel looking for providers
+	CtxMonitor    context.Context
+	cancelMonitor context.CancelFunc
 }
 
 func NewTelemetryService(logger *slog.Logger, devServo *DeviceService) *TelemetryService {
+	sharedChannel := make(chan string, 10)
 	newService := &TelemetryService{
-		logger:     logger,
-		devService: devServo,
-		listeners:  make(map[string]chan telem.TelemetryData),
+		logger:      logger,
+		isConnected: false,
+		devService:  devServo,
+		listeners:   make(map[string]chan telem.TelemetryData),
+		Messages:    sharedChannel,
 	}
-
-	// TODO: do not create and set a provider here, a background job should be
-	// detecting providers instead
-
-	// Need to instantiate a default provider here
-	// source := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"
-	firstProvider := providers.NewIRacingProvider(slog.Default(), goirsdk.Options{
-		SourceType: goirsdk.SharedMemoryFile,
-	})
-	// firstProvider := providers.NewBeamNGProvider("127.0.0.1", 4443)
-
-	newService.SwitchProvider(firstProvider)
+	newService.CtxMonitor, newService.cancelMonitor = context.WithCancel(context.Background())
 
 	return newService
+}
+
+func (t *TelemetryService) OnFindProvider(prov providers.Provider) {
+	t.SwitchProvider(prov.NewProvider(t.logger))
+	t.logger.Debug("Found provider for " + prov.Name)
+}
+
+// TODO: add some way of retriggering this. Currently it should:
+// start monitoring on startup -> find provider -> stop monitoring
+func (t *TelemetryService) FindProvider(ctx context.Context, callback func(providers.Provider),
+) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	t.logger.Debug("monitoring for providers")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for _, prov := range providers.Providers {
+				t.logger.Debug("checking provider: " + prov.Name)
+				if prov.IsRunning() {
+					callback(prov)
+					return
+				}
+				t.logger.Debug("  wasn't read")
+			}
+		}
+	}
 }
 
 func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) error {
