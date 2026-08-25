@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"esdi/config"
+	"esdi/devices/cdashdisplay"
 	"esdi/providers"
 	"esdi/services"
 	"esdi/telemetry"
@@ -17,7 +18,7 @@ import (
 
 type StreamingCtrl struct {
 	*Controller
-	Service     *services.CDashService
+	Service     *services.DeviceService
 	StreamView  *views.StreamToolView
 	Messages    chan string
 	Internal    chan string
@@ -32,7 +33,7 @@ type StreamingCtrl struct {
 
 func NewStreamingCtrl(
 	base *Controller,
-	serCDash *services.CDashService,
+	devService *services.DeviceService,
 	serTelem *services.TelemetryService,
 ) *StreamingCtrl {
 	// NOTE: looks sus, put this somewhere also. Not very good in here
@@ -44,7 +45,7 @@ func NewStreamingCtrl(
 
 	ctrl := &StreamingCtrl{
 		Controller:  base,
-		Service:     serCDash,
+		Service:     devService,
 		TelemServ:   serTelem,
 		Messages:    make(chan string, 10),
 		Internal:    make(chan string, 10),
@@ -155,9 +156,22 @@ func (sc *StreamingCtrl) updateStream() {
 // Performance reasoning: this is not used during the high frequency data transmission
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
-	fields := make(map[int16]telemetry.FieldID, len(sc.Service.CDash.State.Layout.Windows))
+	// Acquire the cdashdisplay
+	displayIF, err := sc.Service.GetDevice(cdashdisplay.Name)
+	if err != nil {
+		sc.Messages <- "failed to get " + cdashdisplay.Name
+		return
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		sc.Messages <- "failed to acquire " + cdashdisplay.Name
+		return
+	}
+	// ---
 
-	for _, w := range sc.Service.CDash.State.Layout.Windows {
+	fields := make(map[int16]telemetry.FieldID, len(display.State.Layout.Windows))
+
+	for _, w := range display.State.Layout.Windows {
 		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
 		fields[w.UIData.IDX] = fieldID
 	}

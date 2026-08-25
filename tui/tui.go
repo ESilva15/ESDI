@@ -23,7 +23,9 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 		App:    tview.NewApplication(),
 	}
 
-	devService := services.NewCDashService(logger)
+	// NOTE: create our device service here
+	devService := services.NewDeviceService(logger)
+
 	telemService := services.NewTelemetryService(logger, devService)
 	if telemService == nil {
 		panic("failed to create the telemetry service")

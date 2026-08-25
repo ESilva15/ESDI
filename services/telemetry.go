@@ -14,8 +14,8 @@ import (
 // TelemetryService will be our base struct to handle telemetry data
 // It should hook to a data sink and handle it like iRacing, BeamNG, AC and so on
 type TelemetryService struct {
-	logger *slog.Logger
-	cdash  *CDashService
+	logger     *slog.Logger
+	devService *DeviceService
 	// Concurrency protection
 	mut           sync.RWMutex
 	ativeProvider telem.TelemetryProvider
@@ -24,12 +24,15 @@ type TelemetryService struct {
 	cancelForward context.CancelFunc
 }
 
-func NewTelemetryService(logger *slog.Logger, cdash *CDashService) *TelemetryService {
+func NewTelemetryService(logger *slog.Logger, devServo *DeviceService) *TelemetryService {
 	newService := &TelemetryService{
-		logger:    logger,
-		cdash:     cdash,
-		listeners: make(map[string]chan telem.TelemetryData),
+		logger:     logger,
+		devService: devServo,
+		listeners:  make(map[string]chan telem.TelemetryData),
 	}
+
+	// TODO: do not create and set a provider here, a background job should be
+	// detecting providers instead
 
 	// Need to instantiate a default provider here
 	// source := "/home/esilva/Desktop/projetos/simracing_peripherals/testTelemetry/gt3_mustang_bathurst.ibt"

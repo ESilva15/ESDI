@@ -6,8 +6,9 @@ import "esdi/peripheral/types"
 // IDs for our devices. They need to be correctly mapped on the devices
 // themselves so we can discover them
 const (
-	CDashDisplayDevID = 0x01
-	ESBtnBoxDevID     = 0x02
+	CDashDisplayDevID   = 0x01
+	CDashDisplayDevName = "CDashDisplay"
+	ESBtnBoxDevID       = 0x02
 )
 
 // DeviceMap maps the implemented devices
