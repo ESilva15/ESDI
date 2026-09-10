@@ -16,7 +16,7 @@ import (
 type Provider struct {
 	Name        string
 	NewProvider func(*slog.Logger) telemetry.TelemetryProvider
-	IsRunning   func() bool
+	IsRunning   func() bool // To check if this provider is up and running
 }
 
 var Providers = map[string]Provider{
@@ -32,15 +32,9 @@ var Providers = map[string]Provider{
 	},
 }
 
-// func NewIRacingProvider(logger *slog.Logger, opts goirsdk.Options,
-// ) telemetry.TelemetryProvider {
-// 	provider, _ := iracing.NewIRacingProvider(logger, opts)
-//
-// 	return provider
-// }
-
 func NewLiveIRacingProvider(logger *slog.Logger) telemetry.TelemetryProvider {
 	provider, _ := iracing.NewIRacingProvider(logger, goirsdk.Options{
+		Logger:     logger,
 		SourceType: goirsdk.SharedMemoryFile,
 	})
 

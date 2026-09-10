@@ -7,11 +7,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"sync"
 	"time"
 
-	conv "esdi/conversions"
 	"esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
@@ -57,26 +55,71 @@ func NewIRacingProvider(
 		data:     telemetry.NewTelemetryData(),
 		streamCh: make(chan telemetry.TelemetryData, 1),
 		// NOTE: This is because I stupidly recorded a test IBT file in 240
+		// TODO: make this configurable from the user side
 		ticker: time.NewTicker(time.Second / 240),
 	}
 
-	// provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){}
+	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
+		telemetry.Speed:     provider.speed,
+		telemetry.Gear:      provider.gear,
+		telemetry.RPM:       provider.rpm,
+		telemetry.FuelLevel: provider.fuelLevel,
+		// Engine Data
+		telemetry.OilPress:  provider.oilPress,
+		telemetry.OilTemp:   provider.oilTemp,
+		telemetry.WaterTemp: provider.waterTemp,
+		// EngineWarnings
+		telemetry.PitSpeedLimiter: provider.pitSpeedLimiter,
+		// Adjustements
+		telemetry.BrakeBias:       provider.brakeBias,
+		telemetry.ABSSetting:      provider.absSetting,
+		telemetry.TCSetting:       provider.tcSetting,
+		telemetry.ThrottleSetting: provider.throttleSetting,
+		// Lap Data
+		telemetry.LapLastLapTime: provider.lapTime,
+		telemetry.LapNumber:      provider.lapNumber,
+		// case telemetry.LFtempM:
+		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
+		// 		out.Type = telemetry.DataTypeSTRING
+		// 		out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
+		// 	}
+		// case telemetry.SessionTime:
+		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
+		// 		out.Type = telemetry.DataTypeSTRING
+		// 		out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
+		// 	}
+		// case telemetry.ReplaySessionTime:
+		// 	binding.Transform = func(v any, out *telemetry.TelemetryField) {
+		// 		out.Type = telemetry.DataTypeSTRING
+		// 		out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
+		// 	}
+		// case telemetry.Empty:
+		// 	binding.Transform = telemetry.EmptyTransform
+		// }
+	}
+
+	// Set the unset telemetry fields on the updaters as unused fields
+	for k := range int(telemetry.MaxFields) {
+		if provider.updaters[k] == nil {
+			provider.updaters[k] = provider.unused
+		}
+	}
 
 	return provider, nil
 }
 
 func (i *IRacing) isDataAvailable() bool {
 	// Its offline telemetry, data must be available
-	if i.SDK.File != nil {
-		return true
+	if i.SDK.File == nil {
+		return false
 	}
 
 	// Check if live telemetry is on
-	if i.SDK.IsConnected() {
-		return true
+	if !i.SDK.IsConnected() {
+		return false
 	}
 
-	return false
+	return true
 }
 
 func (i *IRacing) stream(ctx context.Context) {
@@ -84,17 +127,19 @@ func (i *IRacing) stream(ctx context.Context) {
 
 	go func() {
 		for {
-			// Explicitly intercpt cancellation
+			// Explicitly intercept cancellation
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
 
+			// TODO: fix this logic
 			// We start by checking if we do or do not have data available
-			if !i.isDataAvailable() {
-				continue
-			}
+			// if !i.isDataAvailable() {
+			// 	i.logger.Info("isDataAvailable check failed. Cancelling stream...")
+			// 	i.streamCancel()
+			// }
 
 			select {
 			case <-ctx.Done():
@@ -124,18 +169,14 @@ func (i *IRacing) readData() {
 		return
 	}
 
-	// Read 1 to 1 data
-	for _, b := range i.data.ActiveBinds {
-		v := i.SDK.Vars.Vars[b.Key].Value
-
-		b.Transform(v, &i.data.Values[b.ID])
+	// Read 1 to 1 data using our updaters
+	for _, bind := range i.data.ActiveBinds {
+		i.updaters[bind.ID](&i.data.Values[bind.ID])
 	}
 
 	// Set up virtual binds
 	i.logger.Debug("Entering virtual binds loop")
 	for _, vBind := range i.data.VirtualBinds {
-		// NOTE: delete the logs here, they are really bad
-		i.logger.Debug("Processing virtual binds")
 		vBind.Process(i.data)
 	}
 
@@ -173,7 +214,7 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 
 	// First we must add the virtual fields
 	// we will add their dependencies and the primitives to a slice
-	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
+	pendingBinds := make([]telemetry.FieldID, 0, telemetry.MaxFields)
 
 	for winID, id := range requestFields {
 		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
@@ -199,97 +240,8 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 			continue
 		}
 
-		// Translate the UI FieldIDs to this provider's field names
-		sdkKey, ok := internalToSDKFieldNames[id]
-		if !ok {
-			i.logger.Debug("failed to get internal id")
-			// Need to find a way to pass a message saying something wasn't right
-			continue
-		}
-
 		binding := telemetry.BoundField{
-			Key: sdkKey,
-			ID:  id,
-		}
-
-		switch id {
-		case telemetry.Speed:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
-				out.Raw = uint64(conv.MsToKph(v.(float32)))
-			}
-		case telemetry.Gear:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeCHAR
-				// out.Raw = uint64(v.(int))
-
-				gear := 0
-				if val, ok := v.(int32); ok {
-					gear = int(val)
-				} else if val, ok := v.(int); ok {
-					gear = val
-				}
-
-				switch {
-				case gear == 0:
-					out.Raw = uint64('N') // ASCII 78
-				case gear < 0:
-					out.Raw = uint64('R') // ASCII 82
-				case gear > 0 && gear < 10:
-					// Quickest way to turn 1 into '1', 2 into '2', etc.
-					// ASCII '0' is 48, so 48 + 1 = 49 ('1')
-					out.Raw = uint64('0' + gear)
-				default:
-					out.Raw = uint64('?') // Fallback
-				}
-			}
-		case telemetry.RPM:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeUINT16
-				out.Raw = uint64(uint16(v.(float32)))
-			}
-		case telemetry.FuelLevel:
-			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
-		// Engine Data
-		case telemetry.OilPress:
-			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
-		case telemetry.OilTemp:
-			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
-		case telemetry.WaterTemp:
-			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
-		// Something else
-		case telemetry.PitSpeedLimiter:
-			binding.Transform = PitSpeedLimiterTransform
-		// Adjustements
-		case telemetry.BrakeBias:
-			binding.Transform = telemetry.FloatToStringTransformDEPRECATE
-		case telemetry.ABSSetting:
-			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
-		case telemetry.TCSetting:
-			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
-		case telemetry.ThrottleSetting:
-			binding.Transform = telemetry.FloatToUInt8TransformDEPRECATE
-		case telemetry.LFtempM:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeSTRING
-				out.Str = strconv.FormatFloat(float64(v.(float32)), 'f', 1, 32)
-			}
-		case telemetry.SessionTime:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeSTRING
-				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
-			}
-		case telemetry.ReplaySessionTime:
-			binding.Transform = func(v any, out *telemetry.TelemetryField) {
-				out.Type = telemetry.DataTypeSTRING
-				out.Str = strconv.FormatFloat(v.(float64), 'f', 1, 32)
-			}
-		case telemetry.Empty:
-			binding.Transform = telemetry.EmptyTransform
-		case telemetry.LapLastLapTime:
-			binding.Transform = LapTimeTransform
-		case telemetry.LapNumber:
-			binding.Transform = telemetry.UInt8Transform
+			ID: id,
 		}
 
 		i.data.ActiveBinds = append(i.data.ActiveBinds, binding)
