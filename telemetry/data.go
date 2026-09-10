@@ -30,11 +30,8 @@ type VirtualField interface {
 // BoundField is the data structure we use to bind the telemetry provider's data
 // to our internal telemetry fields
 type BoundField struct {
-	Key       string // NOTE: to be deprecated
-	ID        FieldID
-	Fetch     func() any                 // NOTE: to be deprecated
-	Transform func(any, *TelemetryField) // NOTE: to be deprecated
-	Update    func(out *TelemetryField)
+	ID     FieldID
+	Update func(out *TelemetryField)
 }
 
 var bufferPool = sync.Pool{
@@ -105,7 +102,8 @@ func (tf *TelemetryField) Pack(dest []byte) []byte {
 		case DataTypeINT32, DataTypeUINT32:
 			dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16), uint8(tf.Raw>>24))
 		case DataTypeINT64, DataTypeUINT64:
-			dest = append(dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16),
+			dest = append(
+				dest, uint8(tf.Raw), uint8(tf.Raw>>8), uint8(tf.Raw>>16),
 				uint8(tf.Raw>>24), uint8(tf.Raw>>32), uint8(tf.Raw>>40), uint8(tf.Raw>>48),
 				uint8(tf.Raw>>56),
 			)

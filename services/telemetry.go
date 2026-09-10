@@ -49,7 +49,7 @@ func (t *TelemetryService) OnFindProvider(prov providers.Provider) {
 }
 
 // TODO: add some way of retriggering this. Currently it should:
-// start monitoring on startup -> find provider -> stop monitoring
+// start monitoring on startup -> find provider -> stop monitoring (when game closes for example)
 func (t *TelemetryService) FindProvider(ctx context.Context, callback func(providers.Provider),
 ) {
 	ticker := time.NewTicker(2 * time.Second)
@@ -157,9 +157,8 @@ func (t *TelemetryService) StartStream() {
 
 	// Start the new stream
 	simInCh, _ := t.ativeProvider.Stream()
-	// if err != nil {
-	// 	// NOTE
-	// }
+	// TODO: the provider needs to be able to tell the data has stopped
+	// so we can restart the provider lookup routine
 
 	// Create the context so we can control the lifecycle
 	ctx, cancel := context.WithCancel(context.Background())
