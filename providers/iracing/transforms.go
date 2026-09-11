@@ -1,6 +1,7 @@
 package iracing
 
 import (
+	"log/slog"
 	"time"
 
 	conv "esdi/conversions"
@@ -13,14 +14,21 @@ const (
 	LapTimeFormatStr = "04:05.000"
 )
 
-func getVar[T any](vars map[string]goirsdk.Var, key string, fallback T) T {
+func getVar[T any](
+	vars map[string]goirsdk.Var,
+	key string,
+	fallback T,
+	logger *slog.Logger,
+) T {
 	raw, ok := vars[key]
 	if !ok {
+		logger.Error("key not present in map", "key", key)
 		return fallback
 	}
 
 	val, ok := raw.Value.(T)
 	if !ok {
+		logger.Error("could not cast value", "key", key, "val", raw)
 		return fallback
 	}
 
@@ -32,23 +40,23 @@ func (i *IRacing) unused(out *telemetry.TelemetryField) {
 }
 
 func (i *IRacing) speed(out *telemetry.TelemetryField) {
-	speed := getVar(i.SDK.Vars.Vars, "Speed", float32(0))
+	speed := getVar(i.SDK.Vars.Vars, "Speed", float32(0), i.logger)
 
 	out.Type = telemetry.DataTypeUINT16
 	out.Raw = uint64(conv.MsToKph(speed))
 }
 
 func (i *IRacing) gear(out *telemetry.TelemetryField) {
-	gear := getVar(i.SDK.Vars.Vars, "Gear", int32(0))
+	gear := getVar(i.SDK.Vars.Vars, "Gear", int(0), i.logger)
 
 	out.Type = telemetry.DataTypeCHAR
 
 	switch {
 	case gear == 0:
 		out.Raw = uint64('N')
-	case gear < 0:
+	case gear == -1:
 		out.Raw = uint64('R')
-	case gear > 0 && gear < 10:
+	case gear > 0:
 		out.Raw = uint64('0' + gear)
 	default:
 		out.Raw = uint64('?') // Fallback
@@ -56,14 +64,14 @@ func (i *IRacing) gear(out *telemetry.TelemetryField) {
 }
 
 func (i *IRacing) rpm(out *telemetry.TelemetryField) {
-	rpm := getVar(i.SDK.Vars.Vars, "RPM", float32(0))
+	rpm := getVar(i.SDK.Vars.Vars, "RPM", float32(0), i.logger)
 
 	out.Type = telemetry.DataTypeUINT16
 	out.Raw = uint64(uint16(rpm))
 }
 
 func (i *IRacing) fuelLevel(out *telemetry.TelemetryField) {
-	fuelLevel := getVar(i.SDK.Vars.Vars, "FuelLevel", float32(-1.0))
+	fuelLevel := getVar(i.SDK.Vars.Vars, "FuelLevel", float32(-1.0), i.logger)
 	telemetry.FloatToStringTransform(fuelLevel, out)
 }
 
@@ -79,17 +87,17 @@ func (i *IRacing) pitSpeedLimiter(out *telemetry.TelemetryField) {
 
 // EngineData ↓
 func (i *IRacing) oilPress(out *telemetry.TelemetryField) {
-	oilPress := getVar(i.SDK.Vars.Vars, "OilPress", float32(-1.0))
+	oilPress := getVar(i.SDK.Vars.Vars, "OilPress", float32(-1.0), i.logger)
 	telemetry.FloatToStringTransform(oilPress, out)
 }
 
 func (i *IRacing) oilTemp(out *telemetry.TelemetryField) {
-	oilTemp := getVar(i.SDK.Vars.Vars, "OilTemp", float32(-1.0))
+	oilTemp := getVar(i.SDK.Vars.Vars, "OilTemp", float32(-1.0), i.logger)
 	telemetry.FloatToStringTransform(oilTemp, out)
 }
 
 func (i *IRacing) waterTemp(out *telemetry.TelemetryField) {
-	waterTemp := getVar(i.SDK.Vars.Vars, "WaterTemp", float32(-1.0))
+	waterTemp := getVar(i.SDK.Vars.Vars, "WaterTemp", float32(-1.0), i.logger)
 	telemetry.FloatToStringTransform(waterTemp, out)
 }
 
@@ -97,22 +105,22 @@ func (i *IRacing) waterTemp(out *telemetry.TelemetryField) {
 
 // Adjustments ↓
 func (i *IRacing) brakeBias(out *telemetry.TelemetryField) {
-	bb := getVar(i.SDK.Vars.Vars, "dcBrakeBias", float32(-1.0))
+	bb := getVar(i.SDK.Vars.Vars, "dcBrakeBias", float32(-1.0), i.logger)
 	telemetry.FloatToStringTransform(bb, out)
 }
 
 func (i *IRacing) absSetting(out *telemetry.TelemetryField) {
-	abs := getVar(i.SDK.Vars.Vars, "dcABS", float32(-1.0))
+	abs := getVar(i.SDK.Vars.Vars, "dcABS", float32(-1.0), i.logger)
 	telemetry.FloatToUInt8Transform(abs, out)
 }
 
 func (i *IRacing) tcSetting(out *telemetry.TelemetryField) {
-	tc := getVar(i.SDK.Vars.Vars, "dcTractionControl", float32(-1.0))
+	tc := getVar(i.SDK.Vars.Vars, "dcTractionControl", float32(-1.0), i.logger)
 	telemetry.FloatToUInt8Transform(tc, out)
 }
 
 func (i *IRacing) throttleSetting(out *telemetry.TelemetryField) {
-	throttle := getVar(i.SDK.Vars.Vars, "dcThrottleShape", float32(-1.0))
+	throttle := getVar(i.SDK.Vars.Vars, "dcThrottleShape", float32(-1.0), i.logger)
 	telemetry.FloatToUInt8Transform(throttle, out)
 }
 
@@ -120,7 +128,7 @@ func (i *IRacing) throttleSetting(out *telemetry.TelemetryField) {
 
 // Laps ↓
 func (i *IRacing) lapTime(out *telemetry.TelemetryField) {
-	lapTimeInSeconds := getVar(i.SDK.Vars.Vars, "LapLastLapTime", float32(0))
+	lapTimeInSeconds := getVar(i.SDK.Vars.Vars, "LapLastLapTime", float32(0), i.logger)
 
 	if lapTimeInSeconds < 0 {
 		lapTimeInSeconds = 0
@@ -134,7 +142,7 @@ func (i *IRacing) lapTime(out *telemetry.TelemetryField) {
 }
 
 func (i *IRacing) lapNumber(out *telemetry.TelemetryField) {
-	lapNumber := getVar(i.SDK.Vars.Vars, "Lap", int(0))
+	lapNumber := getVar(i.SDK.Vars.Vars, "Lap", int(0), i.logger)
 	telemetry.UInt8Transform(lapNumber, out)
 }
 
