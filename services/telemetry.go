@@ -16,9 +16,9 @@ type TelemetryService struct {
 	logger     *slog.Logger
 	devService *DeviceService
 	// Concurrency protection
-	mut           sync.RWMutex
-	ativeProvider telem.TelemetryProvider
-	isConnected   bool
+	mut            sync.RWMutex
+	activeProvider telem.TelemetryProvider
+	isConnected    bool
 	// Channel for the UI
 	listeners     map[string]chan telem.TelemetryData
 	cancelForward context.CancelFunc
@@ -78,12 +78,12 @@ func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) e
 	defer t.mut.Unlock()
 
 	// Clean up the current to be old provider
-	if t.ativeProvider != nil {
+	if t.activeProvider != nil {
 		t.dropActiveProvider()
 	}
 
 	// Assign the new provider
-	t.ativeProvider = newProvider
+	t.activeProvider = newProvider
 
 	return nil
 }
@@ -117,7 +117,7 @@ func (t *TelemetryService) dropActiveProvider() {
 		t.cancelForward()
 	}
 
-	t.ativeProvider.StopStream()
+	t.activeProvider.StopStream()
 }
 
 func (t *TelemetryService) SubscribeListener(id string, bufferSize int) <-chan telem.TelemetryData {
@@ -149,14 +149,18 @@ func (t *TelemetryService) UnsubscribeListener(id string) {
 }
 
 func (t *TelemetryService) SubscribeToFields(fields map[int16]telem.FieldID) {
-	t.ativeProvider.Subscribe(fields)
+	t.activeProvider.Subscribe(fields)
 }
 
 func (t *TelemetryService) StartStream() {
 	slog.Debug("Stream started")
 
 	// Start the new stream
-	simInCh, _ := t.ativeProvider.Stream()
+	if t.activeProvider == nil {
+		slog.Debug("there's no active provider. not starting the stream")
+		return
+	}
+	simInCh, _ := t.activeProvider.Stream()
 	// TODO: the provider needs to be able to tell the data has stopped
 	// so we can restart the provider lookup routine
 
@@ -177,5 +181,5 @@ func (t *TelemetryService) StopStream() {
 		t.cancelForward = nil
 	}
 
-	t.ativeProvider.StopStream()
+	t.activeProvider.StopStream()
 }
