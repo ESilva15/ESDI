@@ -126,6 +126,10 @@ func (i *IRacing) stream(ctx context.Context) {
 	i.data.InitialTime = time.Now()
 
 	go func() {
+		// Put this into the configuration file
+		consecutiveTimeouts := 0
+		maxTimeouts := 30
+		dataEvTimeout := 100
 		for {
 			// Explicitly intercept cancellation
 			select {
@@ -134,17 +138,8 @@ func (i *IRacing) stream(ctx context.Context) {
 			default:
 			}
 
-			// TODO: fix this logic
-			// We start by checking if we do or do not have data available
-			// if !i.isDataAvailable() {
-			// 	i.logger.Info("isDataAvailable check failed. Cancelling stream...")
-			// 	i.streamCancel()
-			// }
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-i.ticker.C:
+			if i.SDK.CheckForDataEvent(time.Duration(dataEvTimeout) * time.Millisecond) {
+				consecutiveTimeouts = 0
 				i.readData()
 
 				// Publish data
@@ -152,6 +147,15 @@ func (i *IRacing) stream(ctx context.Context) {
 				case i.streamCh <- *i.data:
 				default:
 					// skip this data, don't allow publishers to lag behind
+				}
+			} else {
+				consecutiveTimeouts++
+				if consecutiveTimeouts >= maxTimeouts {
+					i.logger.Info("Telemetry stream stalled")
+					if i.streamCancel != nil {
+						i.streamCancel()
+					}
+					return
 				}
 			}
 		}
@@ -175,7 +179,6 @@ func (i *IRacing) readData() {
 	}
 
 	// Set up virtual binds
-	i.logger.Debug("Entering virtual binds loop")
 	for _, vBind := range i.data.VirtualBinds {
 		vBind.Process(i.data)
 	}
