@@ -108,6 +108,13 @@ func NewIRacingProvider(
 	return provider, nil
 }
 
+func (i *IRacing) Close() {
+	// Need to find a way of gracefully closing the channel
+	// close(i.streamCh)
+	i.SDK.Close()
+	i.ticker.Stop()
+}
+
 func (i *IRacing) isDataAvailable() bool {
 	// Its offline telemetry, data must be available
 	if i.SDK.File == nil {
@@ -126,6 +133,8 @@ func (i *IRacing) stream(ctx context.Context) {
 	i.data.InitialTime = time.Now()
 
 	go func() {
+		defer close(i.streamCh)
+
 		// Put this into the configuration file
 		consecutiveTimeouts := 0
 		maxTimeouts := 30
@@ -140,6 +149,7 @@ func (i *IRacing) stream(ctx context.Context) {
 
 			if i.SDK.CheckForDataEvent(time.Duration(dataEvTimeout) * time.Millisecond) {
 				consecutiveTimeouts = 0
+				i.logger.Debug("sending data", "timeouts", consecutiveTimeouts)
 				i.readData()
 
 				// Publish data
@@ -252,4 +262,12 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	}
 
 	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))
+}
+
+func (i *IRacing) IsAlive(timeout time.Duration) bool {
+	if !i.SDK.CheckForDataEvent(timeout) {
+		return false
+	}
+
+	return true
 }

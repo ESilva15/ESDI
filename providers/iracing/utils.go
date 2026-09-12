@@ -31,7 +31,3 @@ func IsRunning() bool {
 
 	return true
 }
-
-func (i *IRacing) Stalled() bool {
-	return i.Stalled()
-}
