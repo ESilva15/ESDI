@@ -19,6 +19,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// TODO: remove this logger. It should be on the device struct
 var pLogger *slog.Logger
 
 func SetLogger(l *slog.Logger) {
@@ -377,7 +378,7 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 		curStr += fmt.Sprintf("%02x ", byte)
 
 		if byteCount == 8 {
-			pLogger.Debug(curStr)
+			// pLogger.Debug(curStr)
 			curStr = ""
 			byteCount = 0
 		}
