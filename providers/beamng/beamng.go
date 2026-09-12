@@ -79,6 +79,13 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 	return provider, nil
 }
 
+func (b *BeamNG) Close() {
+}
+
+func (b *BeamNG) IsAlive(timeout time.Duration) bool {
+	return true
+}
+
 func (b *BeamNG) StopStream() {
 	if b.streamCancel == nil {
 		return

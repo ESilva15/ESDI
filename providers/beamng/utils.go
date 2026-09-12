@@ -31,9 +31,3 @@ func IsRunning() bool {
 	// Think of a better number or something
 	return n >= 80
 }
-
-// Stalled
-// TODO: needs to be implemented
-func (i *BeamNG) Stalled() bool {
-	return false
-}
