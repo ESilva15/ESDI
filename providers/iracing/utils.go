@@ -1,7 +1,6 @@
 package iracing
 
 import (
-	"log"
 	"log/slog"
 	"time"
 
@@ -12,13 +11,14 @@ import (
 func IsRunning() bool {
 	irUtils, err := eventutils.Init()
 	if err != nil {
-		log.Fatalf("Failed to initialize mmaputils: %v", err)
+		// we need error validation or something here
+		return false
 	}
 	defer irUtils.Close()
 
-	// 2. Connect to the OS event (Win32 Event on Windows, POSIX Semaphore on Linux)
 	if err := irUtils.OpenEvent(goirsdk.IRSDK_DATAVALIDEVENTNAME); err != nil {
-		log.Fatalf("Failed to open event: %v", err)
+		// we need error validation or something here
+		return false
 	}
 
 	// We now check for some consecutive data events
