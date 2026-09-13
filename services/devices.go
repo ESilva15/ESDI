@@ -71,6 +71,14 @@ func (ds *DeviceService) GetDevice(name string) (devices.Device, error) {
 	return val, nil
 }
 
+func (ds *DeviceService) DeviceExists(name string) bool {
+	if _, ok := ds.Devices[name]; !ok {
+		return false
+	}
+
+	return true
+}
+
 func (ds *DeviceService) StartStream() {
 	// NOTE: i'm using this pattern a whole lot. Maybe I can create a struct to handle this
 	var ctx context.Context
