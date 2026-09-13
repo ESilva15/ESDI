@@ -4,6 +4,7 @@ package controllers
 import (
 	"fmt"
 
+	"esdi/devices/cdashdisplay"
 	serv "esdi/services"
 	"esdi/tui/internal/views"
 
@@ -65,6 +66,12 @@ func (mc *DeviceController) setDeviceAPIViewEvents() {
 func (mc *DeviceController) AddDeviceAPIListItems() {
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("layout", "build a layout for CDashDisplay", func() {
+			// This CDashDisplay specific, only load if we have a CDashDisplay
+			if !mc.DevService.DeviceExists(cdashdisplay.Name) {
+				mc.DevService.Messages <- "CDashDisplay it not loaded yet\n"
+				return
+			}
+
 			// Get the api pages
 			views.AddAndShowPage(
 				mc.DeviceAPIView.DevAPIToolView.Pages,
@@ -75,6 +82,12 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 		})
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("stream", "stream data to the display", func() {
+			// If we don't have a CDashDisplay or data source, this should be blocked
+			if !mc.StreamCtrl.TelemServ.HasActiveProvider() {
+				mc.StreamCtrl.Messages <- "no active provider present\n"
+				return
+			}
+
 			views.AddAndShowPage(
 				mc.DeviceAPIView.DevAPIToolView.Pages,
 				"streaming-tool",

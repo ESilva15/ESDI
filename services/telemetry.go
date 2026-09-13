@@ -230,3 +230,11 @@ func (t *TelemetryService) StopStream() {
 
 	t.activeProvider.StopStream()
 }
+
+func (t *TelemetryService) HasActiveProvider() bool {
+	if t.activeProvider == nil {
+		return false
+	}
+
+	return true
+}
