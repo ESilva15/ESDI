@@ -1,7 +1,6 @@
 package iracing
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/ESilva15/goirsdk"
@@ -24,7 +23,7 @@ func IsRunning() bool {
 	// We now check for some consecutive data events
 	for range 3 {
 		if !irUtils.CheckValidDataEvent(1 * time.Second) {
-			slog.Debug("timed out waiting for DataValidEvent")
+			// slog.Debug("Timed out waiting for DataValidEvent")
 			return false
 		}
 	}

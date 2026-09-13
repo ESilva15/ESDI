@@ -82,6 +82,8 @@ func (t *TelemetryService) onFindProvider(prov providers.Provider) {
 
 func (t *TelemetryService) onProviderStopsMidStream() {
 	// clear the current provider
+	// TODO: now we need to also clear the devices to restart everything,
+	// if the stream stopped we have to restart the devices and everything
 	t.logger.Info("cleaning dropped provider and restarting lookup service")
 	t.dropActiveProvider()
 	go t.FindProvider(t.CtxMonitor)
@@ -105,7 +107,6 @@ func (t *TelemetryService) FindProvider(ctx context.Context) {
 					t.onFindProvider(prov)
 					return
 				}
-				t.logger.Debug("  wasn't read")
 			}
 		}
 	}
