@@ -7,8 +7,8 @@ import (
 )
 
 func IsRunning() bool {
-	// The address should be loaded from some type of configuration
-	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:4443")
+	// TODO: The address should be loaded from some type of configuration
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:4444")
 	if err != nil {
 		return false
 	}

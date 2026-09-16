@@ -17,6 +17,8 @@ import (
 // for BeamNG.drive
 // NOTE: document this please. What is a TelemetryData????
 type BeamNG struct {
+	logger *slog.Logger
+
 	SDK *bngsdk.BeamNGSDK
 
 	// data handling
@@ -36,16 +38,22 @@ const (
 	NAME = "BeamNG.drive"
 )
 
-func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
-	beam, err := bngsdk.Init(ip, port)
+func NewBeamNGProvider(ip string, port int, newLogger *slog.Logger) (*BeamNG, error) {
+	beam, err := bngsdk.NewBngSDK(bngsdk.Options{
+		Logger:           newLogger.With("TelemetrySDK", "BeamNG"),
+		SourceType:       bngsdk.UDPData,
+		ImportUDPAddress: "127.0.0.1",
+		ImportUDPPort:    4444,
+	})
 	if err != nil {
 		return &BeamNG{}, err
 	}
 
 	provider := &BeamNG{
+		logger:   newLogger.With("TelemetryProvider", "BeamNG"),
 		streamCh: make(chan telemetry.TelemetryData, 1),
 		data:     telemetry.NewTelemetryData(),
-		SDK:      &beam,
+		SDK:      beam,
 		ticker:   time.NewTicker(time.Second / 60),
 	}
 
@@ -80,10 +88,12 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 }
 
 func (b *BeamNG) Close() {
+	b.SDK.Close()
 }
 
 func (b *BeamNG) IsAlive(timeout time.Duration) bool {
-	return true
+	_, err := b.SDK.Update()
+	return err == nil
 }
 
 func (b *BeamNG) StopStream() {
@@ -154,7 +164,7 @@ func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
 func (b *BeamNG) readData() {
 	slog.Debug("READING THIS DATA")
 	// BUG: getting stuck in here
-	err := b.SDK.ReadData()
+	_, err := b.SDK.Update()
 	slog.Debug("THE DATA WAS READ")
 	if err != nil {
 		slog.Error("Error getting data", "error", err)

@@ -42,8 +42,8 @@ func NewLiveIRacingProvider(logger *slog.Logger) telemetry.TelemetryProvider {
 }
 
 func NewBeamNGProvider(logger *slog.Logger) telemetry.TelemetryProvider {
-	// Get from some kind of config or whatever
-	provider, _ := beamng.NewBeamNGProvider("127.0.0.1", 4443)
+	// TODO: Get from some kind of config or whatever
+	provider, _ := beamng.NewBeamNGProvider("127.0.0.1", 4444, logger)
 
 	return provider
 }
