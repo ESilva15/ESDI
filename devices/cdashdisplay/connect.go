@@ -1,10 +1,12 @@
 package cdashdisplay
 
 import (
+	"fmt"
+	"log/slog"
+	"time"
+
 	"esdi/peripheral/communication"
 	"esdi/peripheral/communication/packets"
-	"fmt"
-	"time"
 
 	"github.com/tarm/serial"
 	portp "go.bug.st/serial"
@@ -46,11 +48,11 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 		return nil, err
 	}
 
-	pLogger.Info(fmt.Sprintf("Looking into %v", ports))
+	slog.Info(fmt.Sprintf("Looking into %v", ports))
 
 	var wt *communication.WalkieTalkie
 	for _, port := range ports {
-		pLogger.Info(fmt.Sprintf("Trying port %s", port))
+		slog.Info(fmt.Sprintf("Trying port %s", port))
 
 		wt = &communication.WalkieTalkie{
 			Cfg: &serial.Config{
@@ -60,7 +62,7 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 			},
 		}
 
-		pLogger.Info(fmt.Sprintf("Started probing port %s", port))
+		slog.Info(fmt.Sprintf("Started probing port %s", port))
 
 		probeResult := make(chan error, 1)
 
@@ -76,14 +78,14 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 			err = fmt.Errorf("probe completely hung/timed out: %s", port)
 		}
 
-		pLogger.Info(fmt.Sprintf("Finished probing port %s", port))
+		slog.Info(fmt.Sprintf("Finished probing port %s", port))
 
 		if err == nil {
-			pLogger.Info(fmt.Sprintf("Success probing port %s: %+v", port, err))
+			slog.Info(fmt.Sprintf("Success probing port %s: %+v", port, err))
 			break
 		}
 
-		pLogger.Info(fmt.Sprintf("wasn't port %s", port))
+		slog.Info(fmt.Sprintf("wasn't port %s", port))
 		wt = nil
 	}
 
@@ -91,6 +93,6 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 		return nil, fmt.Errorf("couldn't find cdashdisplay")
 	}
 
-	pLogger.Info(fmt.Sprintf("found cdashdisplay on port: %s", wt.Cfg.Name))
+	slog.Info(fmt.Sprintf("found cdashdisplay on port: %s", wt.Cfg.Name))
 	return wt, nil
 }

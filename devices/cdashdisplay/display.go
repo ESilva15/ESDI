@@ -19,13 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TODO: remove this logger. It should be on the device struct
-var pLogger *slog.Logger
-
-func SetLogger(l *slog.Logger) {
-	pLogger = l
-}
-
 // I have to move this to some kind of configuration place
 const (
 	layoutsDir = "./layouts/"
@@ -118,11 +111,11 @@ type CDashDisplay struct {
 }
 
 // Connect will try to find and connect to the CDashDisplay
-func Discover() (*CDashDisplay, error) {
+func NewCDashDisplay() (*CDashDisplay, error) {
 	// Look for the port
 	p, err := findDisplayPort()
 	if err != nil {
-		pLogger.Info("failed to find cdashdisplay port: %s", err.Error())
+		slog.Info("failed to find cdashdisplay port: %s", err.Error())
 		return nil, err
 	}
 
@@ -150,7 +143,7 @@ func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, err
 
 	win.UIData.IDX = wID.ID
 
-	pLogger.Info(fmt.Sprintf("Recived ID message: %v", wID))
+	slog.Info(fmt.Sprintf("Recived ID message: %v", wID))
 
 	d.State.Layout.AddWindow(win)
 
@@ -178,9 +171,9 @@ func (d *CDashDisplay) UpdateWindow(win *DesktopUIWindow) error {
 	// I get it and update it in the controller
 	// I send the pointer here
 	// -> it should be the same pointer then right?
-	pLogger.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
+	slog.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
 	d.State.Layout.Windows[win.UIData.IDX] = win
-	pLogger.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
+	slog.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
 	// Yeah, same address as suspected
 	// I can't think about it right now. I'll think about that tomorrow
 
@@ -213,7 +206,7 @@ func (d *CDashDisplay) DestroyWindow(wID int16) error {
 }
 
 func (d *CDashDisplay) updateWindowDimensions(win *UIWindow, packet UpdateDimsPacket) error {
-	pLogger.Debug(fmt.Sprintf("UPDATE: %v", packet))
+	slog.Debug(fmt.Sprintf("UPDATE: %v", packet))
 
 	bytes, err := helper.StructToBytes(packet)
 	if err != nil {
@@ -227,9 +220,9 @@ func (d *CDashDisplay) updateWindowDimensions(win *UIWindow, packet UpdateDimsPa
 	}
 
 	// Nothing bad happened afaik
-	pLogger.Debug(fmt.Sprintf("cur dims: %v", win.Dims))
+	slog.Debug(fmt.Sprintf("cur dims: %v", win.Dims))
 	win.Dims = packet.Dims
-	pLogger.Debug(fmt.Sprintf("new dims: %v", win.Dims))
+	slog.Debug(fmt.Sprintf("new dims: %v", win.Dims))
 
 	return nil
 }
@@ -345,18 +338,18 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 func (d *CDashDisplay) UnloadLayout() error {
 	var err error
 	for _, w := range d.State.Layout.Windows {
-		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 
 		err = d.DestroyWindow(w.UIData.IDX)
 		time.Sleep(75 * time.Millisecond)
 		if err != nil {
-			pLogger.Error(fmt.Sprintf("failed to destroy window: %+v", err))
+			slog.Error(fmt.Sprintf("failed to destroy window: %+v", err))
 			// NOTE: Add a way to handle multiple errors ?
 			return err
 		}
 
-		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 	}
 
@@ -378,7 +371,7 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 		curStr += fmt.Sprintf("%02x ", byte)
 
 		if byteCount == 8 {
-			// pLogger.Debug(curStr)
+			// slog.Debug(curStr)
 			curStr = ""
 			byteCount = 0
 		}
