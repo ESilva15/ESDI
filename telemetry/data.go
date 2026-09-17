@@ -222,13 +222,6 @@ func GetFieldName(id FieldID) string {
 
 var fieldNameToID map[string]FieldID
 
-// func initFieldNamesMap() {
-// 	fieldNameToID = make(map[string]FieldID, MaxFields)
-// 	for id, name := range FieldNames {
-// 		fieldNameToID[name] = FieldID(id)
-// 	}
-// }
-
 func GetFieldID(name string) (FieldID, bool) {
 	id, ok := fieldNameToID[name]
 	return id, ok
@@ -248,26 +241,3 @@ type TelemetryData struct {
 func NewTelemetryData() *TelemetryData {
 	return &TelemetryData{}
 }
-
-// func (td *TelemetryData) Pack() []byte {
-// 	bufPtr := bufferPool.Get().(*[]byte)
-// 	buf := (*bufPtr)[:0]
-//
-// 	// for _, bind := range td.ActiveBinds {
-// 	// 	buf = td.Values[bind.ID].Pack(buf)
-// 	// }
-//
-// 	for k := range td.Values {
-// 		if len(td.Values[k].IDs) > 0 {
-// 			buf = td.Values[k].Pack(buf)
-// 		}
-// 	}
-//
-// 	// We have to copy here because we have to return the buffer
-// 	result := make([]byte, len(buf))
-// 	copy(result, buf)
-//
-// 	bufferPool.Put(&buf)
-//
-// 	return result
-// }

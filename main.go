@@ -41,9 +41,6 @@ func initApplication() {
 			slog.Error(fmt.Sprintf("failed to setup metrics server: %+v", err))
 		}
 	}
-
-	// Setting up some internal data structures
-	// telemetry.Init()
 }
 
 func setupLogger() error {
@@ -55,7 +52,6 @@ func setupLogger() error {
 	logger := slog.New(
 		slog.NewTextHandler(output, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
-			// AddSource: true, // NOTE: this may have some performance impacts, disable it for prod
 		}),
 	)
 

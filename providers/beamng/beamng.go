@@ -115,7 +115,7 @@ func (b *BeamNG) Stream() (<-chan telemetry.TelemetryData, error) {
 	return b.streamCh, nil
 }
 
-func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
+func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) {
 	// NOTE: document how the Subscribe funtion works
 	slog.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 
@@ -126,8 +126,6 @@ func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
 
 	for _, id := range requestFields {
-		// b.data.Values[id].IDs = append(b.data.Values[id].IDs, winID)
-
 		switch id {
 		case telemetry.RPMStateColour:
 			b.data.VirtualBinds = append(b.data.VirtualBinds, telemetry.NewRPMLights())
