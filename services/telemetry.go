@@ -206,8 +206,10 @@ func (t *TelemetryService) SubscribeToFields() {
 	// _ = t.devService.SubscribeFields()
 	// TODO: we need to find a way of requesting devices to send all subscribed fields
 	// instead of going through the devices on DevService here
+	// REVAMP
 	for _, dev := range t.devService.Devices {
 		fields := dev.RequiredFields()
+		t.logger.Debug("requested fields", "fields", fields)
 		t.activeProvider.Subscribe(fields)
 	}
 }

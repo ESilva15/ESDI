@@ -125,8 +125,8 @@ func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	// we will add their dependencies and the primitives to a slice
 	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
 
-	for winID, id := range requestFields {
-		b.data.Values[id].IDs = append(b.data.Values[id].IDs, winID)
+	for _, id := range requestFields {
+		// b.data.Values[id].IDs = append(b.data.Values[id].IDs, winID)
 
 		switch id {
 		case telemetry.RPMStateColour:

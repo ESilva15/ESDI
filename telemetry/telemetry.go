@@ -1,5 +1,5 @@
 package telemetry
 
-func Init() {
-	initFieldNamesMap()
-}
+// func Init() {
+// 	initFieldNamesMap()
+// }

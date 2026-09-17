@@ -229,8 +229,8 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	// we will add their dependencies and the primitives to a slice
 	pendingBinds := make([]telemetry.FieldID, 0, telemetry.MaxFields)
 
-	for winID, id := range requestFields {
-		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
+	for _, id := range requestFields {
+		// i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
 
 		switch id {
 		case telemetry.RPMStateColour:

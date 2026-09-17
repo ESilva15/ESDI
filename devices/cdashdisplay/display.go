@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	helper "esdi/helpers"
@@ -106,8 +107,10 @@ func NewCDashState() *CDashState {
 }
 
 type CDashDisplay struct {
-	WT    *communication.WalkieTalkie
-	State *CDashState
+	WT             *communication.WalkieTalkie
+	State          *CDashState
+	fieldToWindows map[telemetry.FieldID][]int16
+	bufPool        sync.Pool
 }
 
 // Connect will try to find and connect to the CDashDisplay
@@ -120,12 +123,40 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 	}
 
 	return &CDashDisplay{
-		WT:    p,
-		State: NewCDashState(),
+		WT:             p,
+		State:          NewCDashState(),
+		fieldToWindows: make(map[telemetry.FieldID][]int16),
+		bufPool: sync.Pool{
+			New: func() any {
+				b := make([]byte, 0, telemetry.MaxFields*8)
+				return &b
+			},
+		},
 	}, nil
 }
 
 func (d *CDashDisplay) SendCommand() {
+}
+
+func (d *CDashDisplay) RegisterFieldMapping(fieldID telemetry.FieldID, winID int16) {
+	d.fieldToWindows[fieldID] = append(d.fieldToWindows[fieldID], winID)
+}
+
+func (d *CDashDisplay) UnregisterFieldMapping(winID int16) {
+	for fieldID, windows := range d.fieldToWindows {
+		updated := windows[:0]
+		for _, w := range windows {
+			if w != winID {
+				updated = append(updated, w)
+			}
+
+			if len(updated) == 0 {
+				delete(d.fieldToWindows, fieldID)
+			} else {
+				d.fieldToWindows[fieldID] = updated
+			}
+		}
+	}
 }
 
 func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, error) {
@@ -146,6 +177,9 @@ func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, err
 	slog.Info(fmt.Sprintf("Recived ID message: %v", wID))
 
 	d.State.Layout.AddWindow(win)
+	if fieldID, ok := telemetry.GetFieldID(win.UIData.TelemetryField); ok {
+		d.RegisterFieldMapping(fieldID, win.UIData.IDX)
+	}
 
 	return win, nil
 }
@@ -177,6 +211,8 @@ func (d *CDashDisplay) UpdateWindow(win *DesktopUIWindow) error {
 	// Yeah, same address as suspected
 	// I can't think about it right now. I'll think about that tomorrow
 
+	// TODO: need to update the field mappings here!
+
 	return nil
 }
 
@@ -199,7 +235,8 @@ func (d *CDashDisplay) DestroyWindow(wID int16) error {
 		return err
 	}
 
-	// NODE: add this
+	// NOTE: add this
+	d.UnregisterFieldMapping(wID)
 	d.State.Layout.RemoveWindow(wID)
 
 	return nil
@@ -357,7 +394,7 @@ func (d *CDashDisplay) UnloadLayout() error {
 }
 
 func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
-	packet := data.Pack()
+	packet := d.encodePacket(data)
 
 	bytes, err := helper.StructToBytes(packet)
 	if err != nil {

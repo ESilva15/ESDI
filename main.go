@@ -10,7 +10,6 @@ import (
 
 	"esdi/cmd"
 	"esdi/config"
-	"esdi/telemetry"
 
 	"github.com/arl/statsviz"
 )
@@ -44,7 +43,7 @@ func initApplication() {
 	}
 
 	// Setting up some internal data structures
-	telemetry.Init()
+	// telemetry.Init()
 }
 
 func setupLogger() error {
@@ -56,6 +55,7 @@ func setupLogger() error {
 	logger := slog.New(
 		slog.NewTextHandler(output, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
+			// AddSource: true, // NOTE: this may have some performance impacts, disable it for prod
 		}),
 	)
 
