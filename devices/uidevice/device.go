@@ -37,17 +37,10 @@ func (uid *UIDevice) DataChannel() <-chan telemetry.TelemetryData {
 	return uid.dataChan
 }
 
-func (uid *UIDevice) RequiredFields() map[int16]telemetry.FieldID {
-	subscribeTo := []telemetry.FieldID{
+func (uid *UIDevice) RequiredFields() []telemetry.FieldID {
+	return []telemetry.FieldID{
 		telemetry.Speed,
 		telemetry.Gear,
 		telemetry.RPM,
 	}
-
-	fields := make(map[int16]telemetry.FieldID, len(subscribeTo))
-	for k, field := range subscribeTo {
-		fields[int16(k)] = field
-	}
-
-	return fields
 }

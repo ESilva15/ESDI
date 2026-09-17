@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"esdi/providers"
+	"esdi/telemetry"
 	telem "esdi/telemetry"
 )
 
@@ -203,13 +204,20 @@ func (t *TelemetryService) UnsubscribeListener(id string) {
 }
 
 func (t *TelemetryService) SubscribeToFields() {
-	// _ = t.devService.SubscribeFields()
-	// TODO: we need to find a way of requesting devices to send all subscribed fields
-	// instead of going through the devices on DevService here
+	seen := make(map[telemetry.FieldID]struct{})
+	var allFields []telemetry.FieldID
+
 	for _, dev := range t.devService.Devices {
-		fields := dev.RequiredFields()
-		t.activeProvider.Subscribe(fields)
+		for _, field := range dev.RequiredFields() {
+			if _, exists := seen[field]; !exists {
+				seen[field] = struct{}{}
+				allFields = append(allFields, field)
+			}
+		}
 	}
+
+	t.logger.Debug("requested fields", "fields", allFields)
+	t.activeProvider.Subscribe(allFields)
 }
 
 func (t *TelemetryService) StartStream() {

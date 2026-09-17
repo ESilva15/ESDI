@@ -10,7 +10,6 @@ import (
 
 	"esdi/cmd"
 	"esdi/config"
-	"esdi/telemetry"
 
 	"github.com/arl/statsviz"
 )
@@ -42,9 +41,6 @@ func initApplication() {
 			slog.Error(fmt.Sprintf("failed to setup metrics server: %+v", err))
 		}
 	}
-
-	// Setting up some internal data structures
-	telemetry.Init()
 }
 
 func setupLogger() error {

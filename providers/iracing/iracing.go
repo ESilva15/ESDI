@@ -220,7 +220,7 @@ func (i *IRacing) StopStream() {
 	i.streamCancel = nil
 }
 
-func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
+func (i *IRacing) Subscribe(requestFields []telemetry.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
 
 	i.data.ActiveBinds = make([]telemetry.BoundField, 0, len(requestFields))
@@ -229,9 +229,7 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	// we will add their dependencies and the primitives to a slice
 	pendingBinds := make([]telemetry.FieldID, 0, telemetry.MaxFields)
 
-	for winID, id := range requestFields {
-		i.data.Values[id].IDs = append(i.data.Values[id].IDs, winID)
-
+	for _, id := range requestFields {
 		switch id {
 		case telemetry.RPMStateColour:
 			i.data.VirtualBinds = append(i.data.VirtualBinds, telemetry.NewRPMLights())

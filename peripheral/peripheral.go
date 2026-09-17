@@ -18,7 +18,7 @@ const (
 type Peripheral interface {
 	Name() string
 	SendData(*telemetry.TelemetryData)
-	RequiredFields() map[int16]telemetry.FieldID
+	RequiredFields() []telemetry.FieldID
 }
 
 type PeripheralDeviceClerk struct {
