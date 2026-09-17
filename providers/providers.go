@@ -8,6 +8,7 @@ import (
 	"esdi/providers/iracing"
 	"esdi/telemetry"
 
+	bngsdk "github.com/ESilva15/gobngsdk"
 	"github.com/ESilva15/goirsdk"
 )
 
@@ -42,8 +43,13 @@ func NewLiveIRacingProvider(logger *slog.Logger) telemetry.TelemetryProvider {
 }
 
 func NewBeamNGProvider(logger *slog.Logger) telemetry.TelemetryProvider {
-	// TODO: Get from some kind of config or whatever
-	provider, _ := beamng.NewBeamNGProvider("127.0.0.1", 4444, logger)
+	// TODO: these should come from some kind of config
+	provider, _ := beamng.NewBeamNGProvider(logger, &bngsdk.Options{
+		Logger:           logger.With("TelemetryProvider", beamng.NAME),
+		SourceType:       bngsdk.UDPData,
+		ImportUDPAddress: "127.0.0.1",
+		ImportUDPPort:    4444,
+	})
 
 	return provider
 }

@@ -20,6 +20,7 @@ type BeamNG struct {
 	logger *slog.Logger
 
 	SDK *bngsdk.BeamNGSDK
+	og  *bngsdk.Outgauge
 
 	// data handling
 	mut      sync.Mutex
@@ -38,22 +39,18 @@ const (
 	NAME = "BeamNG.drive"
 )
 
-func NewBeamNGProvider(ip string, port int, newLogger *slog.Logger) (*BeamNG, error) {
-	beam, err := bngsdk.NewBngSDK(bngsdk.Options{
-		Logger:           newLogger.With("TelemetrySDK", "BeamNG"),
-		SourceType:       bngsdk.UDPData,
-		ImportUDPAddress: "127.0.0.1",
-		ImportUDPPort:    4444,
-	})
+func NewBeamNGProvider(logger *slog.Logger, opts *bngsdk.Options) (*BeamNG, error) {
+	beam, err := bngsdk.NewBngSDK(*opts)
 	if err != nil {
 		return &BeamNG{}, err
 	}
 
 	provider := &BeamNG{
-		logger:   newLogger.With("TelemetryProvider", "BeamNG"),
+		logger:   logger.With("TelemetryProvider", NAME),
 		streamCh: make(chan telemetry.TelemetryData, 1),
 		data:     telemetry.NewTelemetryData(),
 		SDK:      beam,
+		og:       &bngsdk.Outgauge{},
 		ticker:   time.NewTicker(time.Second / 60),
 	}
 
@@ -164,7 +161,7 @@ func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
 func (b *BeamNG) readData() {
 	slog.Debug("READING THIS DATA")
 	// BUG: getting stuck in here
-	_, err := b.SDK.Update()
+	ogSnapshot, err := b.SDK.Update()
 	slog.Debug("THE DATA WAS READ")
 	if err != nil {
 		slog.Error("Error getting data", "error", err)
@@ -172,6 +169,7 @@ func (b *BeamNG) readData() {
 	}
 
 	b.mut.Lock()
+	b.og = ogSnapshot
 	defer b.mut.Unlock()
 
 	// Read 1 to 1 data
