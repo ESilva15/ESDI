@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"esdi/config"
-	"esdi/devices/cdashdisplay"
+	"esdi/devices/uidevice"
 	"esdi/providers"
 	"esdi/services"
 	"esdi/telemetry"
@@ -56,15 +56,15 @@ func NewStreamingCtrl(
 	}
 
 	ctrl.registerHooks()
-	ctrl.subscribeListeners()
-	go ctrl.listenToUIStream()
+	// ctrl.subscribeListeners()
 
 	return ctrl
 }
 
-func (sc *StreamingCtrl) subscribeListeners() {
-	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
-}
+// func (sc *StreamingCtrl) subscribeListeners() {
+// 	// Here I will set a UIDevice
+// 	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
+// }
 
 func (sc *StreamingCtrl) registerHooks() {
 	sc.StreamView.Options.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
@@ -109,16 +109,21 @@ func (sc *StreamingCtrl) StartStop() {
 	// stream is not running, we have to start it now
 	// NOTE:
 	// Subscribe the only existing device - needs to be discovered by now
-	slog.Debug("setting the data stream for cdash")
-	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("cdash", 1))
+	slog.Debug("setting the data stream for device servie")
+	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("DeviceService", 1))
 
-	slog.Debug("starting to stream data again")
+	dev, err := sc.Service.GetDevice(uidevice.NAME)
+	if err == nil {
+		if uiDev, ok := dev.(*uidevice.UIDevice); ok {
+			sc.TelemetryCh = uiDev.DataChannel()
+			go sc.listenToUIStream()
+		}
+	}
+
+	slog.Debug("starting services")
 	sc.Service.StartStream()
-
-	slog.Debug("starting the stream")
 	sc.TelemServ.StartStream()
 
-	slog.Debug("setting local control variables")
 	sc.isRunning = true
 
 	slog.Debug("starting stream")
@@ -157,28 +162,23 @@ func (sc *StreamingCtrl) updateStream() {
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
 	// Acquire the cdashdisplay
-	displayIF, err := sc.Service.GetDevice(cdashdisplay.Name)
-	if err != nil {
-		sc.Messages <- "failed to get " + cdashdisplay.Name
-		return
-	}
-	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
-	if !ok {
-		sc.Messages <- "failed to acquire " + cdashdisplay.Name
-		return
-	}
+	// displayIF, err := sc.Service.GetDevice(cdashdisplay.NAME)
+	// if err != nil {
+	// 	sc.Messages <- "failed to get " + cdashdisplay.NAME
+	// 	return
+	// }
+	// display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	// if !ok {
+	// 	sc.Messages <- "failed to acquire " + cdashdisplay.NAME
+	// 	return
+	// }
 	// ---
 
-	fields := make(map[int16]telemetry.FieldID, len(display.State.Layout.Windows))
+	sc.TelemServ.SubscribeToFields()
 
-	for _, w := range display.State.Layout.Windows {
-		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
-		fields[w.UIData.IDX] = fieldID
-	}
-
-	sc.TelemServ.SubscribeToFields(fields)
-
-	sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
+	// sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
+	// Should I update this?
+	sc.Messages <- fmt.Sprintf("Subscribed to fields\n")
 }
 
 func (sc *StreamingCtrl) listenToUIStream() {
@@ -190,8 +190,13 @@ func (sc *StreamingCtrl) listenToUIStream() {
 		}
 		isDrawing.Store(true)
 
+		// sc.Logger.Debug("got data", "data", msg)
+
+		// Capture locally
+		telemetryMsg := msg
+
 		sc.App.QueueUpdateDraw(func() {
-			sc.StreamView.Visualizer.Update(&msg)
+			sc.StreamView.Visualizer.Update(&telemetryMsg)
 			isDrawing.Store(false)
 		})
 	}

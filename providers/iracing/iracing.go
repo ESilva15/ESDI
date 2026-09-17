@@ -264,6 +264,10 @@ func (i *IRacing) Subscribe(requestFields map[int16]telemetry.FieldID) {
 	i.logger.Debug(fmt.Sprintf("Subscribed: %+v\n", i.data.ActiveBinds))
 }
 
+func (i *IRacing) Name() string {
+	return NAME
+}
+
 func (i *IRacing) IsAlive(timeout time.Duration) bool {
 	if !i.SDK.CheckForDataEvent(timeout) {
 		return false

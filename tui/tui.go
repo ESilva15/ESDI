@@ -24,7 +24,7 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 	}
 
 	// NOTE: create our device service here
-	devService := services.NewDeviceService(logger)
+	devService := services.NewDeviceService(logger.With("service", "DeviceService"))
 
 	telemService := services.NewTelemetryService(logger, devService)
 	if telemService == nil {

@@ -16,7 +16,7 @@ import (
 // the selected provider by its name
 type Provider struct {
 	Name        string
-	NewProvider func(*slog.Logger) telemetry.TelemetryProvider
+	NewProvider func(*slog.Logger) (telemetry.TelemetryProvider, error)
 	IsRunning   func() bool // To check if this provider is up and running
 }
 
@@ -33,23 +33,31 @@ var Providers = map[string]Provider{
 	},
 }
 
-func NewLiveIRacingProvider(logger *slog.Logger) telemetry.TelemetryProvider {
-	provider, _ := iracing.NewIRacingProvider(logger, goirsdk.Options{
+func NewLiveIRacingProvider(logger *slog.Logger) (telemetry.TelemetryProvider, error) {
+	provider, err := iracing.NewIRacingProvider(logger, goirsdk.Options{
 		Logger:     logger,
 		SourceType: goirsdk.SharedMemoryFile,
 	})
+	if err != nil {
+		logger.Error("failed to create iRacing provider", "err", err)
+		return nil, err
+	}
 
-	return provider
+	return provider, nil
 }
 
-func NewBeamNGProvider(logger *slog.Logger) telemetry.TelemetryProvider {
+func NewBeamNGProvider(logger *slog.Logger) (telemetry.TelemetryProvider, error) {
 	// TODO: these should come from some kind of config
-	provider, _ := beamng.NewBeamNGProvider(logger, &bngsdk.Options{
+	provider, err := beamng.NewBeamNGProvider(logger, &bngsdk.Options{
 		Logger:           logger.With("TelemetryProvider", beamng.NAME),
 		SourceType:       bngsdk.UDPData,
 		ImportUDPAddress: "127.0.0.1",
 		ImportUDPPort:    4444,
 	})
+	if err != nil {
+		logger.Error("failed to create BeamNG provider", "err", err)
+		return nil, err
+	}
 
-	return provider
+	return provider, nil
 }

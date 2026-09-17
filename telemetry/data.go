@@ -135,7 +135,7 @@ func (tf *TelemetryField) String() string {
 	return "NaN"
 }
 
-type FieldID uint16
+type FieldID = uint16
 
 // We use FirstField to start the count on the fields the user can select
 // the first three will be for internal use

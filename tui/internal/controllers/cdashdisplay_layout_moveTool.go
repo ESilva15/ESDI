@@ -52,14 +52,14 @@ func (lc *LayoutController) handleMovementCapture(idx int16,
 	}
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
 	if err != nil {
-		lc.Messages <- "failed to get " + cdashdisplay.Name
+		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return nil
 	}
 	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
 	if !ok {
-		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		lc.Messages <- "failed to acquire " + cdashdisplay.NAME
 		return nil
 	}
 	// ---
@@ -86,14 +86,14 @@ func (lc *LayoutController) handleResizeCapture(idx int16,
 	}
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.Name)
+	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
 	if err != nil {
-		lc.Messages <- "failed to get " + cdashdisplay.Name
+		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return nil
 	}
 	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
 	if !ok {
-		lc.Messages <- "failed to acquire " + cdashdisplay.Name
+		lc.Messages <- "failed to acquire " + cdashdisplay.NAME
 		return nil
 	}
 	// ---

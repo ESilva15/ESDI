@@ -54,9 +54,9 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			slog.Debug("checking if provider is still running")
+			slog.Info("checking if provider is still running")
 			if !t.activeProvider.IsAlive(500 * time.Millisecond) {
-				slog.Debug("provider healthcheck failed")
+				slog.Warn("provider healthcheck failed")
 				t.dropActiveProvider()
 				t.onProviderHealthCheckFailed()
 				return
@@ -70,10 +70,14 @@ func (t *TelemetryService) onProviderHealthCheckFailed() {
 	go t.FindProvider(t.CtxMonitor)
 }
 
-func (t *TelemetryService) onFindProvider(prov providers.Provider) {
+func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Attach to the provider
-	t.logger.Info("found provider for " + prov.Name)
-	t.SwitchProvider(prov.NewProvider(t.logger))
+	t.logger.Info("found provider for " + prov.Name())
+	err := t.SwitchProvider(prov)
+	if err != nil {
+		t.logger.Error("failed to switch to provider onFindProvider", "err", err)
+		return
+	}
 
 	// Create a routine to poll this provider while we wait to start the stream or pause it
 	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
@@ -102,9 +106,15 @@ func (t *TelemetryService) FindProvider(ctx context.Context) {
 			return
 		case <-ticker.C:
 			for _, prov := range providers.Providers {
-				t.logger.Debug("checking provider: " + prov.Name)
-				if prov.IsRunning() {
-					t.onFindProvider(prov)
+				// t.logger.Debug("checking provider: " + prov.Name)
+				provider, err := prov.NewProvider(t.logger)
+				if err != nil {
+					// Its not running
+					continue
+				}
+
+				if provider.IsAlive(500 * time.Millisecond) {
+					t.onFindProvider(provider)
 					return
 				}
 			}
@@ -141,6 +151,7 @@ func (t *TelemetryService) multiplexData(ctx context.Context, dataCh <-chan tele
 
 			t.mut.RLock()
 			for _, ch := range t.listeners {
+				// t.logger.Debug("sending data to listener", "listener", key, "data", data)
 				select {
 				case ch <- data:
 					// Sends data to the subscriber
@@ -191,8 +202,14 @@ func (t *TelemetryService) UnsubscribeListener(id string) {
 	}
 }
 
-func (t *TelemetryService) SubscribeToFields(fields map[int16]telem.FieldID) {
-	t.activeProvider.Subscribe(fields)
+func (t *TelemetryService) SubscribeToFields() {
+	// _ = t.devService.SubscribeFields()
+	// TODO: we need to find a way of requesting devices to send all subscribed fields
+	// instead of going through the devices on DevService here
+	for _, dev := range t.devService.Devices {
+		fields := dev.RequiredFields()
+		t.activeProvider.Subscribe(fields)
+	}
 }
 
 func (t *TelemetryService) StartStream() {

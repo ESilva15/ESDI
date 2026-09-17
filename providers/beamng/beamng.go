@@ -88,6 +88,10 @@ func (b *BeamNG) Close() {
 	b.SDK.Close()
 }
 
+func (b *BeamNG) Name() string {
+	return NAME
+}
+
 func (b *BeamNG) IsAlive(timeout time.Duration) bool {
 	_, err := b.SDK.Update()
 	return err == nil

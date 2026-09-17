@@ -2,14 +2,19 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"esdi/devices"
-	"esdi/devices/cdashdisplay"
+	"esdi/peripheral"
 	"esdi/telemetry"
 )
+
+var ErrPeripheralAlreadyRegistered = errors.New("peripheral is already registered")
 
 // DeviceService will handle sending the data from the telemetry service to the
 // actual devices
@@ -17,8 +22,12 @@ import (
 // we can just add it as a device or whatever instead of being a custom made thing
 // that would be pretty cool I think
 type DeviceService struct {
-	Logger  *slog.Logger
-	Devices map[string]devices.Device
+	Logger *slog.Logger
+	// Device discovery
+	mu                 sync.RWMutex
+	ctxDiscovery       context.Context
+	ctxDiscoveryCancel context.CancelFunc
+	Devices            map[string]peripheral.Peripheral
 	// Strem handling
 	streamCancel context.CancelFunc
 	TelemCh      <-chan telemetry.TelemetryData
@@ -28,41 +37,75 @@ type DeviceService struct {
 
 func NewDeviceService(logger *slog.Logger) *DeviceService {
 	sharedChannel := make(chan string, 10)
-	return &DeviceService{
-		Devices:  make(map[string]devices.Device),
+
+	dev := &DeviceService{
+		Devices:  make(map[string]peripheral.Peripheral),
 		Logger:   logger,
 		Messages: sharedChannel,
 	}
+
+	// Start the routine that looks for devices - should always be running in the background
+	// Create a routine to poll this provider while we wait to start the stream or pause it
+	dev.ctxDiscovery, dev.ctxDiscoveryCancel = context.WithCancel(context.Background())
+	go dev.FindDevices()
+
+	return dev
 }
 
 func (ds *DeviceService) FindDevices() {
 	// Need to define a list of devices to search for
 	// For now lets just try to find our cdashdisplay - will think about the rest later
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
 
-	// Find CDashDisplay
-	{
-		ds.Messages <- "looking for " + cdashdisplay.Name + "...\n"
-		ds.Logger.Info("Looking for " + cdashdisplay.Name)
-
-		cdashdisplay.SetLogger(ds.Logger.With("[device]", cdashdisplay.Name))
-
-		// Create a cdashdisplay
-		display, err := cdashdisplay.Discover()
-		if err == nil {
-			ds.Devices[cdashdisplay.Name] = display
-			ds.Logger.Info("found " + cdashdisplay.Name + " on: " + display.WT.Cfg.Name)
-			ds.Messages <- "found " + cdashdisplay.Name + " on: " + display.WT.Cfg.Name + "\n"
+	for {
+		select {
+		case <-ds.ctxDiscovery.Done():
+			// If requested to cancel we cancel background discovery
 			return
-		}
+		case <-ticker.C:
+			for pName, peripheral := range devices.List {
+				if ds.DeviceExists(pName) {
+					// We already discovered this device
+					continue
+				}
 
-		ds.Logger.Info("didn't find " + cdashdisplay.Name)
-		ds.Messages <- "didn't find " + cdashdisplay.Name + "\n"
-		// No CDashDisplay available for one reason or another, so we don't set the
-		// key
+				ds.Logger.Debug("looking for device", "name", pName)
+				dev, err := peripheral.Discover()
+				if err != nil {
+					ds.Logger.Debug("didn't find device", "name", pName)
+					continue
+				}
+
+				// Register the device we just found
+				ds.RegisterDevice(dev)
+			}
+		}
 	}
 }
 
-func (ds *DeviceService) GetDevice(name string) (devices.Device, error) {
+// func (ds *DeviceService) SubscribeFields() error {
+// 	for _, dev := range ds.Devices {
+// 		fields := dev.RequiredFields()
+// 	}
+//
+// 	return nil
+// }
+
+func (ds *DeviceService) RegisterDevice(dev peripheral.Peripheral) error {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+
+	if ds.DeviceExists(dev.Name()) {
+		return ErrPeripheralAlreadyRegistered
+	}
+
+	ds.Devices[dev.Name()] = dev
+
+	return nil
+}
+
+func (ds *DeviceService) GetDevice(name string) (peripheral.Peripheral, error) {
 	val, ok := ds.Devices[name]
 	if !ok {
 		return nil, fmt.Errorf("device `%s` couldn't be found", name)
@@ -122,9 +165,12 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 
 			// TODO: make a copy of the data and send that copy instead of keeping
 			// the data locked
+			ds.mu.RLock()
 			for _, dev := range ds.Devices {
 				dev.SendData(&data)
 			}
+			ds.mu.RUnlock()
+
 			isSending.Store(false)
 		}
 	}

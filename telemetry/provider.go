@@ -8,5 +8,6 @@ type TelemetryProvider interface {
 	Stream() (<-chan TelemetryData, error)
 	Subscribe(map[int16]FieldID)
 	IsAlive(time.Duration) bool
+	Name() string
 	Close()
 }
