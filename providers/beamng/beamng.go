@@ -28,7 +28,7 @@ type BeamNG struct {
 	updaters [telemetry.MaxFields]func(*telemetry.TelemetryField)
 
 	// stream control
-	streamCh     chan telemetry.TelemetryData
+	wg           sync.WaitGroup
 	streamCancel context.CancelFunc
 
 	// timing
@@ -46,12 +46,11 @@ func NewBeamNGProvider(logger *slog.Logger, opts *bngsdk.Options) (*BeamNG, erro
 	}
 
 	provider := &BeamNG{
-		logger:   logger.With("TelemetryProvider", NAME),
-		streamCh: make(chan telemetry.TelemetryData, 1),
-		data:     telemetry.NewTelemetryData(),
-		SDK:      beam,
-		og:       &bngsdk.Outgauge{},
-		ticker:   time.NewTicker(time.Second / 60),
+		logger: logger.With("TelemetryProvider", NAME),
+		data:   telemetry.NewTelemetryData(),
+		SDK:    beam,
+		og:     &bngsdk.Outgauge{},
+		ticker: time.NewTicker(time.Second / 60),
 	}
 
 	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
@@ -110,9 +109,9 @@ func (b *BeamNG) Stream() (<-chan telemetry.TelemetryData, error) {
 	ctx, b.streamCancel = context.WithCancel(context.Background())
 
 	// Start the stream
-	b.stream(ctx)
+	ch := b.stream(ctx)
 
-	return b.streamCh, nil
+	return ch, nil
 }
 
 func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) {
@@ -162,7 +161,6 @@ func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) {
 
 func (b *BeamNG) readData() {
 	slog.Debug("READING THIS DATA")
-	// BUG: getting stuck in here
 	ogSnapshot, err := b.SDK.Update()
 	slog.Debug("THE DATA WAS READ")
 	if err != nil {
@@ -193,10 +191,15 @@ func (b *BeamNG) readData() {
 	b.data.LastDataPoll = time.Now()
 }
 
-func (b *BeamNG) stream(ctx context.Context) {
+func (b *BeamNG) stream(ctx context.Context) <-chan telemetry.TelemetryData {
 	b.data.InitialTime = time.Now()
+	outCh := make(chan telemetry.TelemetryData)
+	b.wg.Add(1)
 
 	go func() {
+		defer b.wg.Done()
+		defer close(outCh)
+
 		for {
 			// Explicitly intercept cancellation
 			select {
@@ -204,8 +207,6 @@ func (b *BeamNG) stream(ctx context.Context) {
 				return
 			default:
 			}
-
-			// NOTE: add a method to check if there's data available, or make this happen
 
 			select {
 			case <-ctx.Done():
@@ -217,7 +218,7 @@ func (b *BeamNG) stream(ctx context.Context) {
 
 				// Publish data
 				select {
-				case b.streamCh <- *b.data:
+				case outCh <- *b.data:
 					slog.Debug("PUBLISHED DATA")
 				default:
 					// skip this data, don't allow publishers to lag behind
@@ -225,4 +226,6 @@ func (b *BeamNG) stream(ctx context.Context) {
 			}
 		}
 	}()
+
+	return outCh
 }
