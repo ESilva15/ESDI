@@ -159,7 +159,11 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 			// the data locked
 			ds.mu.RLock()
 			for _, dev := range ds.Devices {
-				dev.SendData(&data)
+				err := dev.SendData(&data)
+				if err == peripheral.ErrDeviceTimedOut {
+					// What do we do here?
+					// TODO: somehow we need to handle reconnection
+				}
 			}
 			ds.mu.RUnlock()
 

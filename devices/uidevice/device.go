@@ -17,9 +17,9 @@ func NewUIDevice() (peripheral.Peripheral, error) {
 	}, nil
 }
 
-func (uid *UIDevice) SendData(data *telemetry.TelemetryData) {
+func (uid *UIDevice) SendData(data *telemetry.TelemetryData) error {
 	if data == nil {
-		return
+		return peripheral.ErrInvalidData
 	}
 
 	select {
@@ -27,6 +27,8 @@ func (uid *UIDevice) SendData(data *telemetry.TelemetryData) {
 	default:
 		// Drop frame if buffer is full
 	}
+
+	return nil
 }
 
 func (uid *UIDevice) Name() string {

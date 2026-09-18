@@ -17,7 +17,7 @@ const (
 
 type Peripheral interface {
 	Name() string
-	SendData(*telemetry.TelemetryData)
+	SendData(*telemetry.TelemetryData) error
 	RequiredFields() []telemetry.FieldID
 }
 
