@@ -149,7 +149,6 @@ func (i *IRacing) stream(ctx context.Context) {
 
 			if i.SDK.CheckForDataEvent(time.Duration(dataEvTimeout) * time.Millisecond) {
 				consecutiveTimeouts = 0
-				i.logger.Debug("sending data", "timeouts", consecutiveTimeouts)
 				i.readData()
 
 				// Publish data
