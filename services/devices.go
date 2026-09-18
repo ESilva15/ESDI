@@ -84,14 +84,6 @@ func (ds *DeviceService) FindDevices() {
 	}
 }
 
-// func (ds *DeviceService) SubscribeFields() error {
-// 	for _, dev := range ds.Devices {
-// 		fields := dev.RequiredFields()
-// 	}
-//
-// 	return nil
-// }
-
 func (ds *DeviceService) RegisterDevice(dev peripheral.Peripheral) error {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()

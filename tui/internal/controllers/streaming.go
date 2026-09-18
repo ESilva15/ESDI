@@ -18,7 +18,7 @@ import (
 
 type StreamingCtrl struct {
 	*Controller
-	Service     *services.DeviceService
+	DevService  *services.DeviceService
 	StreamView  *views.StreamToolView
 	Messages    chan string
 	Internal    chan string
@@ -45,18 +45,16 @@ func NewStreamingCtrl(
 
 	ctrl := &StreamingCtrl{
 		Controller:  base,
-		Service:     devService,
+		DevService:  devService,
 		TelemServ:   serTelem,
 		Messages:    make(chan string, 10),
 		Internal:    make(chan string, 10),
 		TelemetryCh: make(chan telemetry.TelemetryData, 1),
 		Run:         false,
 		StreamView:  streamView,
-		isRunning:   false,
 	}
 
 	ctrl.registerHooks()
-	// ctrl.subscribeListeners()
 
 	return ctrl
 }
@@ -96,11 +94,11 @@ func (sc *StreamingCtrl) registerHooks() {
 }
 
 func (sc *StreamingCtrl) StartStop() {
-	if sc.isRunning {
+	if sc.TelemServ.IsStreaming() {
 		slog.Info("stopping stream")
 
 		sc.TelemServ.StopStream()
-		sc.Service.StopStream()
+		sc.DevService.StopStream()
 
 		sc.isRunning = false
 		return
@@ -110,9 +108,9 @@ func (sc *StreamingCtrl) StartStop() {
 	// NOTE:
 	// Subscribe the only existing device - needs to be discovered by now
 	slog.Debug("setting the data stream for device servie")
-	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("DeviceService", 1))
+	sc.DevService.SetTelemetryChannel(sc.TelemServ.SubscribeListener("DeviceService", 1))
 
-	dev, err := sc.Service.GetDevice(uidevice.NAME)
+	dev, err := sc.DevService.GetDevice(uidevice.NAME)
 	if err == nil {
 		if uiDev, ok := dev.(*uidevice.UIDevice); ok {
 			sc.TelemetryCh = uiDev.DataChannel()
@@ -121,7 +119,7 @@ func (sc *StreamingCtrl) StartStop() {
 	}
 
 	slog.Debug("starting services")
-	sc.Service.StartStream()
+	sc.DevService.StartStream()
 	sc.TelemServ.StartStream()
 
 	sc.isRunning = true
@@ -161,24 +159,11 @@ func (sc *StreamingCtrl) updateStream() {
 // Performance reasoning: this is not used during the high frequency data transmission
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
-	// Acquire the cdashdisplay
-	// displayIF, err := sc.Service.GetDevice(cdashdisplay.NAME)
-	// if err != nil {
-	// 	sc.Messages <- "failed to get " + cdashdisplay.NAME
-	// 	return
-	// }
-	// display, ok := displayIF.(*cdashdisplay.CDashDisplay)
-	// if !ok {
-	// 	sc.Messages <- "failed to acquire " + cdashdisplay.NAME
-	// 	return
-	// }
-	// ---
-
-	sc.TelemServ.SubscribeToFields()
+	fields := sc.TelemServ.SubscribeToFields()
 
 	// sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
 	// Should I update this?
-	sc.Messages <- fmt.Sprintf("Subscribed to fields\n")
+	sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v", fields)
 }
 
 func (sc *StreamingCtrl) listenToUIStream() {
@@ -189,8 +174,6 @@ func (sc *StreamingCtrl) listenToUIStream() {
 			continue
 		}
 		isDrawing.Store(true)
-
-		// sc.Logger.Debug("got data", "data", msg)
 
 		// Capture locally
 		telemetryMsg := msg

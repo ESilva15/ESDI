@@ -16,6 +16,8 @@ import (
 type TelemetryService struct {
 	logger     *slog.Logger
 	devService *DeviceService
+	// Streaming
+	isStreaming bool
 	// Concurrency protection
 	mut            sync.RWMutex
 	activeProvider telem.TelemetryProvider
@@ -64,6 +66,92 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// Listener Control [START] ----------------------------------------------------
+
+func (t *TelemetryService) SubscribeListener(id string, bufferSize int) <-chan telem.TelemetryData {
+	t.mut.Lock()
+	defer t.mut.Unlock()
+
+	// NOTE: is this truly necessary?
+	// return the channel if it already exists
+	if ch, exists := t.listeners[id]; exists {
+		return ch
+	}
+
+	ch := make(chan telem.TelemetryData, bufferSize)
+	t.listeners[id] = ch
+
+	t.logger.Info("New stream subscriber registered", "id", id)
+	return ch
+}
+
+func (t *TelemetryService) UnsubscribeListener(id string) {
+	t.mut.Lock()
+	defer t.mut.Unlock()
+
+	if ch, exists := t.listeners[id]; exists {
+		close(ch)
+		delete(t.listeners, id)
+		t.logger.Info("Stream subscriber removed", "id", id)
+	}
+}
+
+func (t *TelemetryService) SubscribeToFields() []telem.FieldID {
+	seen := make(map[telemetry.FieldID]struct{})
+	var allFields []telemetry.FieldID
+
+	for _, dev := range t.devService.Devices {
+		for _, field := range dev.RequiredFields() {
+			if _, exists := seen[field]; !exists {
+				seen[field] = struct{}{}
+				allFields = append(allFields, field)
+			}
+		}
+	}
+
+	t.logger.Debug("requested fields", "fields", allFields)
+	t.activeProvider.Subscribe(allFields)
+
+	return allFields
+}
+
+// Listener Control [END] ------------------------------------------------------
+
+// Provider Control [START] ----------------------------------------------------
+
+func (t *TelemetryService) HasActiveProvider() bool {
+	if t.activeProvider == nil {
+		return false
+	}
+
+	return true
+}
+
+func (t *TelemetryService) dropActiveProvider() {
+	if t.cancelForward != nil {
+		t.cancelForward()
+	}
+
+	t.activeProvider.StopStream()
+	t.activeProvider.Close()
+	t.activeProvider = nil
+}
+
+func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) error {
+	t.mut.Lock()
+	defer t.mut.Unlock()
+
+	// Clean up the current to be old provider
+	if t.activeProvider != nil {
+		t.dropActiveProvider()
+	}
+
+	// Assign the new provider
+	t.activeProvider = newProvider
+
+	return nil
 }
 
 func (t *TelemetryService) onProviderHealthCheckFailed() {
@@ -123,19 +211,46 @@ func (t *TelemetryService) FindProvider(ctx context.Context) {
 	}
 }
 
-func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) error {
+// Provider Control [END] ------------------------------------------------------
+
+// Streaming Control [START] ---------------------------------------------------
+
+func (t *TelemetryService) StopStream() {
 	t.mut.Lock()
 	defer t.mut.Unlock()
 
-	// Clean up the current to be old provider
-	if t.activeProvider != nil {
-		t.dropActiveProvider()
+	if t.cancelForward != nil {
+		t.cancelForward()
+		t.cancelForward = nil
 	}
 
-	// Assign the new provider
-	t.activeProvider = newProvider
+	t.activeProvider.StopStream()
+	t.isStreaming = false
+}
 
-	return nil
+func (t *TelemetryService) StartStream() {
+	slog.Debug("Stream started")
+
+	// Start the new stream
+	if t.activeProvider == nil {
+		slog.Debug("there's no active provider. not starting the stream")
+		return
+	}
+
+	// Stop the provider healthcheck
+	t.healthCheckCancel()
+
+	simInCh, _ := t.activeProvider.Stream()
+	// TODO: the provider needs to be able to tell the data has stopped
+	// so we can restart the provider lookup routine
+
+	// Create the context so we can control the lifecycle
+	ctx, cancel := context.WithCancel(context.Background())
+	t.cancelForward = cancel
+
+	// Multiplex this data
+	go t.multiplexData(ctx, simInCh)
+	t.isStreaming = true
 }
 
 func (t *TelemetryService) multiplexData(ctx context.Context, dataCh <-chan telem.TelemetryData) {
@@ -165,101 +280,8 @@ func (t *TelemetryService) multiplexData(ctx context.Context, dataCh <-chan tele
 	}
 }
 
-func (t *TelemetryService) dropActiveProvider() {
-	if t.cancelForward != nil {
-		t.cancelForward()
-	}
-
-	t.activeProvider.StopStream()
-	t.activeProvider.Close()
-	t.activeProvider = nil
+func (t *TelemetryService) IsStreaming() bool {
+	return t.isStreaming
 }
 
-func (t *TelemetryService) SubscribeListener(id string, bufferSize int) <-chan telem.TelemetryData {
-	t.mut.Lock()
-	defer t.mut.Unlock()
-
-	// NOTE: is this truly necessary?
-	// return the channel if it already exists
-	if ch, exists := t.listeners[id]; exists {
-		return ch
-	}
-
-	ch := make(chan telem.TelemetryData, bufferSize)
-	t.listeners[id] = ch
-
-	t.logger.Info("New stream subscriber registered", "id", id)
-	return ch
-}
-
-func (t *TelemetryService) UnsubscribeListener(id string) {
-	t.mut.Lock()
-	defer t.mut.Unlock()
-
-	if ch, exists := t.listeners[id]; exists {
-		close(ch)
-		delete(t.listeners, id)
-		t.logger.Info("Stream subscriber removed", "id", id)
-	}
-}
-
-func (t *TelemetryService) SubscribeToFields() {
-	seen := make(map[telemetry.FieldID]struct{})
-	var allFields []telemetry.FieldID
-
-	for _, dev := range t.devService.Devices {
-		for _, field := range dev.RequiredFields() {
-			if _, exists := seen[field]; !exists {
-				seen[field] = struct{}{}
-				allFields = append(allFields, field)
-			}
-		}
-	}
-
-	t.logger.Debug("requested fields", "fields", allFields)
-	t.activeProvider.Subscribe(allFields)
-}
-
-func (t *TelemetryService) StartStream() {
-	slog.Debug("Stream started")
-
-	// Start the new stream
-	if t.activeProvider == nil {
-		slog.Debug("there's no active provider. not starting the stream")
-		return
-	}
-
-	// Stop the provider healthcheck
-	t.healthCheckCancel()
-
-	simInCh, _ := t.activeProvider.Stream()
-	// TODO: the provider needs to be able to tell the data has stopped
-	// so we can restart the provider lookup routine
-
-	// Create the context so we can control the lifecycle
-	ctx, cancel := context.WithCancel(context.Background())
-	t.cancelForward = cancel
-
-	// Multiplex this data
-	go t.multiplexData(ctx, simInCh)
-}
-
-func (t *TelemetryService) StopStream() {
-	t.mut.Lock()
-	defer t.mut.Unlock()
-
-	if t.cancelForward != nil {
-		t.cancelForward()
-		t.cancelForward = nil
-	}
-
-	t.activeProvider.StopStream()
-}
-
-func (t *TelemetryService) HasActiveProvider() bool {
-	if t.activeProvider == nil {
-		return false
-	}
-
-	return true
-}
+// Streaming Control [END] -----------------------------------------------------
