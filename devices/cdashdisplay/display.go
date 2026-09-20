@@ -437,3 +437,12 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) error {
 
 	return nil
 }
+
+func (cds *CDashDisplay) Setup() error {
+	err := cds.LoadLayout("layout.yaml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

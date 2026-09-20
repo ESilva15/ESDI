@@ -35,6 +35,7 @@ func NewLayoutController(base *Controller, service *services.DeviceService) *Lay
 		DevService:     service,
 		MoveToolState:  &windowManipState{Mode: moveMode},
 		// SelectedLayout: "beamng.yaml",
+		// TODO: this can't be here - the service/peripheral needs to know about it
 		SelectedLayout: "layout.yaml",
 	}
 
@@ -404,7 +405,8 @@ func (lc *LayoutController) loadLayout() {
 	}
 	// ---
 
-	// We would get the layout path from somewhere but for nots its layout.yaml
+	// TODO: This can happen here, but we need to address how the layout is gotten
+	// THE UI SHOULD SET STATE IN THE SERVICES ONLY
 	err = display.LoadLayout(lc.SelectedLayout)
 	if err != nil {
 		lc.Messages <- "failed to load layout: " + err.Error()

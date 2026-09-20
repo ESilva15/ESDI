@@ -25,6 +25,10 @@ func (uid *UIDevice) Close() error {
 	return nil
 }
 
+func (uid *UIDevice) Setup() error {
+	return nil
+}
+
 func (uid *UIDevice) SendData(data *telemetry.TelemetryData) error {
 	if data == nil {
 		return peripheral.ErrInvalidData
