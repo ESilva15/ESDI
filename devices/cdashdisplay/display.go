@@ -140,6 +140,14 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 	}, nil
 }
 
+func (cds *CDashDisplay) Close() error {
+	// if cds.WT != nil {
+	// 	cds.Close()
+	// }
+
+	return nil
+}
+
 func (d *CDashDisplay) SendCommand() {
 }
 

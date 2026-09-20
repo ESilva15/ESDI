@@ -102,7 +102,7 @@ func (t *TelemetryService) SubscribeToFields() []telem.FieldID {
 	seen := make(map[telemetry.FieldID]struct{})
 	var allFields []telemetry.FieldID
 
-	for _, dev := range t.devService.Devices {
+	for _, dev := range t.devService.GetDevices() {
 		for _, field := range dev.RequiredFields() {
 			if _, exists := seen[field]; !exists {
 				seen[field] = struct{}{}

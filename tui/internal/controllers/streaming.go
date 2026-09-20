@@ -110,7 +110,7 @@ func (sc *StreamingCtrl) StartStop() {
 	slog.Debug("setting the data stream for device servie")
 	sc.DevService.SetTelemetryChannel(sc.TelemServ.SubscribeListener("DeviceService", 1))
 
-	dev, err := sc.DevService.GetDevice(uidevice.NAME)
+	dev, err := sc.DevService.GetPeripheral(uidevice.NAME)
 	if err == nil {
 		if uiDev, ok := dev.(*uidevice.UIDevice); ok {
 			sc.TelemetryCh = uiDev.DataChannel()

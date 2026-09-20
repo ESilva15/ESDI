@@ -54,10 +54,8 @@ func NewIRacingProvider(
 		logger: logger,
 		SDK:    sdk,
 		data:   telemetry.NewTelemetryData(),
-		// streamCh: make(chan telemetry.TelemetryData, 1),
-		// NOTE: This is because I stupidly recorded a test IBT file in 240
 		// TODO: make this configurable from the user side
-		ticker: time.NewTicker(time.Second / 240),
+		ticker: time.NewTicker(time.Second / 60),
 	}
 
 	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){

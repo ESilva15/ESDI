@@ -17,6 +17,14 @@ func NewUIDevice() (peripheral.Peripheral, error) {
 	}, nil
 }
 
+func (uid *UIDevice) Close() error {
+	if uid.dataChan != nil {
+		close(uid.dataChan)
+	}
+
+	return nil
+}
+
 func (uid *UIDevice) SendData(data *telemetry.TelemetryData) error {
 	if data == nil {
 		return peripheral.ErrInvalidData

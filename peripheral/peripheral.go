@@ -19,6 +19,7 @@ type Peripheral interface {
 	Name() string
 	SendData(*telemetry.TelemetryData) error
 	RequiredFields() []telemetry.FieldID
+	Close() error
 }
 
 type PeripheralDeviceClerk struct {

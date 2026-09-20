@@ -2,32 +2,21 @@ package services
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
-	"sync"
 	"sync/atomic"
-	"time"
 
 	"esdi/devices"
 	"esdi/peripheral"
 	"esdi/telemetry"
 )
 
-var ErrPeripheralAlreadyRegistered = errors.New("peripheral is already registered")
-
-// DeviceService will handle sending the data from the telemetry service to the
-// actual devices
-// NOTE: create a virtual device and make it be the output window or something so
-// we can just add it as a device or whatever instead of being a custom made thing
-// that would be pretty cool I think
+// DeviceService is the API for the peripherals
 type DeviceService struct {
 	Logger *slog.Logger
 	// Device discovery
-	mu                 sync.RWMutex
+	PSS                *PeripheralStateStore // Store to track peripheral state
 	ctxDiscovery       context.Context
 	ctxDiscoveryCancel context.CancelFunc
-	Devices            map[string]peripheral.Peripheral
 	// Strem handling
 	streamCancel context.CancelFunc
 	TelemCh      <-chan telemetry.TelemetryData
@@ -39,7 +28,7 @@ func NewDeviceService(logger *slog.Logger) *DeviceService {
 	sharedChannel := make(chan string, 10)
 
 	dev := &DeviceService{
-		Devices:  make(map[string]peripheral.Peripheral),
+		PSS:      NewPeripheralStateStore(logger.With("Service", "PeripheralStateStore"), devices.List),
 		Logger:   logger,
 		Messages: sharedChannel,
 	}
@@ -52,68 +41,33 @@ func NewDeviceService(logger *slog.Logger) *DeviceService {
 	return dev
 }
 
-func (ds *DeviceService) FindDevices() {
-	// Need to define a list of devices to search for
-	// For now lets just try to find our cdashdisplay - will think about the rest later
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+// Getters [START] -------------------------------------------------------------
+func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
+	snapshot := ds.PSS.GetStates()
+	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
 
-	for {
-		select {
-		case <-ds.ctxDiscovery.Done():
-			// If requested to cancel we cancel background discovery
-			return
-		case <-ticker.C:
-			for pName, peripheral := range devices.List {
-				if ds.DeviceExists(pName) {
-					// We already discovered this device
-					continue
-				}
-
-				ds.Logger.Debug("looking for device", "name", pName)
-				dev, err := peripheral.Discover()
-				if err != nil {
-					ds.Logger.Debug("didn't find device", "name", pName)
-					continue
-				}
-
-				// Register the device we just found
-				ds.RegisterDevice(dev)
-			}
+	for _, state := range snapshot {
+		if state.State != DeviceIsConnected {
+			continue
 		}
-	}
-}
-
-func (ds *DeviceService) RegisterDevice(dev peripheral.Peripheral) error {
-	ds.mu.Lock()
-	defer ds.mu.Unlock()
-
-	if ds.DeviceExists(dev.Name()) {
-		return ErrPeripheralAlreadyRegistered
+		peripherals = append(peripherals, state.Peripheral)
 	}
 
-	ds.Devices[dev.Name()] = dev
-
-	return nil
+	return peripherals
 }
 
-func (ds *DeviceService) GetDevice(name string) (peripheral.Peripheral, error) {
-	val, ok := ds.Devices[name]
-	if !ok {
-		return nil, fmt.Errorf("device `%s` couldn't be found", name)
-	}
-
-	return val, nil
+func (ds *DeviceService) GetPeripheral(pname string) (peripheral.Peripheral, error) {
+	return ds.PSS.GetPeripheral(pname)
 }
 
-func (ds *DeviceService) DeviceExists(name string) bool {
-	if _, ok := ds.Devices[name]; !ok {
-		return false
-	}
-
-	return true
+func (ds *DeviceService) PeripheralExists(pname string) bool {
+	_, err := ds.PSS.GetPeripheral(pname)
+	return err == nil
 }
 
+// Getters [END] ---------------------------------------------------------------
+
+// Actions [START] -------------------------------------------------------------
 func (ds *DeviceService) StartStream() {
 	// NOTE: i'm using this pattern a whole lot. Maybe I can create a struct to handle this
 	var ctx context.Context
@@ -136,6 +90,8 @@ func (ds *DeviceService) SetTelemetryChannel(ch <-chan telemetry.TelemetryData) 
 	ds.TelemCh = ch
 }
 
+// Actions [END] ---------------------------------------------------------------
+
 // transmit will send the data to the devices themselves
 func (ds *DeviceService) transmit(ctx context.Context) {
 	var isSending atomic.Bool
@@ -157,15 +113,17 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 
 			// TODO: make a copy of the data and send that copy instead of keeping
 			// the data locked
-			ds.mu.RLock()
-			for _, dev := range ds.Devices {
-				err := dev.SendData(&data)
+			for _, dev := range ds.PSS.GetStates() {
+				if dev.State != DeviceIsConnected {
+					continue
+				}
+
+				err := dev.Peripheral.SendData(&data)
+
 				if err == peripheral.ErrDeviceTimedOut {
-					// What do we do here?
-					// TODO: somehow we need to handle reconnection
+					ds.onDeviceTimedOut(dev.device.Name)
 				}
 			}
-			ds.mu.RUnlock()
 
 			isSending.Store(false)
 		}
