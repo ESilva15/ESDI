@@ -67,7 +67,7 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("layout", "build a layout for CDashDisplay", func() {
 			// This CDashDisplay specific, only load if we have a CDashDisplay
-			if !mc.DevService.DeviceExists(cdashdisplay.NAME) {
+			if !mc.DevService.PeripheralExists(cdashdisplay.NAME) {
 				mc.DevService.Messages <- "CDashDisplay it not loaded yet\n"
 				return
 			}

@@ -12,7 +12,7 @@ type Device struct {
 	Discover func() (peripheral.Peripheral, error)
 }
 
-var List map[string]Device = map[string]Device{
+var List map[string]*Device = map[string]*Device{
 	uidevice.NAME: {
 		Name:     uidevice.NAME,
 		Discover: DiscoverUIDevice,

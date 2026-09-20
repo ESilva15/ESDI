@@ -211,7 +211,7 @@ func (lc *LayoutController) createWindow() {
 	}
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -321,7 +321,7 @@ func (lc *LayoutController) newWindowAction() {
 
 func (lc *LayoutController) updateWindowAction(win *cdashdisplay.DesktopUIWindow) {
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -347,7 +347,7 @@ func (lc *LayoutController) displayLoadedLayouts() {
 	lc.Logger.Debug("We want to view our layout!")
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -392,7 +392,7 @@ func (lc *LayoutController) getCurrentTreeNodeModel() (*tview.TreeNode, int16, e
 
 func (lc *LayoutController) loadLayout() {
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -416,7 +416,7 @@ func (lc *LayoutController) loadLayout() {
 
 func (lc *LayoutController) unloadLayout() {
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -437,7 +437,7 @@ func (lc *LayoutController) unloadLayout() {
 
 func (lc *LayoutController) saveLayout() {
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return
@@ -470,7 +470,7 @@ func (lc *LayoutController) deleteWindow() {
 	wID := curNode.GetReference().(int16)
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return

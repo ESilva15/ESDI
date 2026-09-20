@@ -12,6 +12,7 @@ import (
 	"time"
 
 	helper "esdi/helpers"
+	"esdi/peripheral"
 	"esdi/peripheral/communication"
 	"esdi/peripheral/communication/packets"
 	"esdi/peripheral/types"
@@ -107,10 +108,12 @@ func NewCDashState() *CDashState {
 }
 
 type CDashDisplay struct {
-	WT             *communication.WalkieTalkie
-	State          *CDashState
-	fieldToWindows map[telemetry.FieldID][]int16
-	bufPool        sync.Pool
+	WT                          *communication.WalkieTalkie
+	State                       *CDashState
+	fieldToWindows              map[telemetry.FieldID][]int16
+	bufPool                     sync.Pool
+	failedSends                 int
+	FailedSendsConsecutiveLimit int
 }
 
 // Connect will try to find and connect to the CDashDisplay
@@ -118,7 +121,7 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 	// Look for the port
 	p, err := findDisplayPort()
 	if err != nil {
-		slog.Info("failed to find cdashdisplay port: %s", err.Error())
+		slog.Info("failed to find cdashdisplay port", "reason", err.Error())
 		return nil, err
 	}
 
@@ -132,7 +135,17 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 				return &b
 			},
 		},
+		failedSends:                 0,
+		FailedSendsConsecutiveLimit: 5,
 	}, nil
+}
+
+func (cds *CDashDisplay) Close() error {
+	// if cds.WT != nil {
+	// 	cds.Close()
+	// }
+
+	return nil
 }
 
 func (d *CDashDisplay) SendCommand() {
@@ -393,12 +406,12 @@ func (d *CDashDisplay) UnloadLayout() error {
 	return nil
 }
 
-func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
+func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) error {
 	packet := d.encodePacket(data)
 
 	bytes, err := helper.StructToBytes(packet)
 	if err != nil {
-		return
+		return peripheral.ErrFailureToPackData
 	}
 
 	curStr := ""
@@ -408,7 +421,6 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 		curStr += fmt.Sprintf("%02x ", byte)
 
 		if byteCount == 8 {
-			// slog.Debug(curStr)
 			curStr = ""
 			byteCount = 0
 		}
@@ -417,6 +429,11 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 	// var ack packets.AckPacket
 	err = d.WT.SendCommand(sendDataCMDID, bytes, nil)
 	if err != nil && err != io.EOF {
-		return
+		if d.failedSends == d.FailedSendsConsecutiveLimit {
+			return peripheral.ErrDeviceTimedOut
+		}
+		d.failedSends++
 	}
+
+	return nil
 }

@@ -33,7 +33,8 @@ type IRacing struct {
 	ticker *time.Ticker // ticker will keep polling intervals constant
 
 	// Stream
-	streamCh     chan telemetry.TelemetryData
+	wg sync.WaitGroup
+	// streamCh     chan telemetry.TelemetryData
 	streamCancel context.CancelFunc
 }
 
@@ -50,13 +51,11 @@ func NewIRacingProvider(
 	}
 
 	provider := &IRacing{
-		logger:   logger,
-		SDK:      sdk,
-		data:     telemetry.NewTelemetryData(),
-		streamCh: make(chan telemetry.TelemetryData, 1),
-		// NOTE: This is because I stupidly recorded a test IBT file in 240
+		logger: logger,
+		SDK:    sdk,
+		data:   telemetry.NewTelemetryData(),
 		// TODO: make this configurable from the user side
-		ticker: time.NewTicker(time.Second / 240),
+		ticker: time.NewTicker(time.Second / 60),
 	}
 
 	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
@@ -129,11 +128,14 @@ func (i *IRacing) isDataAvailable() bool {
 	return true
 }
 
-func (i *IRacing) stream(ctx context.Context) {
+func (i *IRacing) stream(ctx context.Context) <-chan telemetry.TelemetryData {
 	i.data.InitialTime = time.Now()
+	outCh := make(chan telemetry.TelemetryData)
+	i.wg.Add(1)
 
 	go func() {
-		defer close(i.streamCh)
+		defer i.wg.Done()
+		defer close(outCh)
 
 		// Put this into the configuration file
 		consecutiveTimeouts := 0
@@ -153,7 +155,7 @@ func (i *IRacing) stream(ctx context.Context) {
 
 				// Publish data
 				select {
-				case i.streamCh <- *i.data:
+				case outCh <- *i.data:
 				default:
 					// skip this data, don't allow publishers to lag behind
 				}
@@ -169,6 +171,8 @@ func (i *IRacing) stream(ctx context.Context) {
 			}
 		}
 	}()
+
+	return outCh
 }
 
 func (i *IRacing) readData() {
@@ -205,9 +209,9 @@ func (i *IRacing) Stream() (<-chan telemetry.TelemetryData, error) {
 	ctx, i.streamCancel = context.WithCancel(context.Background())
 
 	// Start the stream
-	i.stream(ctx)
+	ch := i.stream(ctx)
 
-	return i.streamCh, nil
+	return ch, nil
 }
 
 func (i *IRacing) StopStream() {
@@ -216,6 +220,7 @@ func (i *IRacing) StopStream() {
 	}
 
 	i.streamCancel()
+	i.wg.Wait()
 	i.streamCancel = nil
 }
 

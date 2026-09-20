@@ -52,7 +52,7 @@ func (lc *LayoutController) handleMovementCapture(idx int16,
 	}
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return nil
@@ -86,7 +86,7 @@ func (lc *LayoutController) handleResizeCapture(idx int16,
 	}
 
 	// Acquire the cdashdisplay
-	displayIF, err := lc.DevService.GetDevice(cdashdisplay.NAME)
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
 	if err != nil {
 		lc.Messages <- "failed to get " + cdashdisplay.NAME
 		return nil
