@@ -24,6 +24,8 @@ type DeviceState = uint8
 const (
 	DeviceTimedOut uint8 = iota
 	DeviceIsConnected
+	DeviceIsUnconfigured
+	DeviceIsConfigured
 	DeviceIsDisconnected
 	DeviceReconnected
 )
@@ -32,7 +34,6 @@ type PeripheralState struct {
 	device     *devices.Device
 	Peripheral peripheral.Peripheral
 	State      DeviceState
-	Setup      bool
 }
 
 func NewPeripheralState(
@@ -44,7 +45,6 @@ func NewPeripheralState(
 		device:     dev,
 		Peripheral: peripheral,
 		State:      state,
-		Setup:      false,
 	}
 
 	return &perState
@@ -121,18 +121,6 @@ func (pss *PeripheralStateStore) AddDevice(dev *devices.Device) error {
 	return nil
 }
 
-func (pss *PeripheralStateStore) UpdatePeripheralSetupState(pname string, nState bool) error {
-	if !pss.DeviceExists(pname) {
-		return ErrNoSuchDevice
-	}
-
-	pss.mu.Lock()
-	defer pss.mu.Unlock()
-	pss.store[pname].Setup = nState
-
-	return nil
-}
-
 // DeviceExists returns whether the store is already tracking `pname`
 func (pss *PeripheralStateStore) DeviceExists(pname string) bool {
 	pss.mu.RLock()
@@ -177,7 +165,6 @@ func (pss *PeripheralStateStore) setDeviceConnected(pname string, per peripheral
 	pss.mu.Unlock()
 
 	pss.Messages <- fmt.Sprintf("Device successfuly connected: %s\n", pname)
-	// pss.OnDeviceFound(pname)
 }
 
 func (pss *PeripheralStateStore) setDeviceTimedOut(pname string) {
@@ -196,6 +183,22 @@ func (pss *PeripheralStateStore) setDeviceReconnected(pname string, per peripher
 	defer pss.mu.Unlock()
 	pss.store[pname].Peripheral = per
 	pss.store[pname].State = DeviceReconnected
+}
+
+func (pss *PeripheralStateStore) setDeviceUnconfigured(pname string) {
+	pss.Logger.Info("device is connected but not configured", "device", pname)
+
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsUnconfigured
+}
+
+func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
+	pss.Logger.Info("device is configured and ready for data", "device", pname)
+
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsConfigured
 }
 
 // Device State Handling [END] -------------------------------------------------
@@ -241,7 +244,6 @@ func (pss *PeripheralStateStore) handleDeviceReconnected(pname string) error {
 
 	// Update the peripheral state
 	pss.setDeviceConnected(pname, state.Peripheral)
-	pss.UpdatePeripheralSetupState(pname, false)
 
 	return nil
 }
@@ -251,22 +253,17 @@ func (pss *PeripheralStateStore) handleDeviceReconnected(pname string) error {
 // Connected -> Unconfigured -> Configured I believe this would work nicely
 // THIS IS A TODO ↑↑↑↑↑↑
 func (pss *PeripheralStateStore) handleDeviceConnected(pname string) error {
-	// Things to do once the device is connected
-	// 1. Setup
-	state, err := pss.GetState(pname)
-	if err != nil {
-		// We need to log something here or something
-		return err
-	}
-
-	if !state.Setup {
-		err = pss.setupPeripheral(state)
-	}
-
+	pss.setDeviceUnconfigured(pname)
 	return nil
 }
 
-func (pss *PeripheralStateStore) setupPeripheral(state *PeripheralState) error {
+func (pss *PeripheralStateStore) handleDeviceIsUnconfigured(pname string) error {
+	// Here we need to configure our device. If no error occurs its configured!
+	state, err := pss.GetState(pname)
+	if err != nil {
+		return err
+	}
+
 	provider, err := pss.telemetryProvider()
 	if err != nil {
 		return err
@@ -277,11 +274,13 @@ func (pss *PeripheralStateStore) setupPeripheral(state *PeripheralState) error {
 		return err
 	}
 
-	err = pss.UpdatePeripheralSetupState(state.device.Name, true)
-	if err != nil {
-		return err
-	}
+	pss.setDeviceConfigured(pname)
 
+	return nil
+}
+
+func (pss *PeripheralStateStore) handleDeviceIsConfigured(pname string) error {
+	// Nothing to do - this method shouldn't even exist then
 	return nil
 }
 
@@ -301,6 +300,16 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 			// Need to check if its streaming, if its not streaming than we have to do a healthcheck
 			pss.Logger.Debug("Device is connected. Normal", "device", pName)
 			pss.handleDeviceConnected(pName)
+		case DeviceIsUnconfigured:
+			pss.Logger.Debug("Device is still being configured.", "device", pName)
+			err := pss.handleDeviceIsUnconfigured(pName)
+			if err != nil {
+				// Something is not adding up, it should be logged somewhere... SYKE
+				continue
+			}
+		case DeviceIsConfigured:
+			// Nothing to do here
+			continue
 		case DeviceReconnected:
 			// If the device has reconnected we need to reset the device and then set it as connected
 			pss.Logger.Debug("Device has reconnected. Clearing up state", "device", pName)
