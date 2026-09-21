@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"esdi/constants"
 	"esdi/telemetry"
 
 	bngsdk "github.com/ESilva15/gobngsdk"
@@ -36,7 +37,7 @@ type BeamNG struct {
 }
 
 const (
-	NAME = "BeamNG.drive"
+	NAME = constants.BeamNGProviderName
 )
 
 func NewBeamNGProvider(logger *slog.Logger, opts *bngsdk.Options) (*BeamNG, error) {
