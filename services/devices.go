@@ -22,15 +22,17 @@ type DeviceService struct {
 	TelemCh      <-chan telemetry.TelemetryData
 	// Output
 	Messages chan string
+	// Callbacks
+	OnTelemetryProviderDiscovered func()
 }
 
-func NewDeviceService(logger *slog.Logger) *DeviceService {
-	sharedChannel := make(chan string, 10)
-
+func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
 	dev := &DeviceService{
-		PSS:      NewPeripheralStateStore(logger.With("Service", "PeripheralStateStore"), devices.List),
+		PSS: NewPeripheralStateStore(
+			logger.With("Service", "PeripheralStateStore"), devices.List, msg,
+		),
 		Logger:   logger,
-		Messages: sharedChannel,
+		Messages: msg,
 	}
 
 	// Start the routine that looks for devices - should always be running in the background

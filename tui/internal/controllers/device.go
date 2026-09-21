@@ -16,19 +16,18 @@ type DeviceController struct {
 	DeviceAPIView *views.DeviceAPIView
 	LayoutCtrl    *LayoutController
 	StreamCtrl    *StreamingCtrl
-	DevService    *serv.DeviceService
+	Orchestrator  *serv.Orchestrator
 }
 
 func NewDeviceController(
 	base *Controller,
-	devService *serv.DeviceService,
-	telemService *serv.TelemetryService,
+	orchestrator *serv.Orchestrator,
 ) *DeviceController {
 	mc := &DeviceController{
-		Controller: base,
-		LayoutCtrl: NewLayoutController(base, devService),
-		DevService: devService,
-		StreamCtrl: NewStreamingCtrl(base, devService, telemService),
+		Controller:   base,
+		LayoutCtrl:   NewLayoutController(base, orchestrator.DeviceService),
+		Orchestrator: orchestrator,
+		StreamCtrl:   NewStreamingCtrl(base, orchestrator.DeviceService, orchestrator.TelemetryService),
 	}
 
 	return mc
@@ -57,7 +56,7 @@ func (mc *DeviceController) setDeviceAPIViewEvents() {
 		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Rune() {
 			case 'r':
-				go mc.DevService.FindDevices()
+				go mc.Orchestrator.DeviceService.FindDevices()
 			}
 			return ev
 		})
@@ -67,8 +66,8 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("layout", "build a layout for CDashDisplay", func() {
 			// This CDashDisplay specific, only load if we have a CDashDisplay
-			if !mc.DevService.PeripheralExists(cdashdisplay.NAME) {
-				mc.DevService.Messages <- "CDashDisplay it not loaded yet\n"
+			if !mc.Orchestrator.DeviceService.PeripheralExists(cdashdisplay.NAME) {
+				mc.Orchestrator.DeviceService.Messages <- "CDashDisplay it not loaded yet\n"
 				return
 			}
 
@@ -116,7 +115,7 @@ func (mc *DeviceController) injectControllerCallbacks() {
 
 func (mc *DeviceController) injectChannels() {
 	go func() {
-		for msg := range mc.DevService.Messages {
+		for msg := range mc.Orchestrator.Messages {
 			mc.PrintToOutputWindow(msg)
 		}
 	}()

@@ -59,11 +59,6 @@ func NewStreamingCtrl(
 	return ctrl
 }
 
-// func (sc *StreamingCtrl) subscribeListeners() {
-// 	// Here I will set a UIDevice
-// 	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
-// }
-
 func (sc *StreamingCtrl) registerHooks() {
 	sc.StreamView.Options.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {

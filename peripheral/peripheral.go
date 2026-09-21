@@ -20,6 +20,8 @@ type Peripheral interface {
 	Setup() error
 	SendData(*telemetry.TelemetryData) error
 	RequiredFields() []telemetry.FieldID
+	OnLoad() error
+	OnTelemetryProviderFound() error
 	Close() error
 }
 

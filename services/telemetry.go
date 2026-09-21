@@ -32,16 +32,21 @@ type TelemetryService struct {
 	cancelMonitor     context.CancelFunc
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
+	// Callbacks
+	OnDevicesDiscovered func()
 }
 
-func NewTelemetryService(logger *slog.Logger, devServo *DeviceService) *TelemetryService {
-	sharedChannel := make(chan string, 10)
+func NewTelemetryService(
+	logger *slog.Logger,
+	devServo *DeviceService,
+	msg chan string,
+) *TelemetryService {
 	newService := &TelemetryService{
 		logger:      logger,
 		isConnected: false,
 		devService:  devServo,
 		listeners:   make(map[string]chan telem.TelemetryData),
-		Messages:    sharedChannel,
+		Messages:    msg,
 	}
 	newService.CtxMonitor, newService.cancelMonitor = context.WithCancel(context.Background())
 
@@ -59,6 +64,7 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 		case <-ticker.C:
 			slog.Info("checking if provider is still running")
 			if !t.activeProvider.IsAlive(500 * time.Millisecond) {
+				t.Messages <- "Healthcheck on provider failing. Dropping provider.\n"
 				slog.Warn("provider healthcheck failed")
 				t.dropActiveProvider()
 				t.onProviderHealthCheckFailed()
@@ -152,34 +158,6 @@ func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) e
 	t.activeProvider = newProvider
 
 	return nil
-}
-
-func (t *TelemetryService) onProviderHealthCheckFailed() {
-	// Just restart the whole lookup process
-	go t.FindProvider(t.CtxMonitor)
-}
-
-func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
-	// Attach to the provider
-	t.logger.Info("found provider for " + prov.Name())
-	err := t.SwitchProvider(prov)
-	if err != nil {
-		t.logger.Error("failed to switch to provider onFindProvider", "err", err)
-		return
-	}
-
-	// Create a routine to poll this provider while we wait to start the stream or pause it
-	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
-	go t.ProviderMonitor(t.CtxHealthcheck)
-}
-
-func (t *TelemetryService) onProviderStopsMidStream() {
-	// clear the current provider
-	// TODO: now we need to also clear the devices to restart everything,
-	// if the stream stopped we have to restart the devices and everything
-	t.logger.Info("cleaning dropped provider and restarting lookup service")
-	t.dropActiveProvider()
-	go t.FindProvider(t.CtxMonitor)
 }
 
 // TODO: add some way of retriggering this. Currently it should:

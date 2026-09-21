@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"maps"
 	"sync"
@@ -51,15 +52,19 @@ type PeripheralStateStore struct {
 	Logger *slog.Logger
 	mu     sync.RWMutex
 	store  map[string]*PeripheralState
+	// Messaging for UI and stuff
+	Messages chan string
 }
 
 func NewPeripheralStateStore(
 	nLogger *slog.Logger,
 	devList map[string]*devices.Device,
+	msg chan string,
 ) *PeripheralStateStore {
 	store := PeripheralStateStore{
-		Logger: nLogger,
-		store:  make(map[string]*PeripheralState),
+		Logger:   nLogger,
+		store:    make(map[string]*PeripheralState),
+		Messages: msg,
 	}
 
 	for _, dev := range devList {
@@ -154,6 +159,8 @@ func (pss *PeripheralStateStore) setDeviceConnected(pname string, per peripheral
 	defer pss.mu.Unlock()
 	pss.store[pname].Peripheral = per
 	pss.store[pname].State = DeviceIsConnected
+
+	pss.Messages <- fmt.Sprintf("Device successfuly connected: %s\n", pname)
 }
 
 func (pss *PeripheralStateStore) setDeviceTimedOut(pname string) {
