@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"esdi/constants"
 	helper "esdi/helpers"
 	"esdi/peripheral"
 	"esdi/peripheral/communication"
@@ -438,11 +439,31 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) error {
 	return nil
 }
 
-func (cds *CDashDisplay) Setup() error {
+func (cds *CDashDisplay) setupForIracing() error {
 	err := cds.LoadLayout("layout.yaml")
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (cds *CDashDisplay) setupForBeamNG() error {
+	err := cds.LoadLayout("beamng.yaml")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cds *CDashDisplay) Setup(provider string) error {
+	switch provider {
+	case constants.IRacingProviderName:
+		return cds.setupForIracing()
+	case constants.BeamNGProviderName:
+		return cds.setupForBeamNG()
+	default:
+		return fmt.Errorf("unknown provider: %s", provider)
+	}
 }

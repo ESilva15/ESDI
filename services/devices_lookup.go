@@ -32,6 +32,7 @@ type PeripheralState struct {
 	device     *devices.Device
 	Peripheral peripheral.Peripheral
 	State      DeviceState
+	Setup      bool
 }
 
 func NewPeripheralState(
@@ -43,6 +44,7 @@ func NewPeripheralState(
 		device:     dev,
 		Peripheral: peripheral,
 		State:      state,
+		Setup:      false,
 	}
 
 	return &perState
@@ -54,6 +56,8 @@ type PeripheralStateStore struct {
 	store  map[string]*PeripheralState
 	// Messaging for UI and stuff
 	Messages chan string
+	// Callbacks
+	OnDeviceFound func(string)
 }
 
 func NewPeripheralStateStore(
@@ -117,6 +121,18 @@ func (pss *PeripheralStateStore) AddDevice(dev *devices.Device) error {
 	return nil
 }
 
+func (pss *PeripheralStateStore) UpdatePeripheralSetupState(pname string, nState bool) error {
+	if !pss.DeviceExists(pname) {
+		return ErrNoSuchDevice
+	}
+
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].Setup = nState
+
+	return nil
+}
+
 // DeviceExists returns whether the store is already tracking `pname`
 func (pss *PeripheralStateStore) DeviceExists(pname string) bool {
 	pss.mu.RLock()
@@ -156,11 +172,12 @@ func (pss *PeripheralStateStore) setDeviceConnected(pname string, per peripheral
 	pss.Logger.Info("found device", "device", pname)
 
 	pss.mu.Lock()
-	defer pss.mu.Unlock()
 	pss.store[pname].Peripheral = per
 	pss.store[pname].State = DeviceIsConnected
+	pss.mu.Unlock()
 
 	pss.Messages <- fmt.Sprintf("Device successfuly connected: %s\n", pname)
+	pss.OnDeviceFound(pname)
 }
 
 func (pss *PeripheralStateStore) setDeviceTimedOut(pname string) {
@@ -222,7 +239,6 @@ func (pss *PeripheralStateStore) handleDeviceReconnected(pname string) error {
 		return err
 	}
 
-	err = state.Peripheral.Setup()
 	if err != nil {
 		pss.Logger.Error("failed to setup peripheral", "peripheral", pname, "error", err)
 		return ErrFailedToSetupPeripheral
@@ -231,6 +247,12 @@ func (pss *PeripheralStateStore) handleDeviceReconnected(pname string) error {
 	// Around here I believe I need to swap the states so the peripheral is setup
 	pss.setDeviceConnected(pname, state.Peripheral)
 
+	return nil
+}
+
+// handleDeviceConnected will handle the device setup after it connects
+func (pss *PeripheralStateStore) handleDeviceConnected(pname string) error {
+	// We need to query wheter we have a telemetry provider running or not
 	return nil
 }
 
@@ -249,6 +271,7 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 		case DeviceIsConnected:
 			// Need to check if its streaming, if its not streaming than we have to do a healthcheck
 			pss.Logger.Debug("Device is connected. Normal", "device", pName)
+			pss.handleDeviceConnected(pName)
 		case DeviceReconnected:
 			// If the device has reconnected we need to reset the device and then set it as connected
 			pss.Logger.Debug("Device has reconnected. Clearing up state", "device", pName)
@@ -274,7 +297,7 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 // FindDevices is a routine that goes over the devices in the PeripheralStateStore
 // and handles their state accordingly
 func (ds *DeviceService) FindDevices() {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {

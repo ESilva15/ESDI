@@ -25,7 +25,7 @@ func (uid *UIDevice) Close() error {
 	return nil
 }
 
-func (uid *UIDevice) Setup() error {
+func (uid *UIDevice) Setup(provider string) error {
 	return nil
 }
 

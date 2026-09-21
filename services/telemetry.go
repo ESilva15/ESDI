@@ -2,20 +2,23 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
 
+	"esdi/peripheral"
 	"esdi/providers"
 	"esdi/telemetry"
 	telem "esdi/telemetry"
 )
 
+var ErrNoActiveProviderAvailable = errors.New("no active provider available")
+
 // TelemetryService will be our base struct to handle telemetry data
 // It should hook to a data sink and handle it like iRacing, BeamNG, AC and so on
 type TelemetryService struct {
-	logger     *slog.Logger
-	devService *DeviceService
+	logger *slog.Logger
 	// Streaming
 	isStreaming bool
 	// Concurrency protection
@@ -33,18 +36,18 @@ type TelemetryService struct {
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
 	// Callbacks
-	OnDevicesDiscovered func()
+	OnProviderFound func(string)
+	// Devices data request
+	peripheralProvider func() []peripheral.Peripheral
 }
 
 func NewTelemetryService(
 	logger *slog.Logger,
-	devServo *DeviceService,
 	msg chan string,
 ) *TelemetryService {
 	newService := &TelemetryService{
 		logger:      logger,
 		isConnected: false,
-		devService:  devServo,
 		listeners:   make(map[string]chan telem.TelemetryData),
 		Messages:    msg,
 	}
@@ -72,6 +75,14 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (t *TelemetryService) GetTelemetryProviderName() (string, error) {
+	if t.activeProvider == nil {
+		return "", ErrNoActiveProviderAvailable
+	}
+
+	return t.activeProvider.Name(), nil
 }
 
 // Listener Control [START] ----------------------------------------------------
@@ -108,7 +119,7 @@ func (t *TelemetryService) SubscribeToFields() []telem.FieldID {
 	seen := make(map[telemetry.FieldID]struct{})
 	var allFields []telemetry.FieldID
 
-	for _, dev := range t.devService.GetDevices() {
+	for _, dev := range t.peripheralProvider() {
 		for _, field := range dev.RequiredFields() {
 			if _, exists := seen[field]; !exists {
 				seen[field] = struct{}{}
@@ -263,3 +274,11 @@ func (t *TelemetryService) IsStreaming() bool {
 }
 
 // Streaming Control [END] -----------------------------------------------------
+
+// Callbacks [START] -----------------------------------------------------------
+
+func (t *TelemetryService) PeripheralFoundCallback(pname string) {
+	t.Messages <- "Telemetry service callback for peripheral found called\n"
+}
+
+// Callbacks [END] -------------------------------------------------------------

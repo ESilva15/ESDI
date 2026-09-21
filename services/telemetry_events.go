@@ -28,6 +28,7 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	go t.ProviderMonitor(t.CtxHealthcheck)
 
 	// Tell the devices service we got a provider
+	t.OnProviderFound(prov.Name())
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {

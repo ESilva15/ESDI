@@ -17,14 +17,20 @@ func NewOrchestrator(logger *slog.Logger) (*Orchestrator, error) {
 
 	devService := NewDeviceService(logger.With("service", "DeviceService"), msg)
 
-	telemService := NewTelemetryService(logger.With("service", "TelemetryService"), devService, msg)
+	telemService := NewTelemetryService(logger.With("service", "TelemetryService"), msg)
 	if telemService == nil {
 		return nil, errors.New("failed to create telemetry service")
 	}
 
 	go telemService.FindProvider(telemService.CtxMonitor)
 
-	// Need to setup the callbacks on the services
+	// Setup device service callbacks
+	devService.OnPeripheralFound = telemService.PeripheralFoundCallback
+	devService.telemetryProvider = telemService.GetTelemetryProviderName
+
+	// Setup telemetry service callbacks
+	telemService.OnProviderFound = devService.ProviderFoundCallback
+	telemService.peripheralProvider = devService.GetDevices
 
 	return &Orchestrator{
 		DeviceService:    devService,
