@@ -26,9 +26,6 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Start the healthcheck on our provider so we can drop it if it stops
 	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
 	go t.ProviderMonitor(t.CtxHealthcheck)
-
-	// Tell the devices service we got a provider
-	t.OnProviderFound(prov.Name())
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {

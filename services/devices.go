@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync/atomic"
 
@@ -24,7 +23,6 @@ type DeviceService struct {
 	// Output
 	Messages chan string
 	// Callbacks
-	OnPeripheralFound func(string)
 	// Telemetry service data fetchers
 	telemetryProvider func() (string, error)
 }
@@ -44,12 +42,18 @@ func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
 	go dev.FindDevices()
 
 	// Set the callbacks for PSS
-	dev.PSS.OnDeviceFound = dev.deviceFound
+	dev.PSS.telemetryProvider = dev.getTelemetryProvider
 
 	return dev
 }
 
 // Getters [START] -------------------------------------------------------------
+// This function is currently only being used by PSS, we may have to find a better
+// pattern for this
+func (ds *DeviceService) getTelemetryProvider() (string, error) {
+	return ds.telemetryProvider()
+}
+
 func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
 	snapshot := ds.PSS.GetStates()
 	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
@@ -138,45 +142,6 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 	}
 }
 
-func (ds *DeviceService) deviceFound(pname string) {
-	ds.OnPeripheralFound(pname)
-}
-
 // Callbacks [START] -----------------------------------------------------------
-
-// ProviderFoundCallback should be called once the telemetry service finds a provider
-// Here we need to setup our devices. Some devices might have different settings for
-// different sims
-func (ds *DeviceService) ProviderFoundCallback(name string) {
-	ds.Messages <- "Device services got triggered by a provider being found\n"
-	for _, peripheral := range ds.PSS.GetStates() {
-		// ds.Messages <- fmt.Sprintf("dev: %s, SETUP: %t, STATE: %d\n",
-		// 	peripheral.device.Name, peripheral.Setup, peripheral.State)
-		if peripheral.State != DeviceIsConnected || peripheral.Setup {
-			continue
-		}
-
-		// The device is connected and still needs to run the setup
-		ds.Messages <- fmt.Sprintf("device '%s' needs to be setup\n", peripheral.device.Name)
-
-		provider, err := ds.telemetryProvider()
-		if err != nil {
-			// Can't setup anything
-			continue
-		}
-
-		err = peripheral.Peripheral.Setup(provider)
-		if err != nil {
-			// TODO: log do something
-			continue
-		}
-
-		err = ds.PSS.UpdatePeripheralSetupState(peripheral.device.Name, true)
-		if err != nil {
-			// TODO: log do something
-			continue
-		}
-	}
-}
 
 // Callbacks [END] -------------------------------------------------------------

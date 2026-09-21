@@ -57,7 +57,7 @@ type PeripheralStateStore struct {
 	// Messaging for UI and stuff
 	Messages chan string
 	// Callbacks
-	OnDeviceFound func(string)
+	telemetryProvider func() (string, error)
 }
 
 func NewPeripheralStateStore(
@@ -177,7 +177,7 @@ func (pss *PeripheralStateStore) setDeviceConnected(pname string, per peripheral
 	pss.mu.Unlock()
 
 	pss.Messages <- fmt.Sprintf("Device successfuly connected: %s\n", pname)
-	pss.OnDeviceFound(pname)
+	// pss.OnDeviceFound(pname)
 }
 
 func (pss *PeripheralStateStore) setDeviceTimedOut(pname string) {
@@ -239,20 +239,49 @@ func (pss *PeripheralStateStore) handleDeviceReconnected(pname string) error {
 		return err
 	}
 
-	if err != nil {
-		pss.Logger.Error("failed to setup peripheral", "peripheral", pname, "error", err)
-		return ErrFailedToSetupPeripheral
-	}
-
-	// Around here I believe I need to swap the states so the peripheral is setup
+	// Update the peripheral state
 	pss.setDeviceConnected(pname, state.Peripheral)
+	pss.UpdatePeripheralSetupState(pname, false)
 
 	return nil
 }
 
 // handleDeviceConnected will handle the device setup after it connects
+// NOTE: should this be a state after Connected?
+// Connected -> Unconfigured -> Configured I believe this would work nicely
+// THIS IS A TODO ↑↑↑↑↑↑
 func (pss *PeripheralStateStore) handleDeviceConnected(pname string) error {
-	// We need to query wheter we have a telemetry provider running or not
+	// Things to do once the device is connected
+	// 1. Setup
+	state, err := pss.GetState(pname)
+	if err != nil {
+		// We need to log something here or something
+		return err
+	}
+
+	if !state.Setup {
+		err = pss.setupPeripheral(state)
+	}
+
+	return nil
+}
+
+func (pss *PeripheralStateStore) setupPeripheral(state *PeripheralState) error {
+	provider, err := pss.telemetryProvider()
+	if err != nil {
+		return err
+	}
+
+	err = state.Peripheral.Setup(provider)
+	if err != nil {
+		return err
+	}
+
+	err = pss.UpdatePeripheralSetupState(state.device.Name, true)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

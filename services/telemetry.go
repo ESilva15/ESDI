@@ -36,7 +36,6 @@ type TelemetryService struct {
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
 	// Callbacks
-	OnProviderFound func(string)
 	// Devices data request
 	peripheralProvider func() []peripheral.Peripheral
 }
@@ -276,9 +275,5 @@ func (t *TelemetryService) IsStreaming() bool {
 // Streaming Control [END] -----------------------------------------------------
 
 // Callbacks [START] -----------------------------------------------------------
-
-func (t *TelemetryService) PeripheralFoundCallback(pname string) {
-	t.Messages <- "Telemetry service callback for peripheral found called\n"
-}
 
 // Callbacks [END] -------------------------------------------------------------

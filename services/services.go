@@ -25,11 +25,9 @@ func NewOrchestrator(logger *slog.Logger) (*Orchestrator, error) {
 	go telemService.FindProvider(telemService.CtxMonitor)
 
 	// Setup device service callbacks
-	devService.OnPeripheralFound = telemService.PeripheralFoundCallback
 	devService.telemetryProvider = telemService.GetTelemetryProviderName
 
 	// Setup telemetry service callbacks
-	telemService.OnProviderFound = devService.ProviderFoundCallback
 	telemService.peripheralProvider = devService.GetDevices
 
 	return &Orchestrator{
