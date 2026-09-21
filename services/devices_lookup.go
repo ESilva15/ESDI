@@ -23,11 +23,11 @@ type DeviceState = uint8
 
 const (
 	DeviceTimedOut uint8 = iota
+	DeviceIsDisconnected
+	DeviceReconnected
 	DeviceIsConnected
 	DeviceIsUnconfigured
 	DeviceIsConfigured
-	DeviceIsDisconnected
-	DeviceReconnected
 )
 
 type PeripheralState struct {
@@ -101,7 +101,7 @@ func (pss *PeripheralStateStore) GetPeripheral(pname string) (peripheral.Periphe
 		return nil, err
 	}
 
-	if state.State != DeviceIsConnected {
+	if state.State < DeviceIsConnected {
 		return nil, ErrDeviceIsNotConnected
 	}
 

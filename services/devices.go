@@ -59,7 +59,7 @@ func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
 	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
 
 	for _, state := range snapshot {
-		if state.State != DeviceIsConnected {
+		if state.State < DeviceIsConnected {
 			continue
 		}
 		peripherals = append(peripherals, state.Peripheral)
@@ -126,7 +126,7 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 			// TODO: make a copy of the data and send that copy instead of keeping
 			// the data locked
 			for _, dev := range ds.PSS.GetStates() {
-				if dev.State != DeviceIsConnected {
+				if dev.State != DeviceIsConfigured {
 					continue
 				}
 
