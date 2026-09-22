@@ -161,35 +161,6 @@ func (wt *WalkieTalkie) readPacket(resp packets.Packet) error {
 	return nil
 }
 
-// func (wt *WalkieTalkie) sendHeader(h *header) error {
-// 	err := wt.sendPacket(h)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// var ack packets.AckPacket
-// 	// err = wt.readPacket(&ack)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-//
-// 	return nil
-// }
-
-// func (wt *WalkieTalkie) sendBody(payload any, resp packets.Packet) error {
-// 	err := wt.sendPacket(payload)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// err = wt.readPacket(resp)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-//
-// 	return nil
-// }
-
 func (wt *WalkieTalkie) SendCommand(
 	cmd types.Command,
 	payload any,
