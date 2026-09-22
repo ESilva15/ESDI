@@ -34,6 +34,7 @@ const (
 	sendDataCMDID         types.Command = 7
 	newLayoutCMDID        types.Command = 8
 	healthCheckCMDID      types.Command = 9
+	resetCMDID            types.Command = 10
 )
 
 const (
@@ -400,6 +401,17 @@ func (d *CDashDisplay) UnloadLayout() error {
 		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 	}
+
+	return nil
+}
+
+func (cds *CDashDisplay) reset() error {
+	err := cds.WT.SendCommand(resetCMDID, []byte{0x01, 0x02, 0x03, 0x04}, nil)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(3000 * time.Millisecond)
 
 	return nil
 }

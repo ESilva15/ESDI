@@ -86,6 +86,8 @@ type PeripheralStateStore struct {
 	Messages chan string
 	// Callbacks
 	telemetryProvider func() (string, error)
+	// Internal State
+	isStreaming bool
 }
 
 func NewPeripheralStateStore(
@@ -175,17 +177,33 @@ func (pss *PeripheralStateStore) DeleteDevice(pname string) error {
 	return nil
 }
 
+func (pss *PeripheralStateStore) GetStreamingState() bool {
+	pss.mu.RLock()
+	defer pss.mu.RUnlock()
+	return pss.isStreaming
+}
+
 // "Events" [START] ------------------------------------------------------------
 func (ds *DeviceService) onDeviceTimedOut(pname string) {
 	ds.PSS.setDeviceTimedOut(pname)
 }
 
 func (pss *PeripheralStateStore) OnStartStream() {
+	pss.mu.Lock()
+	pss.isStreaming = true
+	pss.mu.Unlock()
+
 	for _, state := range pss.GetStates() {
 		if state.State == DeviceIsConfigured {
 			pss.setDeviceIsStreaming(state.device.Name)
 		}
 	}
+}
+
+func (pss *PeripheralStateStore) OnStopStream() {
+	pss.mu.Lock()
+	pss.isStreaming = false
+	pss.mu.Unlock()
 }
 
 // "Events" [END] --------------------------------------------------------------
@@ -325,6 +343,7 @@ func (pss *PeripheralStateStore) configurePeripheral(
 }
 
 func (pss *PeripheralStateStore) handleDeviceTimedOut(pname string) error {
+	pss.Messages <- "device " + pname + " timed out\n"
 	pss.discoverPeripheral(pname, pss.setDeviceReconnected, pss.setDeviceTimedOut)
 	return nil
 }
@@ -367,6 +386,11 @@ func (pss *PeripheralStateStore) handleDeviceIsUnconfigured(pname string) error 
 func (pss *PeripheralStateStore) handleDeviceIsConfigured(pname string) error {
 	// Here we have to check wheter we are streaming or not. If we aren't streaming
 	// then we ought to do a healthcheck on the peripheral
+	if pss.GetStreamingState() {
+		pss.Messages <- "returning device " + pname + " into streaming\n"
+		pss.setDeviceIsStreaming(pname)
+	}
+
 	return nil
 }
 
@@ -431,10 +455,6 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 		if updatedState.State == DeviceIsConnected ||
 			updatedState.State == DeviceIsUnconfigured ||
 			updatedState.State == DeviceIsConfigured {
-			pss.Messages <- fmt.Sprintf(
-				"Performing healthcheck. STATE: %s\n",
-				DeviceStateToStr(updatedState.State),
-			)
 			pss.performHealthCheck(pName, updatedState)
 		}
 

@@ -25,6 +25,14 @@ func (cds *CDashDisplay) setupForBeamNG() error {
 }
 
 func (cds *CDashDisplay) Setup(provider string) error {
+	// Doesn't matter which one we are picking, we need to reset the CDashDisplay
+	// first - we will improve this setup behaviour later on with an Update to
+	// change it without dropping connection or some shit
+	err := cds.reset()
+	if err != nil {
+		return err
+	}
+
 	switch provider {
 	case constants.IRacingProviderName:
 		return cds.setupForIracing()
