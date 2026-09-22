@@ -85,6 +85,8 @@ func (ds *DeviceService) StartStream() {
 	var ctx context.Context
 	ctx, ds.streamCancel = context.WithCancel(context.Background())
 
+	ds.PSS.OnStartStream()
+
 	go ds.transmit(ctx)
 }
 
@@ -126,7 +128,7 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 			// TODO: make a copy of the data and send that copy instead of keeping
 			// the data locked
 			for _, dev := range ds.PSS.GetStates() {
-				if dev.State != DeviceIsConfigured {
+				if dev.State != DeviceIsStreaming {
 					continue
 				}
 

@@ -25,10 +25,38 @@ const (
 	DeviceTimedOut uint8 = iota
 	DeviceIsDisconnected
 	DeviceReconnected
+	DeviceIsDiscovering
 	DeviceIsConnected
 	DeviceIsUnconfigured
+	DeviceIsConfiguring
 	DeviceIsConfigured
+	DeviceIsStreaming
 )
+
+func DeviceStateToStr(state DeviceState) string {
+	switch state {
+	case DeviceTimedOut:
+		return "DeviceTimedOut"
+	case DeviceIsDisconnected:
+		return "DeviceIsDisconnected"
+	case DeviceReconnected:
+		return "DeviceReconnected"
+	case DeviceIsDiscovering:
+		return "DeviceIsDiscovering"
+	case DeviceIsConnected:
+		return "DeviceIsConnected"
+	case DeviceIsUnconfigured:
+		return "DeviceIsUnconfigured"
+	case DeviceIsConfiguring:
+		return "DeviceIsConfiguring"
+	case DeviceIsConfigured:
+		return "DeviceIsConfigured"
+	case DeviceIsStreaming:
+		return "DeviceIsStreaming"
+	default:
+		return "UnknownState"
+	}
+}
 
 type PeripheralState struct {
 	device     *devices.Device
@@ -149,13 +177,32 @@ func (pss *PeripheralStateStore) DeleteDevice(pname string) error {
 
 // "Events" [START] ------------------------------------------------------------
 func (ds *DeviceService) onDeviceTimedOut(pname string) {
-	// We need to deregister the device
 	ds.PSS.setDeviceTimedOut(pname)
+}
+
+func (pss *PeripheralStateStore) OnStartStream() {
+	for _, state := range pss.GetStates() {
+		if state.State == DeviceIsConfigured {
+			pss.setDeviceIsStreaming(state.device.Name)
+		}
+	}
 }
 
 // "Events" [END] --------------------------------------------------------------
 
 // Device State Handling [START] -----------------------------------------------
+func (pss *PeripheralStateStore) setDeviceDisconnected(pname string) {
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsDisconnected
+}
+
+func (pss *PeripheralStateStore) setDeviceIsDiscovering(pname string) {
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsDiscovering
+}
+
 func (pss *PeripheralStateStore) setDeviceConnected(pname string, per peripheral.Peripheral) {
 	pss.Logger.Info("found device", "device", pname)
 
@@ -193,6 +240,14 @@ func (pss *PeripheralStateStore) setDeviceUnconfigured(pname string) {
 	pss.store[pname].State = DeviceIsUnconfigured
 }
 
+func (pss *PeripheralStateStore) setDeviceIsConfiguring(pname string) {
+	pss.Logger.Info("device is configuring for new provider", "device", pname)
+
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsConfiguring
+}
+
 func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
 	pss.Logger.Info("device is configured and ready for data", "device", pname)
 
@@ -201,37 +256,76 @@ func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
 	pss.store[pname].State = DeviceIsConfigured
 }
 
+func (pss *PeripheralStateStore) setDeviceIsStreaming(pname string) {
+	pss.Logger.Info("device is configured and ready for data", "device", pname)
+
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+	pss.store[pname].State = DeviceIsStreaming
+}
+
 // Device State Handling [END] -------------------------------------------------
 
 // Device Handling [START] -----------------------------------------------------
 func (pss *PeripheralStateStore) discoverPeripheral(
 	pname string,
-	onDiscovery func(pName string, peripheral peripheral.Peripheral),
-) error {
-	state, err := pss.GetState(pname)
-	if err != nil {
-		pss.Logger.Error("Can't reconnect device", "device", pname, "error", err)
-		return err
-	}
+	onDiscovery func(string, peripheral.Peripheral),
+	onFailure func(string),
+) {
+	pss.Logger.Debug("looking for device", "name", pname)
+	pss.setDeviceIsDiscovering(pname)
+	pss.Messages <- "Discovering " + pname + "\n"
 
-	dev, err := state.device.Discover()
-	if err != nil {
-		return err
-	}
+	go func() {
+		state, err := pss.GetState(pname)
+		if err != nil {
+			pss.Logger.Error("Can't reconnect device", "device", pname, "error", err)
+			onFailure(pname)
+			return
+		}
 
-	// Register the device we just found
-	onDiscovery(pname, dev)
+		dev, err := state.device.Discover()
+		if err != nil {
+			onFailure(pname)
+			return
+		}
 
-	return nil
+		// Register the device we just found
+		onDiscovery(pname, dev)
+	}()
+}
+
+func (pss *PeripheralStateStore) configurePeripheral(
+	pname string,
+	onSuccess func(string),
+	onFailure func(string),
+) {
+	go func() {
+		state, err := pss.GetState(pname)
+		if err != nil {
+			onFailure(pname)
+			return
+		}
+
+		provider, err := pss.telemetryProvider()
+		if err != nil {
+			onFailure(pname)
+			return
+		}
+
+		err = state.Peripheral.Setup(provider)
+		if err != nil {
+			onFailure(pname)
+			return
+		}
+
+		onSuccess(pname)
+		pss.setDeviceConfigured(pname)
+	}()
 }
 
 func (pss *PeripheralStateStore) handleDeviceTimedOut(pname string) error {
-	err := pss.discoverPeripheral(pname, pss.setDeviceReconnected)
-	if err != nil {
-		// Log something
-		return err
-	}
-
+	pss.discoverPeripheral(pname, pss.setDeviceReconnected, pss.setDeviceTimedOut)
 	return nil
 }
 
@@ -259,29 +353,32 @@ func (pss *PeripheralStateStore) handleDeviceConnected(pname string) error {
 
 func (pss *PeripheralStateStore) handleDeviceIsUnconfigured(pname string) error {
 	// Here we need to configure our device. If no error occurs its configured!
-	state, err := pss.GetState(pname)
+	_, err := pss.telemetryProvider()
 	if err != nil {
 		return err
 	}
 
-	provider, err := pss.telemetryProvider()
-	if err != nil {
-		return err
-	}
-
-	err = state.Peripheral.Setup(provider)
-	if err != nil {
-		return err
-	}
-
-	pss.setDeviceConfigured(pname)
+	pss.setDeviceIsConfiguring(pname)
+	pss.configurePeripheral(pname, pss.setDeviceConfigured, pss.setDeviceUnconfigured)
 
 	return nil
 }
 
 func (pss *PeripheralStateStore) handleDeviceIsConfigured(pname string) error {
-	// Nothing to do - this method shouldn't even exist then
+	// Here we have to check wheter we are streaming or not. If we aren't streaming
+	// then we ought to do a healthcheck on the peripheral
 	return nil
+}
+
+func (pss *PeripheralStateStore) performHealthCheck(pname string, state *PeripheralState) bool {
+	healthStatus := state.Peripheral.HealthCheck()
+	if !healthStatus {
+		pss.Messages <- "peripheral " + pname + " failed healthcheck"
+		pss.setDeviceTimedOut(pname)
+		return false
+	}
+
+	return true
 }
 
 func (pss *PeripheralStateStore) HandleDeviceState() {
@@ -290,26 +387,24 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 	for pName, pState := range peripherals {
 		switch pState.State {
 		case DeviceIsDisconnected:
-			pss.Logger.Debug("looking for device", "name", pName)
-			err := pss.discoverPeripheral(pName, pss.setDeviceConnected)
-			if err != nil {
-				// Log something
-				continue
-			}
+			pss.discoverPeripheral(pName, pss.setDeviceConnected, pss.setDeviceDisconnected)
+		case DeviceIsDiscovering:
+			// We need to set a device into discovery mode so we won't retrigger discoveries
+			// and pool them up
 		case DeviceIsConnected:
 			// Need to check if its streaming, if its not streaming than we have to do a healthcheck
 			pss.Logger.Debug("Device is connected. Normal", "device", pName)
 			pss.handleDeviceConnected(pName)
 		case DeviceIsUnconfigured:
 			pss.Logger.Debug("Device is still being configured.", "device", pName)
-			err := pss.handleDeviceIsUnconfigured(pName)
-			if err != nil {
-				// Something is not adding up, it should be logged somewhere... SYKE
-				continue
-			}
+			pss.handleDeviceIsUnconfigured(pName)
+		case DeviceIsConfiguring:
+			// Do nothing configuration is happening in the background
 		case DeviceIsConfigured:
 			// Nothing to do here
-			continue
+			pss.handleDeviceIsConfigured(pName)
+		case DeviceIsStreaming:
+			//
 		case DeviceReconnected:
 			// If the device has reconnected we need to reset the device and then set it as connected
 			pss.Logger.Debug("Device has reconnected. Clearing up state", "device", pName)
@@ -327,6 +422,22 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 				continue
 			}
 		}
+
+		updatedState, err := pss.GetState(pName)
+		if err != nil {
+			// TODO: log something useful here
+			continue
+		}
+		if updatedState.State == DeviceIsConnected ||
+			updatedState.State == DeviceIsUnconfigured ||
+			updatedState.State == DeviceIsConfigured {
+			pss.Messages <- fmt.Sprintf(
+				"Performing healthcheck. STATE: %s\n",
+				DeviceStateToStr(updatedState.State),
+			)
+			pss.performHealthCheck(pName, updatedState)
+		}
+
 	}
 }
 

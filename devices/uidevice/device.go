@@ -58,3 +58,7 @@ func (uid *UIDevice) RequiredFields() []telemetry.FieldID {
 		telemetry.RPM,
 	}
 }
+
+func (uid *UIDevice) HealthCheck() bool {
+	return true
+}
