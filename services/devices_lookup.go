@@ -10,6 +10,7 @@ import (
 
 	"esdi/devices"
 	"esdi/peripheral"
+	"esdi/telemetry"
 )
 
 var (
@@ -85,7 +86,8 @@ type PeripheralStateStore struct {
 	// Messaging for UI and stuff
 	Messages chan string
 	// Callbacks
-	telemetryProvider func() (string, error)
+	telemetryProvider      func() (string, error)
+	onPeripheralConfigured func(string, []telemetry.FieldID)
 	// Internal State
 	isStreaming bool
 }
@@ -183,6 +185,15 @@ func (pss *PeripheralStateStore) GetStreamingState() bool {
 	return pss.isStreaming
 }
 
+func (pss *PeripheralStateStore) GetPeripheralFields(pname string) []telemetry.FieldID {
+	per, err := pss.GetState(pname)
+	if err != nil {
+		return nil
+	}
+
+	return per.Peripheral.RequiredFields()
+}
+
 // "Events" [START] ------------------------------------------------------------
 func (ds *DeviceService) onDeviceTimedOut(pname string) {
 	ds.PSS.setDeviceTimedOut(pname)
@@ -204,6 +215,12 @@ func (pss *PeripheralStateStore) OnStopStream() {
 	pss.mu.Lock()
 	pss.isStreaming = false
 	pss.mu.Unlock()
+
+	for _, state := range pss.GetStates() {
+		if state.State == DeviceIsStreaming {
+			pss.setDeviceConfigured(state.device.Name)
+		}
+	}
 }
 
 // "Events" [END] --------------------------------------------------------------
@@ -270,8 +287,10 @@ func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
 	pss.Logger.Info("device is configured and ready for data", "device", pname)
 
 	pss.mu.Lock()
-	defer pss.mu.Unlock()
 	pss.store[pname].State = DeviceIsConfigured
+	pss.mu.Unlock()
+
+	pss.onPeripheralConfigured(pname, pss.GetPeripheralFields(pname))
 }
 
 func (pss *PeripheralStateStore) setDeviceIsStreaming(pname string) {
@@ -338,7 +357,6 @@ func (pss *PeripheralStateStore) configurePeripheral(
 		}
 
 		onSuccess(pname)
-		pss.setDeviceConfigured(pname)
 	}()
 }
 

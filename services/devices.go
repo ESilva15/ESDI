@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync/atomic"
 
@@ -24,7 +25,8 @@ type DeviceService struct {
 	Messages chan string
 	// Callbacks
 	// Telemetry service data fetchers
-	telemetryProvider func() (string, error)
+	telemetryProvider        func() (string, error)
+	triggerFieldSubscription func([]telemetry.FieldID) []string
 }
 
 func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
@@ -43,6 +45,7 @@ func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
 
 	// Set the callbacks for PSS
 	dev.PSS.telemetryProvider = dev.getTelemetryProvider
+	dev.PSS.onPeripheralConfigured = dev.peripheralConfigured
 
 	return dev
 }
@@ -59,7 +62,7 @@ func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
 	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
 
 	for _, state := range snapshot {
-		if state.State < DeviceIsConnected {
+		if state.State < DeviceIsConfigured {
 			continue
 		}
 		peripherals = append(peripherals, state.Peripheral)
@@ -94,6 +97,8 @@ func (ds *DeviceService) StopStream() {
 	if ds.streamCancel == nil {
 		return
 	}
+
+	ds.PSS.OnStopStream()
 
 	ds.streamCancel()
 	ds.streamCancel = nil
@@ -145,5 +150,10 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 }
 
 // Callbacks [START] -----------------------------------------------------------
+func (ds *DeviceService) peripheralConfigured(pname string, fields []telemetry.FieldID) {
+	// We need to retrigger field subscription here
+	subscribedTo := ds.triggerFieldSubscription(fields)
+	ds.Messages <- fmt.Sprintf("subscribed to fields: %q\n", subscribedTo)
+}
 
 // Callbacks [END] -------------------------------------------------------------

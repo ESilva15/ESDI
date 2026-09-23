@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"strconv"
 	"sync"
+
+	"esdi/constants"
 )
 
 // NOTE: for managing fuel consumption and predictions we need to filter out
@@ -263,4 +265,8 @@ func (fc *FuelCalculator) resetHistory() {
 
 func (fc *FuelCalculator) EnsureSubscribed() []FieldID {
 	return []FieldID{FuelLevel, LapNumber}
+}
+
+func (fc *FuelCalculator) Name() string {
+	return constants.FuelCalculatorName
 }

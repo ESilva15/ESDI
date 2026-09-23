@@ -154,8 +154,8 @@ func (sc *StreamingCtrl) updateStream() {
 // Performance reasoning: this is not used during the high frequency data transmission
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
-	fields := sc.TelemServ.SubscribeToFields()
-	sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v\n", fields)
+	// fields := sc.TelemServ.SubscribeToAllFields()
+	// sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v\n", fields)
 }
 
 func (sc *StreamingCtrl) listenToUIStream() {

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"esdi/peripheral"
 	"esdi/providers"
 	"esdi/telemetry"
 	telem "esdi/telemetry"
@@ -37,7 +36,8 @@ type TelemetryService struct {
 	healthCheckCancel context.CancelFunc
 	// Callbacks
 	// Devices data request
-	peripheralProvider func() []peripheral.Peripheral
+	// peripheralProvider func() []peripheral.Peripheral
+	// getRequiredFields func() []telemetry.FieldID
 }
 
 func NewTelemetryService(
@@ -114,23 +114,11 @@ func (t *TelemetryService) UnsubscribeListener(id string) {
 	}
 }
 
-func (t *TelemetryService) SubscribeToFields() []telem.FieldID {
-	seen := make(map[telemetry.FieldID]struct{})
-	var allFields []telemetry.FieldID
+func (t *TelemetryService) SubscribeToFields(fields []telemetry.FieldID) []string {
+	t.logger.Debug("requested fields", "fields", fields)
+	subscribed := t.activeProvider.Subscribe(fields)
 
-	for _, dev := range t.peripheralProvider() {
-		for _, field := range dev.RequiredFields() {
-			if _, exists := seen[field]; !exists {
-				seen[field] = struct{}{}
-				allFields = append(allFields, field)
-			}
-		}
-	}
-
-	t.logger.Debug("requested fields", "fields", allFields)
-	t.activeProvider.Subscribe(allFields)
-
-	return allFields
+	return subscribed
 }
 
 // Listener Control [END] ------------------------------------------------------

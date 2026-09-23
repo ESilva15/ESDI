@@ -23,13 +23,6 @@ type FieldMapper struct {
 	Transform func(any) uint64
 }
 
-// VirtualField will derive data from telemetry primitives
-// So fuel per lap predictions, compound gauge lights and so on
-type VirtualField interface {
-	Process(td *TelemetryData)
-	EnsureSubscribed() []FieldID
-}
-
 // NOTE: Update the iracing SDK to write data to the same map ALWAYS, then
 // I can bind that address and read directly from there on the transform
 
@@ -228,16 +221,18 @@ func GetFieldID(name string) (FieldID, bool) {
 }
 
 // TelemetryData is
-// I need to find a way of having the values be per window or some other
 type TelemetryData struct {
 	Values              [MaxFields]TelemetryField
-	ActiveBinds         []BoundField
-	VirtualBinds        []VirtualField
+	ActiveBinds         map[FieldID]BoundField
+	VirtualBinds        map[string]VirtualField
 	InitialTime         time.Time
 	PenultimateDataPoll time.Time
 	LastDataPoll        time.Time
 }
 
 func NewTelemetryData() *TelemetryData {
-	return &TelemetryData{}
+	return &TelemetryData{
+		ActiveBinds:  make(map[FieldID]BoundField, MaxFields),
+		VirtualBinds: make(map[string]VirtualField),
+	}
 }
