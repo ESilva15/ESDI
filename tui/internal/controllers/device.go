@@ -93,7 +93,7 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 				mc.StreamCtrl.StreamView.Flex,
 			)
 
-			mc.StreamCtrl.SetInternalState()
+			// mc.StreamCtrl.SetInternalState()
 
 			mc.App.SetFocus(mc.StreamCtrl.StreamView.Options.Form)
 		})

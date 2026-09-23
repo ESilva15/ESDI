@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync/atomic"
 
@@ -24,7 +25,8 @@ type DeviceService struct {
 	Messages chan string
 	// Callbacks
 	// Telemetry service data fetchers
-	telemetryProvider func() (string, error)
+	telemetryProvider        func() (string, error)
+	triggerFieldSubscription func() []telemetry.FieldID
 }
 
 func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
@@ -43,6 +45,7 @@ func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
 
 	// Set the callbacks for PSS
 	dev.PSS.telemetryProvider = dev.getTelemetryProvider
+	dev.PSS.onPeripheralConfigured = dev.peripheralConfigured
 
 	return dev
 }
@@ -59,7 +62,7 @@ func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
 	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
 
 	for _, state := range snapshot {
-		if state.State < DeviceIsConnected {
+		if state.State < DeviceIsConfigured {
 			continue
 		}
 		peripherals = append(peripherals, state.Peripheral)
@@ -75,6 +78,24 @@ func (ds *DeviceService) GetPeripheral(pname string) (peripheral.Peripheral, err
 func (ds *DeviceService) PeripheralExists(pname string) bool {
 	_, err := ds.PSS.GetPeripheral(pname)
 	return err == nil
+}
+
+func (ds *DeviceService) GetRequiredFields() []telemetry.FieldID {
+	// NOTE: this can be optimized, not that it matters at this stage, but if
+	// it runs while telemetry is running we want it optimized I guess
+	seen := make(map[telemetry.FieldID]struct{})
+	var allFields []telemetry.FieldID
+
+	for _, dev := range ds.GetDevices() {
+		for _, field := range dev.RequiredFields() {
+			if _, exists := seen[field]; !exists {
+				seen[field] = struct{}{}
+				allFields = append(allFields, field)
+			}
+		}
+	}
+
+	return allFields
 }
 
 // Getters [END] ---------------------------------------------------------------
@@ -94,6 +115,8 @@ func (ds *DeviceService) StopStream() {
 	if ds.streamCancel == nil {
 		return
 	}
+
+	ds.PSS.OnStopStream()
 
 	ds.streamCancel()
 	ds.streamCancel = nil
@@ -145,5 +168,10 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 }
 
 // Callbacks [START] -----------------------------------------------------------
+func (ds *DeviceService) peripheralConfigured(pname string) {
+	// We need to retrigger field subscription here
+	fields := ds.triggerFieldSubscription()
+	ds.Messages <- fmt.Sprintf("subscribed to fields: %+v\n", fields)
+}
 
 // Callbacks [END] -------------------------------------------------------------
