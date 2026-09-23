@@ -17,8 +17,12 @@ const (
 
 type Peripheral interface {
 	Name() string
+	Setup(string) error
+	HealthCheck() bool
 	SendData(*telemetry.TelemetryData) error
 	RequiredFields() []telemetry.FieldID
+	OnLoad() error
+	OnTelemetryProviderFound() error
 	Close() error
 }
 

@@ -25,6 +25,10 @@ func (uid *UIDevice) Close() error {
 	return nil
 }
 
+func (uid *UIDevice) Setup(provider string) error {
+	return nil
+}
+
 func (uid *UIDevice) SendData(data *telemetry.TelemetryData) error {
 	if data == nil {
 		return peripheral.ErrInvalidData
@@ -53,4 +57,8 @@ func (uid *UIDevice) RequiredFields() []telemetry.FieldID {
 		telemetry.Gear,
 		telemetry.RPM,
 	}
+}
+
+func (uid *UIDevice) HealthCheck() bool {
+	return true
 }

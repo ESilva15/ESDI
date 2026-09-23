@@ -22,15 +22,18 @@ type DeviceService struct {
 	TelemCh      <-chan telemetry.TelemetryData
 	// Output
 	Messages chan string
+	// Callbacks
+	// Telemetry service data fetchers
+	telemetryProvider func() (string, error)
 }
 
-func NewDeviceService(logger *slog.Logger) *DeviceService {
-	sharedChannel := make(chan string, 10)
-
+func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
 	dev := &DeviceService{
-		PSS:      NewPeripheralStateStore(logger.With("Service", "PeripheralStateStore"), devices.List),
+		PSS: NewPeripheralStateStore(
+			logger.With("Service", "PeripheralStateStore"), devices.List, msg,
+		),
 		Logger:   logger,
-		Messages: sharedChannel,
+		Messages: msg,
 	}
 
 	// Start the routine that looks for devices - should always be running in the background
@@ -38,16 +41,25 @@ func NewDeviceService(logger *slog.Logger) *DeviceService {
 	dev.ctxDiscovery, dev.ctxDiscoveryCancel = context.WithCancel(context.Background())
 	go dev.FindDevices()
 
+	// Set the callbacks for PSS
+	dev.PSS.telemetryProvider = dev.getTelemetryProvider
+
 	return dev
 }
 
 // Getters [START] -------------------------------------------------------------
+// This function is currently only being used by PSS, we may have to find a better
+// pattern for this
+func (ds *DeviceService) getTelemetryProvider() (string, error) {
+	return ds.telemetryProvider()
+}
+
 func (ds *DeviceService) GetDevices() []peripheral.Peripheral {
 	snapshot := ds.PSS.GetStates()
 	peripherals := make([]peripheral.Peripheral, 0, len(snapshot))
 
 	for _, state := range snapshot {
-		if state.State != DeviceIsConnected {
+		if state.State < DeviceIsConnected {
 			continue
 		}
 		peripherals = append(peripherals, state.Peripheral)
@@ -72,6 +84,8 @@ func (ds *DeviceService) StartStream() {
 	// NOTE: i'm using this pattern a whole lot. Maybe I can create a struct to handle this
 	var ctx context.Context
 	ctx, ds.streamCancel = context.WithCancel(context.Background())
+
+	ds.PSS.OnStartStream()
 
 	go ds.transmit(ctx)
 }
@@ -114,7 +128,7 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 			// TODO: make a copy of the data and send that copy instead of keeping
 			// the data locked
 			for _, dev := range ds.PSS.GetStates() {
-				if dev.State != DeviceIsConnected {
+				if dev.State != DeviceIsStreaming {
 					continue
 				}
 
@@ -129,3 +143,7 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 		}
 	}
 }
+
+// Callbacks [START] -----------------------------------------------------------
+
+// Callbacks [END] -------------------------------------------------------------

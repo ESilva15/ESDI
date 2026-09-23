@@ -2,20 +2,23 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
 
+	"esdi/peripheral"
 	"esdi/providers"
 	"esdi/telemetry"
 	telem "esdi/telemetry"
 )
 
+var ErrNoActiveProviderAvailable = errors.New("no active provider available")
+
 // TelemetryService will be our base struct to handle telemetry data
 // It should hook to a data sink and handle it like iRacing, BeamNG, AC and so on
 type TelemetryService struct {
-	logger     *slog.Logger
-	devService *DeviceService
+	logger *slog.Logger
 	// Streaming
 	isStreaming bool
 	// Concurrency protection
@@ -32,16 +35,20 @@ type TelemetryService struct {
 	cancelMonitor     context.CancelFunc
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
+	// Callbacks
+	// Devices data request
+	peripheralProvider func() []peripheral.Peripheral
 }
 
-func NewTelemetryService(logger *slog.Logger, devServo *DeviceService) *TelemetryService {
-	sharedChannel := make(chan string, 10)
+func NewTelemetryService(
+	logger *slog.Logger,
+	msg chan string,
+) *TelemetryService {
 	newService := &TelemetryService{
 		logger:      logger,
 		isConnected: false,
-		devService:  devServo,
 		listeners:   make(map[string]chan telem.TelemetryData),
-		Messages:    sharedChannel,
+		Messages:    msg,
 	}
 	newService.CtxMonitor, newService.cancelMonitor = context.WithCancel(context.Background())
 
@@ -59,6 +66,7 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 		case <-ticker.C:
 			slog.Info("checking if provider is still running")
 			if !t.activeProvider.IsAlive(500 * time.Millisecond) {
+				t.Messages <- "Healthcheck on provider failing. Dropping provider.\n"
 				slog.Warn("provider healthcheck failed")
 				t.dropActiveProvider()
 				t.onProviderHealthCheckFailed()
@@ -66,6 +74,14 @@ func (t *TelemetryService) ProviderMonitor(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (t *TelemetryService) GetTelemetryProviderName() (string, error) {
+	if t.activeProvider == nil {
+		return "", ErrNoActiveProviderAvailable
+	}
+
+	return t.activeProvider.Name(), nil
 }
 
 // Listener Control [START] ----------------------------------------------------
@@ -102,7 +118,7 @@ func (t *TelemetryService) SubscribeToFields() []telem.FieldID {
 	seen := make(map[telemetry.FieldID]struct{})
 	var allFields []telemetry.FieldID
 
-	for _, dev := range t.devService.GetDevices() {
+	for _, dev := range t.peripheralProvider() {
 		for _, field := range dev.RequiredFields() {
 			if _, exists := seen[field]; !exists {
 				seen[field] = struct{}{}
@@ -152,34 +168,6 @@ func (t *TelemetryService) SwitchProvider(newProvider telem.TelemetryProvider) e
 	t.activeProvider = newProvider
 
 	return nil
-}
-
-func (t *TelemetryService) onProviderHealthCheckFailed() {
-	// Just restart the whole lookup process
-	go t.FindProvider(t.CtxMonitor)
-}
-
-func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
-	// Attach to the provider
-	t.logger.Info("found provider for " + prov.Name())
-	err := t.SwitchProvider(prov)
-	if err != nil {
-		t.logger.Error("failed to switch to provider onFindProvider", "err", err)
-		return
-	}
-
-	// Create a routine to poll this provider while we wait to start the stream or pause it
-	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
-	go t.ProviderMonitor(t.CtxHealthcheck)
-}
-
-func (t *TelemetryService) onProviderStopsMidStream() {
-	// clear the current provider
-	// TODO: now we need to also clear the devices to restart everything,
-	// if the stream stopped we have to restart the devices and everything
-	t.logger.Info("cleaning dropped provider and restarting lookup service")
-	t.dropActiveProvider()
-	go t.FindProvider(t.CtxMonitor)
 }
 
 // TODO: add some way of retriggering this. Currently it should:
@@ -285,3 +273,7 @@ func (t *TelemetryService) IsStreaming() bool {
 }
 
 // Streaming Control [END] -----------------------------------------------------
+
+// Callbacks [START] -----------------------------------------------------------
+
+// Callbacks [END] -------------------------------------------------------------

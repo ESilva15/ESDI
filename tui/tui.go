@@ -23,19 +23,15 @@ func NewControlPanel(logger *slog.Logger) *ControlPanel {
 		App:    tview.NewApplication(),
 	}
 
-	// NOTE: create our device service here
-	devService := services.NewDeviceService(logger.With("service", "DeviceService"))
-
-	telemService := services.NewTelemetryService(logger, devService)
-	if telemService == nil {
-		panic("failed to create the telemetry service")
+	orchestrator, err := services.NewOrchestrator(logger)
+	if err != nil {
+		// TODO: no panic here
+		panic("failed to create services orchestrator")
 	}
-
-	go telemService.FindProvider(telemService.CtxMonitor)
 
 	return &ControlPanel{
 		Controller:       baseController,
-		DeviceController: controllers.NewDeviceController(baseController, devService, telemService),
+		DeviceController: controllers.NewDeviceController(baseController, orchestrator),
 	}
 }
 

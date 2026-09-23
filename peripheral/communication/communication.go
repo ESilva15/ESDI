@@ -17,6 +17,7 @@ const (
 	CmdAckID         types.Command = 2
 	CmdCreateWindow  types.Command = 3
 	CmdDestroyWindow types.Command = 4
+	CmdHealthCheck   types.Command = 9
 )
 
 var crc8Table = [256]byte{

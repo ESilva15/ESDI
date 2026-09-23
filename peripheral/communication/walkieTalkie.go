@@ -26,8 +26,7 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 		b := make([]byte, 1)
 		_, err := wt.Serial.Read(b)
 		if err != nil {
-			// fmt.Fprintf(os.Stderr, "dev read: %s\n", err.Error())
-			return err
+			return fmt.Errorf("error reading incoming: %+v, err:", b, err)
 		}
 
 		if b[0] == constvar.StartOfText {
@@ -44,8 +43,10 @@ func (wt *WalkieTalkie) ReadFramedData(size int, packet any) error {
 	reader := bytes.NewReader(buf)
 	err = binary.Read(reader, binary.LittleEndian, packet)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing incoming: %+v, err:", buf, err)
 	}
+
+	wt.Serial.Flush()
 
 	return nil
 }
@@ -137,6 +138,8 @@ func (wt *WalkieTalkie) sendPacket(cmd types.Command, data any) error {
 		return err
 	}
 
+	wt.Serial.Flush()
+
 	return nil
 }
 
@@ -157,35 +160,6 @@ func (wt *WalkieTalkie) readPacket(resp packets.Packet) error {
 
 	return nil
 }
-
-// func (wt *WalkieTalkie) sendHeader(h *header) error {
-// 	err := wt.sendPacket(h)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// var ack packets.AckPacket
-// 	// err = wt.readPacket(&ack)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-//
-// 	return nil
-// }
-
-// func (wt *WalkieTalkie) sendBody(payload any, resp packets.Packet) error {
-// 	err := wt.sendPacket(payload)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	// err = wt.readPacket(resp)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-//
-// 	return nil
-// }
 
 func (wt *WalkieTalkie) SendCommand(
 	cmd types.Command,

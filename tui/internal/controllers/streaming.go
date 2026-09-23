@@ -59,11 +59,6 @@ func NewStreamingCtrl(
 	return ctrl
 }
 
-// func (sc *StreamingCtrl) subscribeListeners() {
-// 	// Here I will set a UIDevice
-// 	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
-// }
-
 func (sc *StreamingCtrl) registerHooks() {
 	sc.StreamView.Options.Form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
@@ -160,10 +155,7 @@ func (sc *StreamingCtrl) updateStream() {
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
 	fields := sc.TelemServ.SubscribeToFields()
-
-	// sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
-	// Should I update this?
-	sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v", fields)
+	sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v\n", fields)
 }
 
 func (sc *StreamingCtrl) listenToUIStream() {

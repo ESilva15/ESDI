@@ -10,13 +10,14 @@ import (
 	"sync"
 	"time"
 
+	"esdi/constants"
 	"esdi/telemetry"
 
 	"github.com/ESilva15/goirsdk"
 )
 
 const (
-	NAME = "iRacing"
+	NAME = constants.IRacingProviderName
 )
 
 // IRacing is our iRacing telemetry data provider - its a TelemetryProvider interface

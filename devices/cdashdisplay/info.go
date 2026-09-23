@@ -1,6 +1,7 @@
 package cdashdisplay
 
 import (
+	"esdi/peripheral/communication/packets"
 	"esdi/peripheral/devices"
 	"esdi/telemetry"
 )
@@ -25,4 +26,15 @@ func (cds *CDashDisplay) RequiredFields() []telemetry.FieldID {
 	}
 
 	return fields
+}
+
+func (cds *CDashDisplay) HealthCheck() bool {
+	// Send the command
+	var health packets.HealthCheck
+	err := cds.WT.SendCommand(healthCheckCMDID, []byte{0x01, 0x02, 0x03, 0x04}, &health)
+	if err != nil {
+		return false
+	}
+
+	return true
 }

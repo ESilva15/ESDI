@@ -73,7 +73,7 @@ func findDisplayPort() (*communication.WalkieTalkie, error) {
 		select {
 		case err = <-probeResult:
 			// Probe completed normally (could be success or error)
-		case <-time.After(2 * time.Second):
+		case <-time.After(1000 * time.Millisecond):
 			// Hard timeout reached
 			err = fmt.Errorf("probe completely hung/timed out: %s", port)
 		}
