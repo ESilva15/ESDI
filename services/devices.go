@@ -26,7 +26,7 @@ type DeviceService struct {
 	// Callbacks
 	// Telemetry service data fetchers
 	telemetryProvider        func() (string, error)
-	triggerFieldSubscription func() []telemetry.FieldID
+	triggerFieldSubscription func([]telemetry.FieldID) []string
 }
 
 func NewDeviceService(logger *slog.Logger, msg chan string) *DeviceService {
@@ -78,24 +78,6 @@ func (ds *DeviceService) GetPeripheral(pname string) (peripheral.Peripheral, err
 func (ds *DeviceService) PeripheralExists(pname string) bool {
 	_, err := ds.PSS.GetPeripheral(pname)
 	return err == nil
-}
-
-func (ds *DeviceService) GetRequiredFields() []telemetry.FieldID {
-	// NOTE: this can be optimized, not that it matters at this stage, but if
-	// it runs while telemetry is running we want it optimized I guess
-	seen := make(map[telemetry.FieldID]struct{})
-	var allFields []telemetry.FieldID
-
-	for _, dev := range ds.GetDevices() {
-		for _, field := range dev.RequiredFields() {
-			if _, exists := seen[field]; !exists {
-				seen[field] = struct{}{}
-				allFields = append(allFields, field)
-			}
-		}
-	}
-
-	return allFields
 }
 
 // Getters [END] ---------------------------------------------------------------
@@ -168,10 +150,10 @@ func (ds *DeviceService) transmit(ctx context.Context) {
 }
 
 // Callbacks [START] -----------------------------------------------------------
-func (ds *DeviceService) peripheralConfigured(pname string) {
+func (ds *DeviceService) peripheralConfigured(pname string, fields []telemetry.FieldID) {
 	// We need to retrigger field subscription here
-	fields := ds.triggerFieldSubscription()
-	ds.Messages <- fmt.Sprintf("subscribed to fields: %+v\n", fields)
+	subscribedTo := ds.triggerFieldSubscription(fields)
+	ds.Messages <- fmt.Sprintf("subscribed to fields: %q\n", subscribedTo)
 }
 
 // Callbacks [END] -------------------------------------------------------------

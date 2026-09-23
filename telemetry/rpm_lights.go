@@ -1,5 +1,7 @@
 package telemetry
 
+import "esdi/constants"
+
 type RPMLights struct {
 	State string
 }
@@ -27,4 +29,8 @@ func (rl *RPMLights) Process(td *TelemetryData) {
 
 func (rl *RPMLights) EnsureSubscribed() []FieldID {
 	return []FieldID{RPM}
+}
+
+func (rl *RPMLights) Name() string {
+	return constants.RPMLightsName
 }

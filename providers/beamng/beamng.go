@@ -28,6 +28,9 @@ type BeamNG struct {
 	data     *telemetry.TelemetryData
 	updaters [telemetry.MaxFields]func(*telemetry.TelemetryField)
 
+	// Field Subscription management
+	boundFields map[telemetry.FieldID]bool
+
 	// stream control
 	wg           sync.WaitGroup
 	streamCancel context.CancelFunc
@@ -51,7 +54,9 @@ func NewBeamNGProvider(logger *slog.Logger, opts *bngsdk.Options) (*BeamNG, erro
 		data:   telemetry.NewTelemetryData(),
 		SDK:    beam,
 		og:     &bngsdk.Outgauge{},
-		ticker: time.NewTicker(time.Second / 60),
+		// Field subscription management
+		boundFields: make(map[telemetry.FieldID]bool, telemetry.MaxFields),
+		ticker:      time.NewTicker(time.Second / 60),
 	}
 
 	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
@@ -115,47 +120,68 @@ func (b *BeamNG) Stream() (<-chan telemetry.TelemetryData, error) {
 	return ch, nil
 }
 
-func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) {
-	// NOTE: document how the Subscribe funtion works
-	slog.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
+// TODO: this function is exactly the same in BeamNG drive now, and I reckon it will be the same
+// In plenty other things. I should make it TelemetryData method
+func (i *BeamNG) subscribe(fields []telemetry.FieldID) []string {
+	newSubscriptions := make([]string, 0, telemetry.MaxFields)
 
-	b.data.ActiveBinds = make([]telemetry.BoundField, 0, len(requestFields))
+	i.mut.Lock()
+	defer i.mut.Unlock()
 
-	// First we must add the virtual fields
-	// we will add their dependencies and the primitives to a slice
-	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
-
-	for _, id := range requestFields {
-		switch id {
-		case telemetry.RPMStateColour:
-			b.data.VirtualBinds = append(b.data.VirtualBinds, telemetry.NewRPMLights())
-		case telemetry.FCCurrentLap:
-			b.data.VirtualBinds = append(b.data.VirtualBinds,
-				telemetry.NewFuelCalculator(slog.Default().WithGroup("FUEL CALC")))
-		default:
-			// primitive telemetry field
-			pendingBinds = append(pendingBinds, id)
-		}
-	}
-
-	boundCheck := make(map[telemetry.FieldID]bool)
-
-	// Now that we know all the fields we need to bind we follow the binding procedure
-	for _, id := range pendingBinds {
-		// Check if we already bound this FieldID
-		if boundCheck[id] {
+	for _, id := range fields {
+		if i.boundFields[id] {
 			continue
 		}
 
-		binding := telemetry.BoundField{
+		i.data.ActiveBinds[id] = telemetry.BoundField{
 			ID: id,
 		}
-
-		b.data.ActiveBinds = append(b.data.ActiveBinds, binding)
-		boundCheck[id] = true
+		i.boundFields[id] = true
+		newSubscriptions = append(newSubscriptions, telemetry.FieldNames[id])
 	}
 
-	slog.Debug(fmt.Sprintf("Subscribed: %+v\n", b.data.ActiveBinds))
+	// unsubscribe from fields we many not need anymore
+	for key, bound := range i.boundFields {
+		if _, ok := i.data.ActiveBinds[key]; bound && !ok {
+			delete(i.data.ActiveBinds, key)
+			i.boundFields[key] = false
+		}
+	}
+
+	return newSubscriptions
+}
+
+func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) []string {
+	// NOTE: document how the Subscribe funtion works
+	slog.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
+
+	// First we must add the virtual fields
+	// we will add their dependencies and the primitives to a slice
+	toBind := make([]telemetry.FieldID, telemetry.MaxFields)
+
+	b.mut.Lock()
+	for _, id := range requestFields {
+		switch id {
+		case telemetry.RPMStateColour:
+			rpmLights := telemetry.NewRPMLights()
+			b.data.VirtualBinds[rpmLights.Name()] = rpmLights
+			toBind = append(toBind, rpmLights.EnsureSubscribed()...)
+		case telemetry.FCCurrentLap:
+			fuelCalc := telemetry.NewFuelCalculator(b.logger.WithGroup("FUEL CALC"))
+			b.data.VirtualBinds[fuelCalc.Name()] = fuelCalc
+			toBind = append(toBind, fuelCalc.EnsureSubscribed()...)
+		default:
+			// primitive telemetry field
+			toBind = append(toBind, id)
+		}
+	}
+	b.mut.Unlock()
+
+	newSubs := b.subscribe(toBind)
+
+	slog.Debug(fmt.Sprintf("Subscribed: %+v\n", toBind))
+
+	return newSubs
 }
 
 // Internal

@@ -10,6 +10,7 @@ import (
 
 	"esdi/devices"
 	"esdi/peripheral"
+	"esdi/telemetry"
 )
 
 var (
@@ -86,7 +87,7 @@ type PeripheralStateStore struct {
 	Messages chan string
 	// Callbacks
 	telemetryProvider      func() (string, error)
-	onPeripheralConfigured func(string)
+	onPeripheralConfigured func(string, []telemetry.FieldID)
 	// Internal State
 	isStreaming bool
 }
@@ -182,6 +183,15 @@ func (pss *PeripheralStateStore) GetStreamingState() bool {
 	pss.mu.RLock()
 	defer pss.mu.RUnlock()
 	return pss.isStreaming
+}
+
+func (pss *PeripheralStateStore) GetPeripheralFields(pname string) []telemetry.FieldID {
+	per, err := pss.GetState(pname)
+	if err != nil {
+		return nil
+	}
+
+	return per.Peripheral.RequiredFields()
 }
 
 // "Events" [START] ------------------------------------------------------------
@@ -280,7 +290,7 @@ func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
 	pss.store[pname].State = DeviceIsConfigured
 	pss.mu.Unlock()
 
-	pss.onPeripheralConfigured(pname)
+	pss.onPeripheralConfigured(pname, pss.GetPeripheralFields(pname))
 }
 
 func (pss *PeripheralStateStore) setDeviceIsStreaming(pname string) {
@@ -347,7 +357,6 @@ func (pss *PeripheralStateStore) configurePeripheral(
 		}
 
 		onSuccess(pname)
-		pss.setDeviceConfigured(pname)
 	}()
 }
 

@@ -37,7 +37,7 @@ type TelemetryService struct {
 	// Callbacks
 	// Devices data request
 	// peripheralProvider func() []peripheral.Peripheral
-	getRequiredFields func() []telemetry.FieldID
+	// getRequiredFields func() []telemetry.FieldID
 }
 
 func NewTelemetryService(
@@ -114,13 +114,11 @@ func (t *TelemetryService) UnsubscribeListener(id string) {
 	}
 }
 
-func (t *TelemetryService) SubscribeToAllFields() []telem.FieldID {
-	fields := t.getRequiredFields()
-
+func (t *TelemetryService) SubscribeToFields(fields []telemetry.FieldID) []string {
 	t.logger.Debug("requested fields", "fields", fields)
-	t.activeProvider.Subscribe(fields)
+	subscribed := t.activeProvider.Subscribe(fields)
 
-	return fields
+	return subscribed
 }
 
 // Listener Control [END] ------------------------------------------------------
