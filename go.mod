@@ -3,9 +3,8 @@ module esdi
 go 1.26.0
 
 require (
-	github.com/ESilva15/ESgoRepl v0.1.0
 	github.com/ESilva15/gobngsdk v1.2.0
-	github.com/ESilva15/goirsdk v0.3.8
+	github.com/ESilva15/goirsdk v0.3.9
 	github.com/arl/statsviz v0.8.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/rivo/tview v0.42.0
