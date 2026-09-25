@@ -35,6 +35,7 @@ type TelemetryService struct {
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
 	// Callbacks
+	startedStreaming func(ch <-chan telemetry.TelemetryData)
 	// Devices data request
 	// peripheralProvider func() []peripheral.Peripheral
 	// getRequiredFields func() []telemetry.FieldID
@@ -204,21 +205,17 @@ func (t *TelemetryService) StopStream() {
 	t.isStreaming = false
 }
 
-func (t *TelemetryService) StartStream() {
-	slog.Debug("Stream started")
-
+func (t *TelemetryService) StartStream() <-chan telemetry.TelemetryData {
 	// Start the new stream
 	if t.activeProvider == nil {
 		slog.Debug("there's no active provider. not starting the stream")
-		return
+		return nil
 	}
 
 	// Stop the provider healthcheck
 	t.healthCheckCancel()
 
 	simInCh, _ := t.activeProvider.Stream()
-	// TODO: the provider needs to be able to tell the data has stopped
-	// so we can restart the provider lookup routine
 
 	// Create the context so we can control the lifecycle
 	ctx, cancel := context.WithCancel(context.Background())
@@ -227,6 +224,10 @@ func (t *TelemetryService) StartStream() {
 	// Multiplex this data
 	go t.multiplexData(ctx, simInCh)
 	t.isStreaming = true
+
+	t.Messages <- "Provider has started streaming data\n"
+
+	return simInCh
 }
 
 func (t *TelemetryService) multiplexData(ctx context.Context, dataCh <-chan telem.TelemetryData) {

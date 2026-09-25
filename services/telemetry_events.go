@@ -16,6 +16,7 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Attach to the provider
 	t.logger.Info("found provider for " + prov.Name())
 	t.Messages <- fmt.Sprintf("Found provider \"%s\"\n", prov.Name())
+
 	err := t.SwitchProvider(prov)
 	if err != nil {
 		t.Messages <- fmt.Sprintf("Failed to switch to provider: %+v\n", err.Error())
@@ -26,6 +27,9 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Start the healthcheck on our provider so we can drop it if it stops
 	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
 	go t.ProviderMonitor(t.CtxHealthcheck)
+
+	ch := t.StartStream()
+	t.startedStreaming(ch)
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {
