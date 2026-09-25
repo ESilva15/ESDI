@@ -29,7 +29,8 @@ func NewOrchestrator(logger *slog.Logger) (*Orchestrator, error) {
 	devService.triggerFieldSubscription = telemService.SubscribeToFields
 
 	// Setup telemetry service callbacks
-	// telemService.getRequiredFields = devService.GetRequiredFields
+	telemService.startedStreaming = devService.StartStream
+	telemService.providerStoppedMidStream = devService.OnStoppedMidStream
 
 	return &Orchestrator{
 		DeviceService:    devService,

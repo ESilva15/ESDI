@@ -211,14 +211,25 @@ func (pss *PeripheralStateStore) OnStartStream() {
 	}
 }
 
+func (pss *PeripheralStateStore) OnStartStreamPeripheral(pname string) {
+	state, err := pss.GetState(pname)
+	if err != nil {
+		return
+	}
+
+	if state.State == DeviceIsConfigured {
+		pss.setDeviceIsStreaming(pname)
+	}
+}
+
 func (pss *PeripheralStateStore) OnStopStream() {
 	pss.mu.Lock()
 	pss.isStreaming = false
 	pss.mu.Unlock()
 
 	for _, state := range pss.GetStates() {
-		if state.State == DeviceIsStreaming {
-			pss.setDeviceConfigured(state.device.Name)
+		if state.State > DeviceIsConfigured {
+			pss.setDeviceUnconfigured(state.device.Name)
 		}
 	}
 }
@@ -349,6 +360,7 @@ func (pss *PeripheralStateStore) configurePeripheral(
 			onFailure(pname)
 			return
 		}
+		pss.Messages <- fmt.Sprintf("Configuring peripheral for provider: %s\n", provider)
 
 		err = state.Peripheral.Setup(provider)
 		if err != nil {

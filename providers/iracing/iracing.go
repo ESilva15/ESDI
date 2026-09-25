@@ -143,8 +143,8 @@ func (i *IRacing) stream(ctx context.Context) <-chan telemetry.TelemetryData {
 
 		// Put this into the configuration file
 		consecutiveTimeouts := 0
-		maxTimeouts := 30
-		dataEvTimeout := 100
+		maxTimeouts := 10
+		dataEvTimeout := 30
 		for {
 			// Explicitly intercept cancellation
 			select {

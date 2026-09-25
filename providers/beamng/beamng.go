@@ -186,13 +186,11 @@ func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) []string {
 
 // Internal
 
-func (b *BeamNG) readData() {
-	slog.Debug("READING THIS DATA")
+func (b *BeamNG) readData() error {
 	ogSnapshot, err := b.SDK.Update()
-	slog.Debug("THE DATA WAS READ")
 	if err != nil {
 		slog.Error("Error getting data", "error", err)
-		return
+		return err
 	}
 
 	b.mut.Lock()
@@ -200,22 +198,20 @@ func (b *BeamNG) readData() {
 	defer b.mut.Unlock()
 
 	// Read 1 to 1 data
-	slog.Debug("Reading normal data binds")
 	for _, bind := range b.data.ActiveBinds {
-		slog.Debug("Current bind: ", "id", bind.ID)
 		b.updaters[bind.ID](&b.data.Values[bind.ID])
 	}
 
 	// Set up virtual binds
-	slog.Debug("Entering virtual binds loop")
 	for _, vBind := range b.data.VirtualBinds {
 		// NOTE: delete the logs here, they are really bad
-		slog.Debug("Processing virtual binds")
 		vBind.Process(b.data)
 	}
 
 	b.data.PenultimateDataPoll = b.data.LastDataPoll
 	b.data.LastDataPoll = time.Now()
+
+	return nil
 }
 
 func (b *BeamNG) stream(ctx context.Context) <-chan telemetry.TelemetryData {
@@ -239,14 +235,17 @@ func (b *BeamNG) stream(ctx context.Context) <-chan telemetry.TelemetryData {
 			case <-ctx.Done():
 				return
 			case <-b.ticker.C:
-				slog.Debug("READING DATA")
-				b.readData()
-				slog.Debug("READ DATA")
+				err := b.readData()
+				if err != nil {
+					if b.streamCancel != nil {
+						b.streamCancel()
+					}
+				}
 
 				// Publish data
 				select {
 				case outCh <- *b.data:
-					slog.Debug("PUBLISHED DATA")
+					// Successfuly read and sent data
 				default:
 					// skip this data, don't allow publishers to lag behind
 				}

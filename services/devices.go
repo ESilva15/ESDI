@@ -83,14 +83,17 @@ func (ds *DeviceService) PeripheralExists(pname string) bool {
 // Getters [END] ---------------------------------------------------------------
 
 // Actions [START] -------------------------------------------------------------
-func (ds *DeviceService) StartStream() {
+func (ds *DeviceService) StartStream(ch <-chan telemetry.TelemetryData) {
 	// NOTE: i'm using this pattern a whole lot. Maybe I can create a struct to handle this
+	ds.SetTelemetryChannel(ch)
+
 	var ctx context.Context
 	ctx, ds.streamCancel = context.WithCancel(context.Background())
 
 	ds.PSS.OnStartStream()
 
 	go ds.transmit(ctx)
+	ds.Messages <- "Device service started stream\n"
 }
 
 func (ds *DeviceService) StopStream() {
@@ -154,6 +157,8 @@ func (ds *DeviceService) peripheralConfigured(pname string, fields []telemetry.F
 	// We need to retrigger field subscription here
 	subscribedTo := ds.triggerFieldSubscription(fields)
 	ds.Messages <- fmt.Sprintf("subscribed to fields: %q\n", subscribedTo)
+
+	ds.PSS.OnStartStreamPeripheral(pname)
 }
 
 // Callbacks [END] -------------------------------------------------------------

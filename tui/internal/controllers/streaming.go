@@ -88,23 +88,9 @@ func (sc *StreamingCtrl) registerHooks() {
 	}
 }
 
+// TODO: this isn't the startstop method/action anymore. It should show up the stream
+// visualizer - TODO: add metrics to the visualizer too, instead of just data
 func (sc *StreamingCtrl) StartStop() {
-	if sc.TelemServ.IsStreaming() {
-		slog.Info("stopping stream")
-
-		sc.TelemServ.StopStream()
-		sc.DevService.StopStream()
-
-		sc.isRunning = false
-		return
-	}
-
-	// stream is not running, we have to start it now
-	// NOTE:
-	// Subscribe the only existing device - needs to be discovered by now
-	slog.Debug("setting the data stream for device servie")
-	sc.DevService.SetTelemetryChannel(sc.TelemServ.SubscribeListener("DeviceService", 1))
-
 	dev, err := sc.DevService.GetPeripheral(uidevice.NAME)
 	if err == nil {
 		if uiDev, ok := dev.(*uidevice.UIDevice); ok {
@@ -112,14 +98,6 @@ func (sc *StreamingCtrl) StartStop() {
 			go sc.listenToUIStream()
 		}
 	}
-
-	slog.Debug("starting services")
-	sc.DevService.StartStream()
-	sc.TelemServ.StartStream()
-
-	sc.isRunning = true
-
-	slog.Debug("starting stream")
 }
 
 func (sc *StreamingCtrl) parseStreamUpdateForm(form *views.StreamOptionsView) (*models.StreamOptions, error) {

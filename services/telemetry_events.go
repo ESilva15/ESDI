@@ -16,6 +16,7 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Attach to the provider
 	t.logger.Info("found provider for " + prov.Name())
 	t.Messages <- fmt.Sprintf("Found provider \"%s\"\n", prov.Name())
+
 	err := t.SwitchProvider(prov)
 	if err != nil {
 		t.Messages <- fmt.Sprintf("Failed to switch to provider: %+v\n", err.Error())
@@ -26,6 +27,11 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	// Start the healthcheck on our provider so we can drop it if it stops
 	t.CtxHealthcheck, t.healthCheckCancel = context.WithCancel(context.Background())
 	go t.ProviderMonitor(t.CtxHealthcheck)
+
+	ch := t.StartStream()
+	t.startedStreaming(ch)
+
+	t.Messages <- "provider switch completed"
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {
@@ -34,6 +40,10 @@ func (t *TelemetryService) onProviderStopsMidStream() {
 	// if the stream stopped we have to restart the devices and everything
 	t.Messages <- "Telemetry provider stopped mid stream\n"
 	t.logger.Info("cleaning dropped provider and restarting lookup service")
+
 	t.dropActiveProvider()
 	go t.FindProvider(t.CtxMonitor)
+
+	// Tell the devices service that we lost the thing
+	t.providerStoppedMidStream()
 }
