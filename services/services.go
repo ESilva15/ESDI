@@ -30,6 +30,7 @@ func NewOrchestrator(logger *slog.Logger) (*Orchestrator, error) {
 
 	// Setup telemetry service callbacks
 	telemService.startedStreaming = devService.StartStream
+	telemService.providerStoppedMidStream = devService.OnStoppedMidStream
 
 	return &Orchestrator{
 		DeviceService:    devService,

@@ -35,7 +35,8 @@ type TelemetryService struct {
 	CtxHealthcheck    context.Context
 	healthCheckCancel context.CancelFunc
 	// Callbacks
-	startedStreaming func(ch <-chan telemetry.TelemetryData)
+	startedStreaming         func(ch <-chan telemetry.TelemetryData)
+	providerStoppedMidStream func()
 	// Devices data request
 	// peripheralProvider func() []peripheral.Peripheral
 	// getRequiredFields func() []telemetry.FieldID
@@ -139,6 +140,7 @@ func (t *TelemetryService) dropActiveProvider() {
 		t.cancelForward()
 	}
 
+	// NOTE: can we move the stop stream into the provider Close() method?
 	t.activeProvider.StopStream()
 	t.activeProvider.Close()
 	t.activeProvider = nil

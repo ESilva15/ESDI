@@ -228,8 +228,8 @@ func (pss *PeripheralStateStore) OnStopStream() {
 	pss.mu.Unlock()
 
 	for _, state := range pss.GetStates() {
-		if state.State == DeviceIsStreaming {
-			pss.setDeviceConfigured(state.device.Name)
+		if state.State > DeviceIsConfigured {
+			pss.setDeviceUnconfigured(state.device.Name)
 		}
 	}
 }

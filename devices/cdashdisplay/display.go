@@ -405,6 +405,11 @@ func (d *CDashDisplay) UnloadLayout() error {
 	return nil
 }
 
+func (cds *CDashDisplay) resetState() {
+	cds.fieldToWindows = make(map[telemetry.FieldID][]int16)
+	cds.State.Layout = NewLayoutTree()
+}
+
 func (cds *CDashDisplay) reset() error {
 	err := cds.WT.SendCommand(resetCMDID, []byte{0x01, 0x02, 0x03, 0x04}, nil)
 	if err != nil {
@@ -412,6 +417,8 @@ func (cds *CDashDisplay) reset() error {
 	}
 
 	time.Sleep(3000 * time.Millisecond)
+
+	cds.resetState()
 
 	return nil
 }

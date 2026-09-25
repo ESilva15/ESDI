@@ -30,6 +30,8 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 
 	ch := t.StartStream()
 	t.startedStreaming(ch)
+
+	t.Messages <- "provider switch completed"
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {
@@ -38,6 +40,10 @@ func (t *TelemetryService) onProviderStopsMidStream() {
 	// if the stream stopped we have to restart the devices and everything
 	t.Messages <- "Telemetry provider stopped mid stream\n"
 	t.logger.Info("cleaning dropped provider and restarting lookup service")
+
 	t.dropActiveProvider()
 	go t.FindProvider(t.CtxMonitor)
+
+	// Tell the devices service that we lost the thing
+	t.providerStoppedMidStream()
 }
