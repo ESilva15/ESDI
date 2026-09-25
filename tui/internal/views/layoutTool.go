@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"esdi/cdashdisplay"
+	"esdi/devices/cdashdisplay"
 	tviewh "esdi/tui/internal/tview_helpers"
 
 	"github.com/gdamore/tcell/v2"

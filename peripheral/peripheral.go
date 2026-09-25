@@ -2,9 +2,11 @@
 package peripheral
 
 import (
-	"esdi/peripheral/devices"
 	"fmt"
 	"path/filepath"
+
+	"esdi/peripheral/devices"
+	"esdi/telemetry"
 )
 
 type PeripheralType string
@@ -12,6 +14,17 @@ type PeripheralType string
 const (
 	DisplayPeripheral PeripheralType = "display"
 )
+
+type Peripheral interface {
+	Name() string
+	Setup(string) error
+	HealthCheck() bool
+	SendData(*telemetry.TelemetryData) error
+	RequiredFields() []telemetry.FieldID
+	OnLoad() error
+	OnTelemetryProviderFound() error
+	Close() error
+}
 
 type PeripheralDeviceClerk struct {
 	// mu      sync.RWMutex

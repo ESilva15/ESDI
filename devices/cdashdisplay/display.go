@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"sync"
 	"time"
 
 	helper "esdi/helpers"
+	"esdi/peripheral"
 	"esdi/peripheral/communication"
 	"esdi/peripheral/communication/packets"
 	"esdi/peripheral/types"
@@ -18,12 +20,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
-
-var pLogger *slog.Logger
-
-func SetLogger(l *slog.Logger) {
-	pLogger = l
-}
 
 // I have to move this to some kind of configuration place
 const (
@@ -37,6 +33,8 @@ const (
 	updateWindowCMDID     types.Command = 6 // Change this to a move cmd instead
 	sendDataCMDID         types.Command = 7
 	newLayoutCMDID        types.Command = 8
+	healthCheckCMDID      types.Command = 9
+	resetCMDID            types.Command = 10
 )
 
 const (
@@ -112,25 +110,65 @@ func NewCDashState() *CDashState {
 }
 
 type CDashDisplay struct {
-	WT    *communication.WalkieTalkie
-	State *CDashState
+	WT                          *communication.WalkieTalkie
+	State                       *CDashState
+	fieldToWindows              map[telemetry.FieldID][]int16
+	bufPool                     sync.Pool
+	failedSends                 int
+	FailedSendsConsecutiveLimit int
 }
 
+// Connect will try to find and connect to the CDashDisplay
 func NewCDashDisplay() (*CDashDisplay, error) {
 	// Look for the port
 	p, err := findDisplayPort()
 	if err != nil {
-		pLogger.Info("failed to find cdashdisplay port: %s", err.Error())
+		slog.Info("failed to find cdashdisplay port", "reason", err.Error())
 		return nil, err
 	}
 
 	return &CDashDisplay{
-		WT:    p,
-		State: NewCDashState(),
+		WT:             p,
+		State:          NewCDashState(),
+		fieldToWindows: make(map[telemetry.FieldID][]int16),
+		bufPool: sync.Pool{
+			New: func() any {
+				b := make([]byte, 0, telemetry.MaxFields*8)
+				return &b
+			},
+		},
+		failedSends:                 0,
+		FailedSendsConsecutiveLimit: 5,
 	}, nil
 }
 
-func (d *CDashDisplay) SendCommand() {
+func (cds *CDashDisplay) Close() error {
+	// if cds.WT != nil {
+	// 	cds.Close()
+	// }
+
+	return nil
+}
+
+func (d *CDashDisplay) RegisterFieldMapping(fieldID telemetry.FieldID, winID int16) {
+	d.fieldToWindows[fieldID] = append(d.fieldToWindows[fieldID], winID)
+}
+
+func (d *CDashDisplay) UnregisterFieldMapping(winID int16) {
+	for fieldID, windows := range d.fieldToWindows {
+		updated := windows[:0]
+		for _, w := range windows {
+			if w != winID {
+				updated = append(updated, w)
+			}
+
+			if len(updated) == 0 {
+				delete(d.fieldToWindows, fieldID)
+			} else {
+				d.fieldToWindows[fieldID] = updated
+			}
+		}
+	}
 }
 
 func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, error) {
@@ -148,9 +186,12 @@ func (d *CDashDisplay) CreateWindow(win *DesktopUIWindow) (*DesktopUIWindow, err
 
 	win.UIData.IDX = wID.ID
 
-	pLogger.Info(fmt.Sprintf("Recived ID message: %v", wID))
+	slog.Info(fmt.Sprintf("Recived ID message: %v", wID))
 
 	d.State.Layout.AddWindow(win)
+	if fieldID, ok := telemetry.GetFieldID(win.UIData.TelemetryField); ok {
+		d.RegisterFieldMapping(fieldID, win.UIData.IDX)
+	}
 
 	return win, nil
 }
@@ -176,11 +217,13 @@ func (d *CDashDisplay) UpdateWindow(win *DesktopUIWindow) error {
 	// I get it and update it in the controller
 	// I send the pointer here
 	// -> it should be the same pointer then right?
-	pLogger.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
+	slog.Debug(fmt.Sprintf("PreUpdate ID:  %p", win))
 	d.State.Layout.Windows[win.UIData.IDX] = win
-	pLogger.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
+	slog.Debug(fmt.Sprintf("PostUpdate ID: %p", win))
 	// Yeah, same address as suspected
 	// I can't think about it right now. I'll think about that tomorrow
+
+	// TODO: need to update the field mappings here!
 
 	return nil
 }
@@ -204,14 +247,15 @@ func (d *CDashDisplay) DestroyWindow(wID int16) error {
 		return err
 	}
 
-	// NODE: add this
+	// NOTE: add this
+	d.UnregisterFieldMapping(wID)
 	d.State.Layout.RemoveWindow(wID)
 
 	return nil
 }
 
 func (d *CDashDisplay) updateWindowDimensions(win *UIWindow, packet UpdateDimsPacket) error {
-	pLogger.Debug(fmt.Sprintf("UPDATE: %v", packet))
+	slog.Debug(fmt.Sprintf("UPDATE: %v", packet))
 
 	bytes, err := helper.StructToBytes(packet)
 	if err != nil {
@@ -225,9 +269,9 @@ func (d *CDashDisplay) updateWindowDimensions(win *UIWindow, packet UpdateDimsPa
 	}
 
 	// Nothing bad happened afaik
-	pLogger.Debug(fmt.Sprintf("cur dims: %v", win.Dims))
+	slog.Debug(fmt.Sprintf("cur dims: %v", win.Dims))
 	win.Dims = packet.Dims
-	pLogger.Debug(fmt.Sprintf("new dims: %v", win.Dims))
+	slog.Debug(fmt.Sprintf("new dims: %v", win.Dims))
 
 	return nil
 }
@@ -343,30 +387,48 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 func (d *CDashDisplay) UnloadLayout() error {
 	var err error
 	for _, w := range d.State.Layout.Windows {
-		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 
 		err = d.DestroyWindow(w.UIData.IDX)
 		time.Sleep(75 * time.Millisecond)
 		if err != nil {
-			pLogger.Error(fmt.Sprintf("failed to destroy window: %+v", err))
+			slog.Error(fmt.Sprintf("failed to destroy window: %+v", err))
 			// NOTE: Add a way to handle multiple errors ?
 			return err
 		}
 
-		pLogger.Debug(fmt.Sprintf("= Removing %d ==============================================",
+		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 	}
 
 	return nil
 }
 
-func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
-	packet := data.Pack()
+func (cds *CDashDisplay) resetState() {
+	cds.fieldToWindows = make(map[telemetry.FieldID][]int16)
+	cds.State.Layout = NewLayoutTree()
+}
+
+func (cds *CDashDisplay) reset() error {
+	err := cds.WT.SendCommand(resetCMDID, []byte{0x01, 0x02, 0x03, 0x04}, nil)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(3000 * time.Millisecond)
+
+	cds.resetState()
+
+	return nil
+}
+
+func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) error {
+	packet := d.encodePacket(data)
 
 	bytes, err := helper.StructToBytes(packet)
 	if err != nil {
-		return
+		return peripheral.ErrFailureToPackData
 	}
 
 	curStr := ""
@@ -376,7 +438,6 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 		curStr += fmt.Sprintf("%02x ", byte)
 
 		if byteCount == 8 {
-			pLogger.Debug(curStr)
 			curStr = ""
 			byteCount = 0
 		}
@@ -385,6 +446,11 @@ func (d *CDashDisplay) SendData(data *telemetry.TelemetryData) {
 	// var ack packets.AckPacket
 	err = d.WT.SendCommand(sendDataCMDID, bytes, nil)
 	if err != nil && err != io.EOF {
-		return
+		if d.failedSends == d.FailedSendsConsecutiveLimit {
+			return peripheral.ErrDeviceTimedOut
+		}
+		d.failedSends++
 	}
+
+	return nil
 }

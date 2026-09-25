@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"esdi/constants"
 	"esdi/telemetry"
 
 	bngsdk "github.com/ESilva15/gobngsdk"
@@ -17,15 +18,21 @@ import (
 // for BeamNG.drive
 // NOTE: document this please. What is a TelemetryData????
 type BeamNG struct {
+	logger *slog.Logger
+
 	SDK *bngsdk.BeamNGSDK
+	og  *bngsdk.Outgauge
 
 	// data handling
 	mut      sync.Mutex
 	data     *telemetry.TelemetryData
 	updaters [telemetry.MaxFields]func(*telemetry.TelemetryField)
 
+	// Field Subscription management
+	boundFields map[telemetry.FieldID]bool
+
 	// stream control
-	streamCh     chan telemetry.TelemetryData
+	wg           sync.WaitGroup
 	streamCancel context.CancelFunc
 
 	// timing
@@ -33,20 +40,23 @@ type BeamNG struct {
 }
 
 const (
-	NAME = "BeamNG.drive"
+	NAME = constants.BeamNGProviderName
 )
 
-func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
-	beam, err := bngsdk.Init(ip, port)
+func NewBeamNGProvider(logger *slog.Logger, opts *bngsdk.Options) (*BeamNG, error) {
+	beam, err := bngsdk.NewBngSDK(*opts)
 	if err != nil {
 		return &BeamNG{}, err
 	}
 
 	provider := &BeamNG{
-		streamCh: make(chan telemetry.TelemetryData, 1),
-		data:     telemetry.NewTelemetryData(),
-		SDK:      &beam,
-		ticker:   time.NewTicker(time.Second / 60),
+		logger: logger.With("TelemetryProvider", NAME),
+		data:   telemetry.NewTelemetryData(),
+		SDK:    beam,
+		og:     &bngsdk.Outgauge{},
+		// Field subscription management
+		boundFields: make(map[telemetry.FieldID]bool, telemetry.MaxFields),
+		ticker:      time.NewTicker(time.Second / 60),
 	}
 
 	provider.updaters = [telemetry.MaxFields]func(*telemetry.TelemetryField){
@@ -79,6 +89,19 @@ func NewBeamNGProvider(ip string, port int) (*BeamNG, error) {
 	return provider, nil
 }
 
+func (b *BeamNG) Close() {
+	b.SDK.Close()
+}
+
+func (b *BeamNG) Name() string {
+	return NAME
+}
+
+func (b *BeamNG) IsAlive(timeout time.Duration) bool {
+	_, err := b.SDK.Update()
+	return err == nil
+}
+
 func (b *BeamNG) StopStream() {
 	if b.streamCancel == nil {
 		return
@@ -92,94 +115,114 @@ func (b *BeamNG) Stream() (<-chan telemetry.TelemetryData, error) {
 	ctx, b.streamCancel = context.WithCancel(context.Background())
 
 	// Start the stream
-	b.stream(ctx)
+	ch := b.stream(ctx)
 
-	return b.streamCh, nil
+	return ch, nil
 }
 
-func (b *BeamNG) Subscribe(requestFields map[int16]telemetry.FieldID) {
-	// NOTE: document how the Subscribe funtion works
-	slog.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
+// TODO: this function is exactly the same in BeamNG drive now, and I reckon it will be the same
+// In plenty other things. I should make it TelemetryData method
+func (i *BeamNG) subscribe(fields []telemetry.FieldID) []string {
+	newSubscriptions := make([]string, 0, telemetry.MaxFields)
 
-	b.data.ActiveBinds = make([]telemetry.BoundField, 0, len(requestFields))
+	i.mut.Lock()
+	defer i.mut.Unlock()
 
-	// First we must add the virtual fields
-	// we will add their dependencies and the primitives to a slice
-	pendingBinds := make([]telemetry.FieldID, telemetry.MaxFields)
-
-	for winID, id := range requestFields {
-		b.data.Values[id].IDs = append(b.data.Values[id].IDs, winID)
-
-		switch id {
-		case telemetry.RPMStateColour:
-			b.data.VirtualBinds = append(b.data.VirtualBinds, telemetry.NewRPMLights())
-		case telemetry.FCCurrentLap:
-			b.data.VirtualBinds = append(b.data.VirtualBinds,
-				telemetry.NewFuelCalculator(slog.Default().WithGroup("FUEL CALC")))
-		default:
-			// primitive telemetry field
-			pendingBinds = append(pendingBinds, id)
-		}
-	}
-
-	boundCheck := make(map[telemetry.FieldID]bool)
-
-	// Now that we know all the fields we need to bind we follow the binding procedure
-	for _, id := range pendingBinds {
-		// Check if we already bound this FieldID
-		if boundCheck[id] {
+	for _, id := range fields {
+		if i.boundFields[id] {
 			continue
 		}
 
-		binding := telemetry.BoundField{
+		i.data.ActiveBinds[id] = telemetry.BoundField{
 			ID: id,
 		}
-
-		b.data.ActiveBinds = append(b.data.ActiveBinds, binding)
-		boundCheck[id] = true
+		i.boundFields[id] = true
+		newSubscriptions = append(newSubscriptions, telemetry.FieldNames[id])
 	}
 
-	slog.Debug(fmt.Sprintf("Subscribed: %+v\n", b.data.ActiveBinds))
+	// unsubscribe from fields we many not need anymore
+	for key, bound := range i.boundFields {
+		if _, ok := i.data.ActiveBinds[key]; bound && !ok {
+			delete(i.data.ActiveBinds, key)
+			i.boundFields[key] = false
+		}
+	}
+
+	return newSubscriptions
+}
+
+func (b *BeamNG) Subscribe(requestFields []telemetry.FieldID) []string {
+	// NOTE: document how the Subscribe funtion works
+	slog.Debug(fmt.Sprintf("Len Req: %d\n", len(requestFields)))
+
+	// First we must add the virtual fields
+	// we will add their dependencies and the primitives to a slice
+	toBind := make([]telemetry.FieldID, telemetry.MaxFields)
+
+	b.mut.Lock()
+	for _, id := range requestFields {
+		switch id {
+		case telemetry.RPMStateColour:
+			rpmLights := telemetry.NewRPMLights()
+			b.data.VirtualBinds[rpmLights.Name()] = rpmLights
+			toBind = append(toBind, rpmLights.EnsureSubscribed()...)
+		case telemetry.FCCurrentLap:
+			fuelCalc := telemetry.NewFuelCalculator(b.logger.WithGroup("FUEL CALC"))
+			b.data.VirtualBinds[fuelCalc.Name()] = fuelCalc
+			toBind = append(toBind, fuelCalc.EnsureSubscribed()...)
+		default:
+			// primitive telemetry field
+			toBind = append(toBind, id)
+		}
+	}
+	b.mut.Unlock()
+
+	newSubs := b.subscribe(toBind)
+
+	slog.Debug(fmt.Sprintf("Subscribed: %+v\n", toBind))
+
+	return newSubs
 }
 
 // Internal
 
-func (b *BeamNG) readData() {
-	slog.Debug("READING THIS DATA")
-	// BUG: getting stuck in here
-	err := b.SDK.ReadData()
-	slog.Debug("THE DATA WAS READ")
+func (b *BeamNG) readData() error {
+	ogSnapshot, err := b.SDK.Update()
 	if err != nil {
 		slog.Error("Error getting data", "error", err)
-		return
+		return err
 	}
 
 	b.mut.Lock()
+	b.og = ogSnapshot
 	defer b.mut.Unlock()
 
 	// Read 1 to 1 data
-	slog.Debug("Reading normal data binds")
 	for _, bind := range b.data.ActiveBinds {
-		slog.Debug("Current bind: ", "id", bind.ID)
 		b.updaters[bind.ID](&b.data.Values[bind.ID])
 	}
 
 	// Set up virtual binds
-	slog.Debug("Entering virtual binds loop")
 	for _, vBind := range b.data.VirtualBinds {
 		// NOTE: delete the logs here, they are really bad
-		slog.Debug("Processing virtual binds")
 		vBind.Process(b.data)
 	}
 
 	b.data.PenultimateDataPoll = b.data.LastDataPoll
 	b.data.LastDataPoll = time.Now()
+
+	return nil
 }
 
-func (b *BeamNG) stream(ctx context.Context) {
+func (b *BeamNG) stream(ctx context.Context) <-chan telemetry.TelemetryData {
 	b.data.InitialTime = time.Now()
+	outCh := make(chan telemetry.TelemetryData)
+	b.wg.Add(1)
 
 	go func() {
+		defer b.wg.Done()
+		defer close(outCh)
+
 		for {
 			// Explicitly intercept cancellation
 			select {
@@ -188,24 +231,27 @@ func (b *BeamNG) stream(ctx context.Context) {
 			default:
 			}
 
-			// NOTE: add a method to check if there's data available, or make this happen
-
 			select {
 			case <-ctx.Done():
 				return
 			case <-b.ticker.C:
-				slog.Debug("READING DATA")
-				b.readData()
-				slog.Debug("READ DATA")
+				err := b.readData()
+				if err != nil {
+					if b.streamCancel != nil {
+						b.streamCancel()
+					}
+				}
 
 				// Publish data
 				select {
-				case b.streamCh <- *b.data:
-					slog.Debug("PUBLISHED DATA")
+				case outCh <- *b.data:
+					// Successfuly read and sent data
 				default:
 					// skip this data, don't allow publishers to lag behind
 				}
 			}
 		}
 	}()
+
+	return outCh
 }

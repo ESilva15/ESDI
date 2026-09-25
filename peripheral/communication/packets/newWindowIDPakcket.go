@@ -18,3 +18,22 @@ func (pkt *NewWindowID) Validate() bool {
 
 	return true
 }
+
+type HealthCheck struct {
+	StartMarker byte
+	Response    byte
+	EndMarker   byte
+}
+
+func (pkt *HealthCheck) Validate() bool {
+	if pkt.StartMarker != constvar.StartOfText ||
+		pkt.EndMarker != constvar.EndOfText {
+		return false
+	}
+
+	if pkt.Response != 0x06 {
+		return false
+	}
+
+	return true
+}

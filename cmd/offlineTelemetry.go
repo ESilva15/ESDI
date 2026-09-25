@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"esdi/logger"
 	esdi "esdi/oldEsdi"
 
 	// "github.com/ESilva15/goirsdk"
@@ -10,14 +9,14 @@ import (
 )
 
 func offlineTelemetryCmdAction(cmd *cobra.Command, args []string) {
-	log := logger.GetInstance()
+	// log := logger.GetInstance()
 
 	ddPort, _ := cmd.Flags().GetString("port")
 	inFile, _ := cmd.Flags().GetString("in")
 	outFile, _ := cmd.Flags().GetString("out")
 	sessionFile, _ := cmd.Flags().GetString("session")
 
-	log.Printf("Called `offline`:\nPort: '%s'\nSource: '%s'\nOutFile: '%s'\n", ddPort, inFile, outFile)
+	// log.Printf("Called `offline`:\nPort: '%s'\nSource: '%s'\nOutFile: '%s'\n", ddPort, inFile, outFile)
 
 	esdi.RunOfflineTelemetry(ddPort, inFile, outFile, sessionFile)
 }

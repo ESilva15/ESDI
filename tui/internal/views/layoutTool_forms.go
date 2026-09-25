@@ -3,7 +3,7 @@ package views
 import (
 	"fmt"
 
-	"esdi/cdashdisplay"
+	"esdi/devices/cdashdisplay"
 	"esdi/telemetry"
 
 	"github.com/rivo/tview"

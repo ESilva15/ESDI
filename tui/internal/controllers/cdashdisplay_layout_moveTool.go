@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"esdi/devices/cdashdisplay"
 	helper "esdi/helpers"
 
 	"github.com/gdamore/tcell/v2"
@@ -43,40 +44,68 @@ func keyToVector(r rune) (helper.Vector, bool) {
 }
 
 func (lc *LayoutController) handleMovementCapture(idx int16,
-	ev *tcell.EventKey) *tcell.EventKey {
+	ev *tcell.EventKey,
+) *tcell.EventKey {
 	vec, ok := keyToVector(ev.Rune())
 	if !ok {
 		return nil
 	}
 
-	err := lc.DevService.MoveWindow(idx, &vec)
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.NAME
+		return nil
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.NAME
+		return nil
+	}
+	// ---
+
+	err = display.MoveWindow(idx, &vec)
 	if err != nil {
 		lc.Messages <- "failed to move window: " + err.Error() + "\n"
 		return nil
 	}
 
 	// Success - update the form
-	window := lc.DevService.CDash.State.Layout.Windows[idx]
+	window := display.State.Layout.Windows[idx]
 	lc.LayoutToolView.UpdateFormView(idx, window)
 
 	return nil
 }
 
 func (lc *LayoutController) handleResizeCapture(idx int16,
-	ev *tcell.EventKey) *tcell.EventKey {
+	ev *tcell.EventKey,
+) *tcell.EventKey {
 	vec, ok := keyToVector(ev.Rune())
 	if !ok {
 		return nil
 	}
 
-	err := lc.DevService.ResizeWindow(idx, &vec)
+	// Acquire the cdashdisplay
+	displayIF, err := lc.DevService.GetPeripheral(cdashdisplay.NAME)
+	if err != nil {
+		lc.Messages <- "failed to get " + cdashdisplay.NAME
+		return nil
+	}
+	display, ok := displayIF.(*cdashdisplay.CDashDisplay)
+	if !ok {
+		lc.Messages <- "failed to acquire " + cdashdisplay.NAME
+		return nil
+	}
+	// ---
+
+	err = display.ResizeWindow(idx, &vec)
 	if err != nil {
 		lc.Messages <- "failed to resize window: " + err.Error() + "\n"
 		return nil
 	}
 
 	// Success - update the form
-	window := lc.DevService.CDash.State.Layout.Windows[idx]
+	window := display.State.Layout.Windows[idx]
 	lc.LayoutToolView.UpdateFormView(idx, window)
 
 	return nil

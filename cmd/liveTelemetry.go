@@ -1,20 +1,17 @@
 package cmd
 
 import (
-	"esdi/logger"
 	esdi "esdi/oldEsdi"
 
 	"github.com/spf13/cobra"
 )
 
 func liveTelemetryCmdAction(cmd *cobra.Command, args []string) {
-	log := logger.GetInstance()
-
 	ddPort, _ := cmd.Flags().GetString("port")
 	outputFile, _ := cmd.Flags().GetString("out")
 	sessionFile, _ := cmd.Flags().GetString("session")
 
-	log.Printf("Called `live`:\nPort: '%s'\nOutFile: '%s'\n", ddPort, outputFile)
+	// log.Printf("Called `live`:\nPort: '%s'\nOutFile: '%s'\n", ddPort, outputFile)
 
 	esdi.RunLiveTelemetry(ddPort, outputFile, sessionFile)
 }

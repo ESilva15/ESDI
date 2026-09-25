@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"esdi/config"
+	"esdi/devices/uidevice"
 	"esdi/providers"
 	"esdi/services"
 	"esdi/telemetry"
@@ -17,7 +18,7 @@ import (
 
 type StreamingCtrl struct {
 	*Controller
-	Service     *services.CDashService
+	DevService  *services.DeviceService
 	StreamView  *views.StreamToolView
 	Messages    chan string
 	Internal    chan string
@@ -32,7 +33,7 @@ type StreamingCtrl struct {
 
 func NewStreamingCtrl(
 	base *Controller,
-	serCDash *services.CDashService,
+	devService *services.DeviceService,
 	serTelem *services.TelemetryService,
 ) *StreamingCtrl {
 	// NOTE: looks sus, put this somewhere also. Not very good in here
@@ -44,25 +45,18 @@ func NewStreamingCtrl(
 
 	ctrl := &StreamingCtrl{
 		Controller:  base,
-		Service:     serCDash,
+		DevService:  devService,
 		TelemServ:   serTelem,
 		Messages:    make(chan string, 10),
 		Internal:    make(chan string, 10),
 		TelemetryCh: make(chan telemetry.TelemetryData, 1),
 		Run:         false,
 		StreamView:  streamView,
-		isRunning:   false,
 	}
 
 	ctrl.registerHooks()
-	ctrl.subscribeListeners()
-	go ctrl.listenToUIStream()
 
 	return ctrl
-}
-
-func (sc *StreamingCtrl) subscribeListeners() {
-	sc.TelemetryCh = sc.TelemServ.SubscribeListener("UI", 1)
 }
 
 func (sc *StreamingCtrl) registerHooks() {
@@ -94,33 +88,16 @@ func (sc *StreamingCtrl) registerHooks() {
 	}
 }
 
+// TODO: this isn't the startstop method/action anymore. It should show up the stream
+// visualizer - TODO: add metrics to the visualizer too, instead of just data
 func (sc *StreamingCtrl) StartStop() {
-	if sc.isRunning {
-		slog.Info("stopping stream")
-
-		sc.TelemServ.StopStream()
-		sc.Service.StopStream()
-
-		sc.isRunning = false
-		return
+	dev, err := sc.DevService.GetPeripheral(uidevice.NAME)
+	if err == nil {
+		if uiDev, ok := dev.(*uidevice.UIDevice); ok {
+			sc.TelemetryCh = uiDev.DataChannel()
+			go sc.listenToUIStream()
+		}
 	}
-
-	// stream is not running, we have to start it now
-	// NOTE:
-	// Subscribe the only existing device - needs to be discovered by now
-	slog.Debug("setting the data stream for cdash")
-	sc.Service.SetTelemetryChannel(sc.TelemServ.SubscribeListener("cdash", 1))
-
-	slog.Debug("starting to stream data again")
-	sc.Service.StartStream()
-
-	slog.Debug("starting the stream")
-	sc.TelemServ.StartStream()
-
-	slog.Debug("setting local control variables")
-	sc.isRunning = true
-
-	slog.Debug("starting stream")
 }
 
 func (sc *StreamingCtrl) parseStreamUpdateForm(form *views.StreamOptionsView) (*models.StreamOptions, error) {
@@ -155,16 +132,8 @@ func (sc *StreamingCtrl) updateStream() {
 // Performance reasoning: this is not used during the high frequency data transmission
 // so we can get away with using a map for convenience here
 func (sc *StreamingCtrl) SetInternalState() {
-	fields := make(map[int16]telemetry.FieldID, len(sc.Service.CDash.State.Layout.Windows))
-
-	for _, w := range sc.Service.CDash.State.Layout.Windows {
-		fieldID, _ := telemetry.GetFieldID(w.UIData.TelemetryField)
-		fields[w.UIData.IDX] = fieldID
-	}
-
-	sc.TelemServ.SubscribeToFields(fields)
-
-	sc.Messages <- fmt.Sprintf("Subscribed Fields: %+v [%d]\n", fields, len(fields))
+	// fields := sc.TelemServ.SubscribeToAllFields()
+	// sc.Messages <- fmt.Sprintf("Subscribed to fields: %+v\n", fields)
 }
 
 func (sc *StreamingCtrl) listenToUIStream() {
@@ -176,8 +145,11 @@ func (sc *StreamingCtrl) listenToUIStream() {
 		}
 		isDrawing.Store(true)
 
+		// Capture locally
+		telemetryMsg := msg
+
 		sc.App.QueueUpdateDraw(func() {
-			sc.StreamView.Visualizer.Update(&msg)
+			sc.StreamView.Visualizer.Update(&telemetryMsg)
 			isDrawing.Store(false)
 		})
 	}
