@@ -31,7 +31,7 @@ func (t *TelemetryService) onFindProvider(prov telem.TelemetryProvider) {
 	ch := t.StartStream()
 	t.startedStreaming(ch)
 
-	t.Messages <- "provider switch completed"
+	t.Messages <- "provider switch completed\n"
 }
 
 func (t *TelemetryService) onProviderStopsMidStream() {

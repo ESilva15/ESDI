@@ -107,6 +107,11 @@ func (ds *DeviceService) StopStream() {
 	ds.streamCancel = nil
 }
 
+func (ds *DeviceService) SetPeripheralUserConfigMode(pname string) error {
+	ds.PSS.setDeviceBeingConfiguredByUser(pname)
+	return nil
+}
+
 // SetTelemetryChannel sets the TelemCh to the passed channel
 func (ds *DeviceService) SetTelemetryChannel(ch <-chan telemetry.TelemetryData) {
 	ds.TelemCh = ch

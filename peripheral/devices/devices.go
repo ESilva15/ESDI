@@ -1,13 +1,16 @@
 // Package devices will define the available devices we can communicate with
 package devices
 
-import "esdi/peripheral/types"
+import (
+	"esdi/constants"
+	"esdi/peripheral/types"
+)
 
 // IDs for our devices. They need to be correctly mapped on the devices
 // themselves so we can discover them
 const (
 	CDashDisplayDevID   = 0x01
-	CDashDisplayDevName = "CDashDisplay"
+	CDashDisplayDevName = constants.CDashDisplay
 	ESBtnBoxDevID       = 0x02
 )
 

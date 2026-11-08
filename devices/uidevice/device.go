@@ -1,6 +1,7 @@
 package uidevice
 
 import (
+	"esdi/constants"
 	"esdi/peripheral"
 	"esdi/telemetry"
 )
@@ -9,7 +10,7 @@ type UIDevice struct {
 	dataChan chan telemetry.TelemetryData
 }
 
-const NAME = "UIView"
+const NAME = constants.UIView
 
 func NewUIDevice() (peripheral.Peripheral, error) {
 	return &UIDevice{

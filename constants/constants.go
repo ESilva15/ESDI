@@ -1,5 +1,11 @@
 package constants
 
+// Peripheral Names
+const (
+	CDashDisplay = "CDashDisplay"
+	UIView       = "UIView"
+)
+
 // Provider Names
 const (
 	IRacingProviderName = "iRacing"

@@ -30,6 +30,7 @@ const (
 	DeviceIsConnected
 	DeviceIsUnconfigured
 	DeviceIsConfiguring
+	DeviceBeingConfiguredByUser
 	DeviceIsConfigured
 	DeviceIsStreaming
 )
@@ -50,6 +51,8 @@ func DeviceStateToStr(state DeviceState) string {
 		return "DeviceIsUnconfigured"
 	case DeviceIsConfiguring:
 		return "DeviceIsConfiguring"
+	case DeviceBeingConfiguredByUser:
+		return "DeviceBeingConfiguredByUser"
 	case DeviceIsConfigured:
 		return "DeviceIsConfigured"
 	case DeviceIsStreaming:
@@ -294,6 +297,14 @@ func (pss *PeripheralStateStore) setDeviceIsConfiguring(pname string) {
 	pss.store[pname].State = DeviceIsConfiguring
 }
 
+func (pss *PeripheralStateStore) setDeviceBeingConfiguredByUser(pname string) {
+	pss.Logger.Info("device is being configured by the user", "device", pname)
+	pss.mu.Lock()
+	defer pss.mu.Unlock()
+
+	pss.store[pname].State = DeviceBeingConfiguredByUser
+}
+
 func (pss *PeripheralStateStore) setDeviceConfigured(pname string) {
 	pss.Logger.Info("device is configured and ready for data", "device", pname)
 
@@ -457,6 +468,8 @@ func (pss *PeripheralStateStore) HandleDeviceState() {
 		case DeviceIsConfigured:
 			// Nothing to do here
 			pss.handleDeviceIsConfigured(pName)
+		case DeviceBeingConfiguredByUser:
+			// Nothing to do here, need to wait for the user to finish
 		case DeviceIsStreaming:
 			//
 		case DeviceReconnected:

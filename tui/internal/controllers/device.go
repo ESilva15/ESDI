@@ -77,7 +77,8 @@ func (mc *DeviceController) AddDeviceAPIListItems() {
 				"layout-tool",
 				mc.LayoutCtrl.LayoutToolView.Flex,
 			)
-			mc.App.SetFocus(mc.LayoutCtrl.LayoutToolView.LayoutTree.Tree)
+
+			mc.LayoutCtrl.OnLayoutToolOpen()
 		})
 	mc.DeviceAPIView.DevAPIList.
 		AddItem("stream", "stream data to the display", func() {

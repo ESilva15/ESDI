@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"esdi/constants"
 	"esdi/devices/cdashdisplay"
 	"esdi/services"
 	"esdi/tui/internal/views"
@@ -584,4 +585,22 @@ func (lc *LayoutController) changeSelectedLoadout() {
 	lc.LayoutToolView.LayoutActions.LayoutSelection = layoutSelection
 	lc.LayoutToolView.ShowLayoutList()
 	lc.App.SetFocus(lc.LayoutToolView.LayoutActions.LayoutSelection.Tree)
+}
+
+// ##### Event Listener
+// OnLayoutToolOpen we need to change focus to the layout tool and move the
+// device out of streaming mode or whatever.
+// - start by making sure that device is able to be configured
+func (lc *LayoutController) OnLayoutToolOpen() {
+	// Get the device from somewhere
+	cdash, err := lc.DevService.GetPeripheral(constants.CDashDisplay)
+	if err != nil {
+		lc.Messages <- "failed to acquire CDashDisplay " + err.Error() + "\n"
+		return
+	}
+
+	lc.DevService.SetPeripheralUserConfigMode(cdash.Name())
+
+	// Change focus to the layout tree
+	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
 }
