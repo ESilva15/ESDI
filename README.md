@@ -8,47 +8,54 @@ available peripheral: [CDashDisplay](https://github.com/ESilva15/CDashDisplay).
 If anyone finds this project useful for anything at all it would be pretty cool.
 My main goal is to learn and have some fun.
 
-Currently it can read from a `.ibt` file or live telemetry from iRacing.
-It can only be ran from the terminal:
-`go run . offline -p <port> -i <ibt-file>`
+
+## Usage
+To launch the software, compile (TBD) or just run it with: `go run . tui`
+
+You should see something like this:
 ![example output in the terminal](./images/terminal_output.png)
 
+The current behaviour is very opaque.
 
-or to view the live data:
-`go run . live -p <port>`
+What is happening in the background is the software looks up for the configured
+devices and for available telemetry providers.
+
+Once it finds a device, in this case the CDashDisplay, it will try to configure 
+it against the available telemetry provider.
+
+After configuring it it will automatically start streaming data from the 
+telemetry provider into the CDashDisplay.
+
+Using the `arrows` you can navigate to the `stream` item on the list and then
+go to the update button and press `s` to see the output on the terminal.
+
+I upgraded the backend significantly and there's plenty of work to be done on
+the frontend. I know its quite bad right now.
 
 
+## Compatibility:
 Games implemented so far:
 - [iRacing](https://www.iracing.com/) using the [goirsdk](https://github.com/ESilva15/goirsdk)
+- [BeamNG.drive](https://www.beamng.com/game/) using the [gobngsdk](https://github.com/ESilva15/gobngsdk)
+
+Peripherals:
+- [CDashDisplay](https://github.com/ESilva15/CDashDisplay)
 
 <!-- Games being implemented: -->
-<!-- - [BeamNG.drive](https://www.beamng.com/game/) using the [gobngsdk](https://github.com/ESilva15/gobngsdk) -->
 <!---->
 <!-- Games to be implemented: -->
 <!-- - [Assetto Corsa](https://assettocorsa.gg/) -->
 
 
-## Roadmap
-- [X] Implement the interface for a data source
-- [ ] Configuration of the peripherals via ESDI
-- [ ] Detection of the display
-- [ ] LapTime Calculator
-- [ ] A very long list useful stuff like flags, position, more info about
-other drivers, track conditions and so on so forth
-- [ ] Telemetry analysis tool
-- [ ] Better user interface
-
-
 ## Development
 ### Mockservers
-To mock [BeamNG.drive](https://www.beamng.com/game/), I built 
-[BeaMNGMockOg](https://github.com/ESilva15/BeamNGMockOg) (should have though longer
-about the name).
-You create a recording by launching the BeamNG and then launching the mockserver with:
-`BeamNGMockOg record -a 127.0.0.1 -p 4443 -o output.bin`.
+I'm using a mockserver developed by myself that pretty much mimicks the telemetry
+output from the actual simulators. It uses the SDKs I developed to do so with the
+added bonus of being able to run the project on Linux and mainly develop it.
 
-To replay the recording: 
-`BeamNGMockOg replay [--loop] -a 127.0.0.1 -p 4443 -i input.bin`
+Just go to [TelemetryMockserver on GitHub](https://github.com/ESilva15/TelemetryMockserver) and follow
+the instructions there.
+
 
 ### Troubleshooting
 #### Can't see BeamNG data coming through
@@ -74,4 +81,3 @@ pprof:
 ## Shameless begging
 Hey, doesn't hurt to try, its free either way:
 [Buy me a coffee!](buymeacoffee.com/ESilva_15)
-
