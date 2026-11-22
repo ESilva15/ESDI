@@ -3,11 +3,13 @@ package controllers
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"esdi/constants"
 	"esdi/devices/cdashdisplay"
 	"esdi/services"
+	tviewhelpers "esdi/tui/internal/tview_helpers"
 	"esdi/tui/internal/views"
 
 	helper "esdi/helpers"
@@ -23,6 +25,8 @@ type LayoutController struct {
 	Messages       chan string
 	DevService     *services.DeviceService
 	MoveToolState  *windowManipState
+	// TODO: Think about this. I would like to be able to call the functions with the path
+	// If I do create a handler it could be similar, but right now I don't like it
 	SelectedLayout string // NOTE: This should be a struct to handle its own things
 	// TODO: create a filter to select the layout
 	// filter telemetry provider, then filter vehicle in use and so on
@@ -51,6 +55,8 @@ func (lc *LayoutController) registerHooks() {
 		func(ev *tcell.EventKey) *tcell.EventKey {
 			switch ev.Key() {
 			case tcell.KeyEsc:
+				// This is where we leave the LayoutTool view
+				lc.OnLayoutToolClose()
 				lc.OnExit()
 			}
 
@@ -72,10 +78,10 @@ func (lc *LayoutController) registerHooks() {
 				// Save the current layout
 				lc.Messages <- "calling save layout\n"
 				lc.saveLayout()
-			case 'l':
-				// Load the layout
-				lc.Messages <- "calling load layout\n"
-				lc.loadLayout()
+			case 'o':
+				// Open a layout - at the start there's no layout loaded at all
+				lc.Messages <- "calling open layout\n"
+				lc.openLayoutSelectionModal()
 			case 'u':
 				// Unload the layout
 				lc.Messages <- "calling unload layout\n"
@@ -406,11 +412,16 @@ func (lc *LayoutController) loadLayout() {
 	}
 	// ---
 
+	// Start by clearing the view whether it has things
+	lc.LayoutToolView.Clear()
+	// Also clear the screen again????
+	_ = display.Reset()
+
 	// TODO: This can happen here, but we need to address how the layout is gotten
 	// THE UI SHOULD SET STATE IN THE SERVICES ONLY
 	err = display.LoadLayout(lc.SelectedLayout)
 	if err != nil {
-		lc.Messages <- "failed to load layout: " + err.Error()
+		lc.Messages <- fmt.Sprintf("failed to load layout: %+v", err)
 		return
 	}
 
@@ -436,6 +447,61 @@ func (lc *LayoutController) unloadLayout() {
 		lc.Logger.Error(fmt.Sprintf("Failed to unload layout: %+v", err))
 		return
 	}
+}
+
+func (lc *LayoutController) closeLayoutSelectinModal() {
+	lc.App.SetRoot(lc.Root, true)
+	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
+}
+
+func (lc *LayoutController) openLayoutForEditing(lPath string) {
+	lc.Messages <- fmt.Sprintf(" Select layout: %s\n", lPath)
+	lc.SelectedLayout = lPath
+	lc.loadLayout()
+}
+
+// openLayoutSelectionModal will open the layout selection so the user can navigate
+// the layout dir
+func (lc *LayoutController) openLayoutSelectionModal() error {
+	layoutsDir, err := filepath.Abs(constants.CDashDisplayLayoutsDir)
+	if err != nil {
+		lc.Messages <- "Failed to resolve abs path of layouts dir\n"
+		return err
+	}
+
+	layouts, err := buildFileTree(layoutsDir)
+	if err != nil {
+		lc.Messages <- "Failed to load layouts\n"
+		return err
+	}
+
+	onSelect := func(node *tview.TreeNode) {
+		lc.closeLayoutSelectinModal()
+		// Yeah... Doesn't really matter, not like I'm gonna get bit flipped
+		lc.openLayoutForEditing(node.GetReference().(string))
+	}
+
+	modal := views.FileSelectionModal(layouts, onSelect)
+	modal.SetInputCapture(
+		func(ev *tcell.EventKey) *tcell.EventKey {
+			switch ev.Key() {
+			case tcell.KeyEsc:
+				// exit - this shouldn't select a layout file I reckon
+				lc.closeLayoutSelectinModal()
+			}
+
+			return ev
+		},
+	)
+
+	lc.App.SetRoot(tviewhelpers.CreateModal(
+		lc.Root,
+		modal,
+		60,
+		40,
+	), true)
+
+	return nil
 }
 
 func (lc *LayoutController) saveLayout() {
@@ -587,20 +653,63 @@ func (lc *LayoutController) changeSelectedLoadout() {
 	lc.App.SetFocus(lc.LayoutToolView.LayoutActions.LayoutSelection.Tree)
 }
 
+// TODO: Should OnLayoutToolOpen and OnLayoutToolClose do what they do?
+// Setting the device into its modes should be the job of device manager
+// which I do call from here which is weird IMO.
+
 // ##### Event Listener
 // OnLayoutToolOpen we need to change focus to the layout tool and move the
 // device out of streaming mode or whatever.
 // - start by making sure that device is able to be configured
+// TODO: right now, when we hit reset we need to wait for CDash to do its thing
+// should do that async, maybe add a loading information view so that UI doesn't
+// feel clunky
 func (lc *LayoutController) OnLayoutToolOpen() {
 	// Get the device from somewhere
-	cdash, err := lc.DevService.GetPeripheral(constants.CDashDisplay)
+	peripheral, err := lc.DevService.GetPeripheral(constants.CDashDisplay)
 	if err != nil {
 		lc.Messages <- "failed to acquire CDashDisplay " + err.Error() + "\n"
 		return
 	}
 
-	lc.DevService.SetPeripheralUserConfigMode(cdash.Name())
+	// Set the device into user configuration mode
+	lc.DevService.SetPeripheralUserConfigMode(peripheral.Name())
+
+	// TODO: for example: up to this point it should be up to device service.
+	// The device service should be setting the device into config mode and
+	// returning a pointer so we can use it
+	// If everything went ok until now we can cast the device to access its API
+	cdash := peripheral.(*cdashdisplay.CDashDisplay)
+
+	// Show the loaded layout
+	lc.Messages <- "current layout: " + cdash.GetCurrentLayoutPath() + "\n"
 
 	// Change focus to the layout tree
 	lc.App.SetFocus(lc.LayoutToolView.LayoutTree.Tree)
+
+	// We need to load the layout into the tree!
+	// First we should reset the device tho
+	err = cdash.Reset()
+	if err != nil {
+		// TODO: Should set the device as unconnected or something like that IMO
+		lc.Messages <- "failed to reset cdash while going into configuration mode\n"
+		return
+	}
+
+	// Now we should be able to load some of the layout files - need to update
+	// the view I reckon
+}
+
+// OnLayoutToolClose should be executed when we leave the layout tool and bring
+// the display back to its normal operation mode
+func (lc *LayoutController) OnLayoutToolClose() {
+	// Get the device from somewhere
+	peripheral, err := lc.DevService.GetPeripheral(constants.CDashDisplay)
+	if err != nil {
+		lc.Messages <- "failed to acquire CDashDisplay " + err.Error() + "\n"
+		return
+	}
+
+	// Set the peripheral as unconfigured
+	lc.DevService.SetPeripheralUnconfigured(peripheral.Name())
 }

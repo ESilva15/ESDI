@@ -37,10 +37,20 @@ func NewLayoutTreeView() *LayoutTreeView {
 	// Inject SelectedFunc
 
 	// Create a root element
-	rootElem := tview.NewTreeNode(".")
-	view.Tree.SetRoot(rootElem).SetCurrentNode(rootElem)
+	view.emptyTree()
 
 	return view
+}
+
+func (lt *LayoutTreeView) emptyTree() {
+	rootElem := tview.NewTreeNode(".")
+	lt.Tree.SetRoot(rootElem).SetCurrentNode(rootElem)
+}
+
+func (lt *LayoutTreeView) Clear() {
+	lt.Tree.GetRoot().ClearChildren()
+	// Dunno if this is correct, but here it is
+	lt.emptyTree()
 }
 
 func (lt *LayoutTreeView) AddWindow(win *cdashdisplay.DesktopUIWindow) error {
@@ -66,9 +76,18 @@ type LayoutToolActionView struct {
 }
 
 func NewLayoutToolActionView() *LayoutToolActionView {
-	view := &LayoutToolActionView{
-		CreateWindowView: nil,
-	}
+	view := &LayoutToolActionView{}
+
+	view.emptyLayoutToolActionView()
+
+	return view
+}
+
+func (ltav *LayoutToolActionView) addEmptyPage() {
+}
+
+func (ltav *LayoutToolActionView) emptyLayoutToolActionView() {
+	ltav.CreateWindowView = nil
 
 	// Create an empty page for it
 	emptyPage := tview.NewTextView().
@@ -76,11 +95,15 @@ func NewLayoutToolActionView() *LayoutToolActionView {
 		SetChangedFunc(func() {}) // Need to hook here
 
 	emptyPage.SetBorder(true).SetTitle("-- Tool Area --")
-	fmt.Fprintf(emptyPage, "No tool selected")
+	_, _ = fmt.Fprintf(emptyPage, "No tool selected")
 
-	view.Pages = tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
+	ltav.Pages = tview.NewPages().AddPage(EmptyPageName, emptyPage, true, true)
+}
 
-	return view
+func (ltav *LayoutToolActionView) Clear() {
+	for _, p := range ltav.Pages.GetPageNames(false) {
+		ltav.Pages.RemovePage(p)
+	}
 }
 
 type LayoutToolView struct {
@@ -109,6 +132,11 @@ func NewLayoutToolView() *LayoutToolView {
 		AddItem(view.LayoutActions.Pages, 0, 5, false)
 
 	return view
+}
+
+func (ltv *LayoutToolView) Clear() {
+	ltv.LayoutTree.Clear()
+	ltv.LayoutActions.Clear()
 }
 
 func (ltv *LayoutToolView) WindowCreatedSuccessfuly(

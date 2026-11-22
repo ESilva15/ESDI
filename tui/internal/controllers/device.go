@@ -163,6 +163,7 @@ func (mc *DeviceController) Main() error {
 	mc.setAppEventCapture()
 
 	mc.App.SetRoot(mc.DeviceAPIView.MainFlex, true)
+	mc.Root = mc.DeviceAPIView.MainFlex
 	mc.App.SetFocus(mc.DeviceAPIView.DevAPIList.List)
 
 	return err

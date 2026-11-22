@@ -100,7 +100,8 @@ func (s *FString32) UnmarshalYAML(value *yaml.Node) error {
 }
 
 type CDashState struct {
-	Layout *LayoutTree
+	LayoutPath *string
+	Layout     *LayoutTree
 }
 
 func NewCDashState() *CDashState {
@@ -141,6 +142,18 @@ func NewCDashDisplay() (*CDashDisplay, error) {
 		FailedSendsConsecutiveLimit: 5,
 	}, nil
 }
+
+// Getters
+// GetCurrentLayoutPath returns the path to the currently loaded layout
+func (cds *CDashDisplay) GetCurrentLayoutPath() string {
+	if cds.State.LayoutPath != nil {
+		return *cds.State.LayoutPath
+	}
+
+	return ""
+}
+
+// End of Getters
 
 func (cds *CDashDisplay) Close() error {
 	// if cds.WT != nil {
@@ -361,8 +374,8 @@ func (d *CDashDisplay) SaveLayout(outputPath string) error {
 	return nil
 }
 
-func (d *CDashDisplay) LoadLayout(layoutName string) error {
-	data, err := os.ReadFile(path.Join(layoutsDir, layoutName))
+func (d *CDashDisplay) LoadLayout(layoutPath string) error {
+	data, err := os.ReadFile(layoutPath)
 	if err != nil {
 		return err
 	}
@@ -380,6 +393,8 @@ func (d *CDashDisplay) LoadLayout(layoutName string) error {
 			return err
 		}
 	}
+
+	d.State.LayoutPath = &layoutPath
 
 	return nil
 }
@@ -401,6 +416,8 @@ func (d *CDashDisplay) UnloadLayout() error {
 		slog.Debug(fmt.Sprintf("= Removing %d ==============================================",
 			w.UIData.IDX))
 	}
+
+	d.State.LayoutPath = nil
 
 	return nil
 }

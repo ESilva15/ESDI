@@ -7,7 +7,7 @@ import (
 )
 
 func (cds *CDashDisplay) setupForIracing() error {
-	err := cds.LoadLayout("layout.yaml")
+	err := cds.LoadLayout("./layouts/layout.yaml")
 	if err != nil {
 		return err
 	}
@@ -16,12 +16,16 @@ func (cds *CDashDisplay) setupForIracing() error {
 }
 
 func (cds *CDashDisplay) setupForBeamNG() error {
-	err := cds.LoadLayout("beamng.yaml")
+	err := cds.LoadLayout("./layouts/beamng.yaml")
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (cds *CDashDisplay) Reset() error {
+	return cds.reset()
 }
 
 func (cds *CDashDisplay) Setup(provider string) error {

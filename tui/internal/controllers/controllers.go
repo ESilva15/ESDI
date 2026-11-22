@@ -11,6 +11,8 @@ import (
 type Controller struct {
 	Logger *slog.Logger
 	App    *tview.Application
+	// TODO: Need to create my own App struct so I can keep my references
+	Root tview.Primitive
 }
 
 func ListFormButtonLabels(form *tview.Form) []string {
