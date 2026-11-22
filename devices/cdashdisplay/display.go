@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -355,8 +354,7 @@ func (d *CDashDisplay) ResizeWindow(wID int16, delta *helper.Vector) error {
 }
 
 func (d *CDashDisplay) SaveLayout(outputPath string) error {
-	file, err := os.OpenFile(path.Join(layoutsDir, outputPath),
-		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
+	file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
 	if err != nil {
 		return err
 	}
